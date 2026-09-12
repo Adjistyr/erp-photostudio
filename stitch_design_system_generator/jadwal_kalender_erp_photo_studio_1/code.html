@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Order &amp; Booking - ERP Photo Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-tint": "#1c4bea", background: "#f9f9fa", "on-secondary": "#ffffff", "chart-profit": "#00bc7d", destructive: "#e7000b", primary: "#0032b6", "primary-fixed-dim": "#b9c3ff", "secondary-container": "#dee0e0", error: "#ba1a1a", "secondary-fixed-dim": "#c4c7c7", "surface-container-high": "#e8e8e9", "error-container": "#ffdad6", "surface-container": "#eeeeef", "secondary-fixed": "#e1e3e3", "surface-variant": "#e2e2e3", muted: "#f1f3f3", "on-secondary-fixed-variant": "#444748", "on-background": "#1a1c1d", "on-error-container": "#93000a", border: "#e3e7e8", "on-primary-fixed-variant": "#0035be", "inverse-on-surface": "#f1f0f2", tertiary: "#0038a7", "destructive-subtle-foreground": "#bc0e16", "tertiary-container": "#004cdb", "tertiary-fixed-dim": "#b6c4ff", "outline-variant": "#c4c5d8", "chart-expense": "#ff2057", "destructive-subtle": "#ffe9e5", "surface-container-low": "#f4f3f4", "on-surface-variant": "#434655", sidebar: "#f9fbfb", "on-tertiary-container": "#c6d1ff", "inverse-primary": "#b9c3ff", outline: "#747687", success: "#009966", "surface-bright": "#f9f9fa", "inverse-surface": "#2f3132", "success-subtle": "#dcf8ea", "on-tertiary": "#ffffff", "on-primary": "#ffffff", "on-error": "#ffffff", "on-surface": "#1a1c1d", "on-primary-fixed": "#001356", "on-tertiary-fixed-variant": "#003baf", "sidebar-border": "#e3e7e8", "muted-foreground": "#67787c", "on-tertiary-fixed": "#00164e", "tertiary-fixed": "#dce1ff", secondary: "#5c5f5f", "chart-studio": "#fe9a00", "primary-container": "#1447e6", "on-secondary-fixed": "#191c1d", "on-primary-container": "#c9d0ff", "chart-retail": "#155dfc", "warning-subtle-foreground": "#8c4a00", surface: "#f9f9fa", "warning-subtle": "#ffefd1", "on-secondary-container": "#606363", warning: "#d17100", "chart-event": "#ad46ff", "surface-dim": "#dadadb", "surface-container-highest": "#e2e2e3", "success-subtle-foreground": "#006e45", "primary-fixed": "#dde1ff", "surface-container-lowest": "#ffffff"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {"table-header-height": "40px", "sidebar-width": "256px", "cell-padding-y": "10px", "table-row-height": "44px", "cell-padding-x": "12px", "content-padding": "24px", "header-height": "56px", "card-padding": "20px", "section-gap": "24px", sidebar: "256px"}, fontFamily: {"page-title": ["Inter"], body: ["Inter"], label: ["Inter"], "card-title": ["Inter"], "table-header": ["Inter"], "data-mono": ["JetBrains Mono"], metric: ["Inter"], "table-cell": ["Inter"]}, fontSize: {"page-title": ["24px", {lineHeight: "32px", fontWeight: "600"}], body: ["14px", {lineHeight: "20px", fontWeight: "400"}], label: ["12px", {lineHeight: "16px", fontWeight: "500"}], "card-title": ["16px", {lineHeight: "24px", fontWeight: "600"}], "table-header": ["12px", {lineHeight: "16px", letterSpacing: "0", fontWeight: "500"}], "data-mono": ["12px", {lineHeight: "16px", fontWeight: "500"}], metric: ["30px", {lineHeight: "36px", fontWeight: "600"}], "table-cell": ["14px", {lineHeight: "20px", fontWeight: "400"}]}}}};</script>
+<style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f3f3; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c6c6c7; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #747687; 
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body font-body text-body antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-sidebar bg-sidebar border-r border-sidebar-border flex flex-col z-50">
+<!-- Header -->
+<div class="flex items-center px-content-padding h-header-height border-b border-border">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-primary font-bold text-lg">
+                    E
+                </div>
+<div>
+<h1 class="font-card-title text-card-title text-primary m-0 leading-tight">ERP Photo Studio</h1>
+<p class="font-label text-label text-secondary m-0 leading-tight">Studio Management</p>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 overflow-y-auto py-4 flex flex-col">
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-body text-body">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 bg-surface-container border-l-2 border-primary text-primary font-bold transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span class="font-body text-body">Jadwal Pemotretan</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">payments</span>
+<span class="font-body text-body">Kasir</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">photo_library</span>
+<span class="font-body text-body">Katalog Layanan</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">groups</span>
+<span class="font-body text-body">Database Pelanggan</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">badge</span>
+<span class="font-body text-body">Manajemen Staff</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assessment</span>
+<span class="font-body text-body">Laporan Penjualan</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">analytics</span>
+<span class="font-body text-body">Analitik Bisnis</span>
+</a>
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-body text-body">Pengaturan</span>
+</a>
+<div class="mt-auto pt-4 border-t border-border mt-4">
+<a class="flex items-center gap-3 px-content-padding py-2.5 text-secondary hover:bg-surface-container-low transition-colors duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+<span class="font-body text-body">Keluar</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col ml-sidebar min-w-0 h-screen">
+<!-- TopNavBar -->
+<header class="sticky top-0 h-header-height w-full bg-background border-b border-border z-40 flex items-center justify-between px-content-padding">
+<div class="flex items-center gap-4">
+<h2 class="font-page-title text-page-title text-on-surface">Order &amp; Booking</h2>
+<div class="flex bg-surface-container rounded-lg p-1">
+<button class="px-4 py-1.5 rounded text-sm font-medium text-secondary hover:text-on-surface transition-colors">Daftar</button>
+<button class="px-4 py-1.5 rounded bg-background shadow-sm border border-border text-sm font-medium text-primary">Kalender</button>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">search</span>
+<input class="w-64 pl-9 pr-4 py-1.5 border border-border rounded bg-surface focus:ring-1 focus:ring-primary focus:border-primary text-sm font-body outline-none" placeholder="Cari Order..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-150 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-chart-expense rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-150">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="w-px h-6 bg-border mx-2"></div>
+<button class="flex items-center gap-2 text-on-surface hover:text-primary transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-sm font-medium">Admin</span>
+</button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded font-label text-label hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Buat Order
+                </button>
+</div>
+</header>
+<!-- Filter Bar -->
+<div class="flex items-center justify-between px-content-padding py-3 border-b border-border bg-surface-bright flex-shrink-0">
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 text-sm text-secondary hover:text-on-surface border border-border bg-background px-3 py-1.5 rounded">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="font-card-title text-card-title">Agustus 2026</span>
+<button class="flex items-center gap-2 text-sm text-secondary hover:text-on-surface border border-border bg-background px-3 py-1.5 rounded">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+<button class="ml-2 text-sm text-primary hover:underline font-medium">Hari Ini</button>
+</div>
+<div class="flex items-center gap-3">
+<select class="border border-border rounded bg-background text-sm font-body py-1.5 pl-3 pr-8 focus:ring-1 focus:ring-primary focus:border-primary outline-none text-secondary">
+<option>Semua Tipe</option>
+<option>Retail</option>
+<option>Studio</option>
+<option>Event</option>
+</select>
+<select class="border border-border rounded bg-background text-sm font-body py-1.5 pl-3 pr-8 focus:ring-1 focus:ring-primary focus:border-primary outline-none text-secondary">
+<option>Semua Status</option>
+<option>Booking</option>
+<option>Proses</option>
+<option>Selesai</option>
+</select>
+<select class="border border-border rounded bg-background text-sm font-body py-1.5 pl-3 pr-8 focus:ring-1 focus:ring-primary focus:border-primary outline-none text-secondary">
+<option>Semua Cabang</option>
+<option>Pusat (Jl. Merdeka)</option>
+<option>Cabang 1 (Mall)</option>
+</select>
+</div>
+</div>
+<!-- Content Canvas -->
+<div class="flex-1 overflow-auto bg-surface-bright p-content-padding">
+<div class="bg-background border border-border rounded-lg shadow-sm flex flex-col h-full min-h-[700px]">
+<!-- Calendar Header -->
+<div class="grid grid-cols-7 border-b border-border bg-surface text-center">
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Min</div>
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Sen</div>
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Sel</div>
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Rab</div>
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Kam</div>
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Jum</div>
+<div class="py-2 text-xs font-semibold text-secondary uppercase tracking-wider">Sab</div>
+</div>
+<!-- Calendar Grid -->
+<div class="grid grid-cols-7 grid-rows-5 flex-1 bg-border gap-px">
+<!-- Row 1 -->
+<div class="bg-surface-bright p-2 flex flex-col">
+<span class="text-xs text-secondary-fixed-dim self-end">26</span>
+</div>
+<div class="bg-surface-bright p-2 flex flex-col">
+<span class="text-xs text-secondary-fixed-dim self-end">27</span>
+</div>
+<div class="bg-surface-bright p-2 flex flex-col">
+<span class="text-xs text-secondary-fixed-dim self-end">28</span>
+</div>
+<div class="bg-surface-bright p-2 flex flex-col">
+<span class="text-xs text-secondary-fixed-dim self-end">29</span>
+</div>
+<div class="bg-surface-bright p-2 flex flex-col">
+<span class="text-xs text-secondary-fixed-dim self-end">30</span>
+</div>
+<div class="bg-surface-bright p-2 flex flex-col">
+<span class="text-xs text-secondary-fixed-dim self-end">31</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">1</span>
+</div>
+<!-- Row 2 -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">2</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">3</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">4</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">5</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">6</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">7</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">8</span>
+</div>
+<!-- Row 3 -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">9</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">10</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">11</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">12</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">13</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">14</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">15</span>
+</div>
+<!-- Row 4 -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">16</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">17</span>
+</div>
+<!-- The 18th - Retail -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">18</span>
+<div class="flex-1 space-y-1">
+<div class="text-[10px] bg-chart-retail/10 text-chart-retail border border-chart-retail/20 rounded px-1 py-0.5 truncate flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-chart-retail"></div>
+<span class="font-medium">08:00</span> Cetak Dokumen
+                            </div>
+</div>
+</div>
+<!-- The 19th - Event -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">19</span>
+<div class="flex-1 space-y-1">
+<div class="text-[10px] bg-chart-event/10 text-chart-event border border-chart-event/20 rounded px-1 py-0.5 truncate flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-chart-event"></div>
+<span class="font-medium">06:00</span> Wedding Day
+                            </div>
+</div>
+</div>
+<!-- The 20th - Studio (Today) -->
+<div class="bg-primary-fixed p-2 flex flex-col group hover:bg-primary-fixed-dim transition-colors cursor-pointer relative ring-1 ring-inset ring-primary">
+<span class="text-sm font-bold text-primary self-end mb-1 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">20</span>
+<div class="flex-1 space-y-1">
+<div class="text-[10px] bg-chart-studio/10 text-chart-studio border border-chart-studio/20 rounded px-1 py-0.5 truncate flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-chart-studio"></div>
+<span class="font-medium">15:00</span> Personal Branding
+                            </div>
+</div>
+</div>
+<!-- The 21st - Studio -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">21</span>
+<div class="flex-1 space-y-1">
+<div class="text-[10px] bg-chart-studio/10 text-chart-studio border border-chart-studio/20 rounded px-1 py-0.5 truncate flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-chart-studio"></div>
+<span class="font-medium">10:30</span> Kids Session
+                            </div>
+</div>
+</div>
+<!-- The 22nd - Retail -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">22</span>
+<div class="flex-1 space-y-1">
+<div class="text-[10px] bg-chart-retail/10 text-chart-retail border border-chart-retail/20 rounded px-1 py-0.5 truncate flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-chart-retail"></div>
+<span class="font-medium">13:00</span> Cetak Canvas
+                            </div>
+</div>
+</div>
+<!-- Row 5 -->
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">23</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">24</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">25</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">26</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">27</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">28</span>
+</div>
+<div class="bg-background p-2 flex flex-col group hover:bg-surface transition-colors cursor-pointer relative">
+<span class="text-sm font-medium text-on-surface self-end mb-1">29</span>
+</div>
+</div>
+</div>
+<!-- Legend Footer -->
+<div class="mt-4 flex flex-wrap items-center gap-6 py-3 px-4 bg-background border border-border rounded-lg shadow-sm text-xs font-medium text-secondary">
+<span class="text-on-surface font-semibold mr-2">Legenda Status Kerja:</span>
+<div class="flex items-center gap-2">
+<div class="flex gap-0.5">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-2 h-2 rounded-full border border-secondary"></div>
+<div class="w-2 h-2 rounded-full border border-secondary"></div>
+<div class="w-2 h-2 rounded-full border border-secondary"></div>
+<div class="w-2 h-2 rounded-full border border-secondary"></div>
+</div>
+<span>Booking</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex gap-0.5">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full border border-secondary"></div>
+<div class="w-2 h-2 rounded-full border border-secondary"></div>
+</div>
+<span>Proses Editing</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex gap-0.5">
+<div class="w-2 h-2 rounded-full bg-success"></div>
+<div class="w-2 h-2 rounded-full bg-success"></div>
+<div class="w-2 h-2 rounded-full bg-success"></div>
+<div class="w-2 h-2 rounded-full bg-success"></div>
+<div class="w-2 h-2 rounded-full bg-success"></div>
+</div>
+<span>Selesai / Diambil</span>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Laporan Penjualan - Studio Foto Agung</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary": "#5c5f5f",
+                        "tertiary-container": "#004cdb",
+                        "surface-bright": "#f9f9fa",
+                        "on-surface-variant": "#434655",
+                        "on-tertiary-fixed-variant": "#003baf",
+                        "surface-dim": "#dadadb",
+                        "on-secondary-fixed": "#191c1d",
+                        "on-primary-container": "#c9d0ff",
+                        "primary-container": "#1447e6",
+                        "on-primary-fixed": "#001356",
+                        "surface-container": "#eeeeef",
+                        "surface-container-high": "#e8e8e9",
+                        "inverse-primary": "#b9c3ff",
+                        "on-secondary-container": "#606363",
+                        "on-tertiary-container": "#c6d1ff",
+                        "secondary-fixed": "#e1e3e3",
+                        "tertiary": "#0038a7",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#1c4bea",
+                        "primary-fixed": "#dde1ff",
+                        "on-background": "#1a1c1d",
+                        "outline": "#747687",
+                        "inverse-surface": "#2f3132",
+                        "on-surface": "#1a1c1d",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#444748",
+                        "tertiary-fixed": "#dce1ff",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#c4c5d8",
+                        "primary": "#0032b6",
+                        "on-tertiary-fixed": "#00164e",
+                        "inverse-on-surface": "#f1f0f2",
+                        "surface-container-highest": "#e2e2e3",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "background": "#f9f9fa",
+                        "secondary-container": "#dee0e0",
+                        "surface-container-low": "#f4f3f4",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e2e2e3",
+                        "secondary-fixed-dim": "#c4c7c7",
+                        "tertiary-fixed-dim": "#b6c4ff",
+                        "primary-fixed-dim": "#b9c3ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#0035be",
+                        "surface": "#f9f9fa",
+                        "sidebar": "#f9f9fa",
+                        "sidebar-border": "#e2e2e3",
+                        "border": "#c4c5d8",
+                        "muted": "#747687",
+                        "warning": "#eab308"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "table-row-height": "44px",
+                        "sidebar": "256px",
+                        "cell-padding-y": "10px",
+                        "cell-padding-x": "12px",
+                        "section-gap": "24px",
+                        "header-height": "56px",
+                        "table-header-height": "40px",
+                        "card-padding": "20px",
+                        "content-padding": "24px"
+                    },
+                    fontFamily: {
+                        "card-title": ["Inter"],
+                        "table-header": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label": ["Inter"],
+                        "body": ["Inter"],
+                        "metric": ["Inter"],
+                        "page-title": ["Inter"],
+                        "table-cell": ["Inter"]
+                    },
+                    fontSize: {
+                        "card-title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "table-header": ["12px", { "lineHeight": "16px", "letterSpacing": "0", "fontWeight": "500" }],
+                        "data-mono": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "label": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "metric": ["30px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "page-title": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "table-cell": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen antialiased flex">
+<!-- SideNavBar (Shared Component) -->
+<nav class="fixed left-0 top-0 h-screen w-sidebar flex flex-col bg-sidebar border-r border-sidebar-border z-50">
+<div class="h-header-height px-4 flex items-center border-b border-sidebar-border">
+<h1 class="font-page-title text-page-title text-primary tracking-tight">ERP Photo Studio</h1>
+</div>
+<div class="p-4 flex-1 overflow-y-auto">
+<ul class="space-y-1">
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="dashboard">dashboard</span> Dashboard</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span> POS</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="book_online">book_online</span> Order &amp; Booking</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="payments">payments</span> Pembayaran</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="group">group</span> Customer</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="photo_library">photo_library</span> Katalog</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="request_quote">request_quote</span> Biaya</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span> Invoice</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded font-body text-body text-secondary hover:bg-surface-container-high transition-colors duration-200" href="#"><span class="material-symbols-outlined" data-icon="chat">chat</span> Komunikasi</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg font-body text-body bg-surface-container border-l-2 border-primary text-primary font-bold duration-200 ease-in-out" href="#"><span class="material-symbols-outlined" data-icon="assessment">assessment</span> Laporan</a></li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-sidebar flex-1 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="sticky top-0 h-header-height bg-background border-b border-border z-40 flex items-center justify-between px-content-padding shrink-0 transition-all duration-150">
+<div class="flex items-center">
+<h2 class="font-page-title text-page-title text-on-surface">Laporan</h2>
+</div>
+<div class="flex items-center gap-4">
+<select class="bg-surface border border-outline-variant text-body font-body rounded px-3 py-1.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+<option>Agustus 2026</option>
+</select>
+<button class="flex items-center gap-2 px-3 py-1.5 border border-outline-variant rounded text-label font-label text-on-surface hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span> Unduh PDF
+                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 border border-outline-variant rounded text-label font-label text-on-surface hover:bg-surface-container-low transition-colors">
+                    Ekspor CSV
+                </button>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-content-padding flex flex-col gap-section-gap overflow-y-auto">
+<!-- Sub Navigation Tabs -->
+<div class="flex border-b border-border">
+<button class="px-4 py-2 font-label text-label text-on-surface-variant hover:text-primary transition-colors">Laba Rugi</button>
+<button class="px-4 py-2 font-label text-label text-on-surface-variant hover:text-primary transition-colors">Margin per Lini</button>
+<button class="px-4 py-2 font-label text-label text-primary border-b-2 border-primary font-semibold">Penjualan</button>
+<button class="px-4 py-2 font-label text-label text-on-surface-variant hover:text-primary transition-colors">Piutang</button>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-4 gap-4">
+<!-- Stat 1 -->
+<div class="bg-surface rounded-lg border border-border p-card-padding flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label text-label text-on-surface-variant">Unit Produk Terjual</span>
+<span class="material-symbols-outlined text-secondary">package_2</span>
+</div>
+<div class="font-metric text-metric tabular-nums text-on-surface">22</div>
+</div>
+<!-- Stat 2 -->
+<div class="bg-surface rounded-lg border border-border p-card-padding flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label text-label text-on-surface-variant">Order Jasa</span>
+<span class="material-symbols-outlined text-secondary">photo_camera</span>
+</div>
+<div class="font-metric text-metric tabular-nums text-on-surface">7</div>
+</div>
+<!-- Stat 3 -->
+<div class="bg-surface rounded-lg border border-border p-card-padding flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label text-label text-on-surface-variant">Rata-rata per Order</span>
+<span class="material-symbols-outlined text-secondary">receipt</span>
+</div>
+<div class="font-metric text-metric tabular-nums text-on-surface">Rp 482.500</div>
+</div>
+<!-- Stat 4 -->
+<div class="bg-surface rounded-lg border border-border p-card-padding flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label text-label text-on-surface-variant">Customer Aktif</span>
+<span class="material-symbols-outlined text-secondary">group</span>
+</div>
+<div class="font-metric text-metric tabular-nums text-on-surface">6</div>
+</div>
+</div>
+<!-- Two Columns -->
+<div class="grid grid-cols-2 gap-4">
+<!-- KIRI: Produk Terlaris -->
+<div class="bg-surface rounded-lg border border-border flex flex-col">
+<div class="p-4 border-b border-border flex items-center justify-between">
+<h3 class="font-card-title text-card-title text-on-surface">Produk Terlaris</h3>
+<div class="flex bg-surface-container-high rounded p-0.5">
+<button class="px-3 py-1 rounded bg-surface border border-outline-variant font-label text-label text-on-surface shadow-sm">Qty</button>
+<button class="px-3 py-1 rounded font-label text-label text-on-surface-variant hover:text-on-surface">Margin</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border h-table-header-height bg-surface-container-low">
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium">Produk</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Qty</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Omzet</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">HPP</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Margin</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">%</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono text-on-surface tabular-nums">
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Cetak 4R</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">15</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 75.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 22.500</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 52.500</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">70%</td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Photostrip 3 Pose</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">4</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 80.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 24.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 56.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">70%</td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Keychain Foto Akrilik</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">2</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 50.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 16.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 34.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">68%</td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Cetak 10R + Bingkai</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 85.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 32.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 53.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">62%</td>
+</tr>
+<tr class="border-b border-border h-table-row-height text-muted">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Album Mini 20 Halaman</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">—</td>
+</tr>
+</tbody>
+<tfoot class="font-data-mono text-data-mono text-on-surface font-semibold bg-surface-container-low tabular-nums">
+<tr class="h-table-row-height border-t-2 border-border">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell font-semibold">Total</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">22</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 290.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 94.500</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 195.500</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">67%</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+<!-- KANAN: Jasa Terlaris -->
+<div class="bg-surface rounded-lg border border-border flex flex-col justify-between">
+<div>
+<div class="p-4 border-b border-border">
+<h3 class="font-card-title text-card-title text-on-surface">Jasa Terlaris</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border h-table-header-height bg-surface-container-low">
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium">Jasa</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Order</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Nilai</th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono text-on-surface tabular-nums">
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Paket Wedding Full Day</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 8.500.000</td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Paket Prewedding Outdoor</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 2.500.000</td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Paket Studio 1 Jam</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">4</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 1.400.000</td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">Paket Studio Keluarga 2 Jam</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold">Rp 650.000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="p-4 border-t border-border mt-auto">
+<p class="font-label text-label text-muted">Nilai order, bukan uang diterima. Order batal tidak dihitung.</p>
+</div>
+</div>
+</div>
+<!-- Bawah: Customer Teratas -->
+<div class="bg-surface rounded-lg border border-border">
+<div class="p-4 border-b border-border">
+<h3 class="font-card-title text-card-title text-on-surface">Customer Teratas</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border h-table-header-height bg-surface-container-low">
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium">Customer</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Order</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Nilai Order</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Sudah Dibayar</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium text-right">Sisa</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant font-medium w-10"></th>
+</tr>
+</thead>
+<tbody class="font-data-mono text-data-mono text-on-surface tabular-nums">
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest cursor-pointer">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label text-label text-on-surface border border-border shrink-0">RD</div>
+<span>Rani &amp; Dimas</span>
+</div>
+</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 8.500.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 2.500.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold text-warning">Rp 6.000.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-center text-muted"><span class="material-symbols-outlined text-[20px]">chevron_right</span></td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest cursor-pointer">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label text-label text-on-surface border border-border shrink-0">NS</div>
+<span>Nadia Salsabila</span>
+</div>
+</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 2.500.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 1.000.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold text-warning">Rp 1.500.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-center text-muted"><span class="material-symbols-outlined text-[20px]">chevron_right</span></td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest cursor-pointer">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label text-label text-on-surface border border-border shrink-0">BH</div>
+<span>Budi Hartono</span>
+</div>
+</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">2</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 1.000.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 1.000.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold text-muted">Rp 0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-center text-muted"><span class="material-symbols-outlined text-[20px]">chevron_right</span></td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest cursor-pointer">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label text-label text-on-surface border border-border shrink-0">SP</div>
+<span>Sinta Prameswari</span>
+</div>
+</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">2</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 395.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 195.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold text-warning">Rp 200.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-center text-muted"><span class="material-symbols-outlined text-[20px]">chevron_right</span></td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest cursor-pointer">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label text-label text-on-surface border border-border shrink-0">YP</div>
+<span>Yoga Pratama</span>
+</div>
+</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 350.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 350.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold text-muted">Rp 0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-center text-muted"><span class="material-symbols-outlined text-[20px]">chevron_right</span></td>
+</tr>
+<tr class="border-b border-border h-table-row-height hover:bg-surface-container-lowest cursor-pointer">
+<td class="px-cell-padding-x py-cell-padding-y font-table-cell">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-label text-label text-on-surface border border-border shrink-0">DA</div>
+<span>Dewi Anggraini</span>
+</div>
+</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">1</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right">Rp 350.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right text-muted">Rp 0</td>
+<td class="px-cell-padding-x py-cell-padding-y text-right font-semibold text-warning">Rp 350.000</td>
+<td class="px-cell-padding-x py-cell-padding-y text-center text-muted"><span class="material-symbols-outlined text-[20px]">chevron_right</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Studio Foto Agung - Pembayaran</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#606363",
+                        "inverse-surface": "#2f3132",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e2e2e3",
+                        "primary-fixed-dim": "#b9c3ff",
+                        "surface-tint": "#1c4bea",
+                        "on-primary-container": "#c9d0ff",
+                        "on-secondary-fixed": "#191c1d",
+                        "secondary": "#5c5f5f",
+                        "on-tertiary-container": "#c6d1ff",
+                        "on-surface-variant": "#434655",
+                        "on-secondary-fixed-variant": "#444748",
+                        "tertiary-fixed": "#dce1ff",
+                        "tertiary-fixed-dim": "#b6c4ff",
+                        "on-background": "#1a1c1d",
+                        "on-primary-fixed": "#001356",
+                        "surface-container": "#eeeeef",
+                        "on-surface": "#1a1c1d",
+                        "inverse-primary": "#b9c3ff",
+                        "surface-container-high": "#e8e8e9",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f4f3f4",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#0035be",
+                        "secondary-container": "#dee0e0",
+                        "background": "#f9f9fa",
+                        "error-container": "#ffdad6",
+                        "surface": "#f9f9fa",
+                        "secondary-fixed": "#e1e3e3",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#00164e",
+                        "primary-fixed": "#dde1ff",
+                        "surface-bright": "#f9f9fa",
+                        "secondary-fixed-dim": "#c4c7c7",
+                        "surface-dim": "#dadadb",
+                        "outline-variant": "#c4c5d8",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#004cdb",
+                        "surface-variant": "#e2e2e3",
+                        "outline": "#747687",
+                        "primary-container": "#1447e6",
+                        "inverse-on-surface": "#f1f0f2",
+                        "primary": "#0032b6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#003baf",
+                        "tertiary": "#0038a7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "24px",
+                        "cell-padding-y": "10px",
+                        "header-height": "56px",
+                        "table-header-height": "40px",
+                        "card-padding": "20px",
+                        "cell-padding-x": "12px",
+                        "sidebar": "256px",
+                        "table-row-height": "44px",
+                        "content-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "table-cell": ["Inter", "sans-serif"],
+                        "table-header": ["Inter", "sans-serif"],
+                        "page-title": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"],
+                        "metric": ["Inter", "sans-serif"],
+                        "card-title": ["Inter", "sans-serif"],
+                        "data-mono": ["JetBrains Mono", "monospace"]
+                    },
+                    "fontSize": {
+                        "table-cell": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "table-header": ["12px", { "lineHeight": "16px", "letterSpacing": "0", "fontWeight": "500" }],
+                        "page-title": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "metric": ["30px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "card-title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["12px", { "lineHeight": "16px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen">
+<!-- Fixed Sidebar Shell -->
+<aside class="w-sidebar h-screen fixed left-0 top-0 bg-background border-r border-outline-variant flex flex-col p-4 z-40">
+<div class="mb-8 px-4 mt-2">
+<h1 class="font-page-title text-page-title font-bold text-primary">Studio Foto Agung</h1>
+<p class="font-label text-label text-on-surface-variant mt-1">Pemilik</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="point_of_sale">point_of_sale</span>
+                POS
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="event_available">event_available</span>
+                Order &amp; Booking
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label bg-secondary-container text-on-secondary-container border-l-2 border-primary rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments">payments</span>
+                Pembayaran
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="person">person</span>
+                Customer
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="inventory_2">inventory_2</span>
+                Katalog
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments">payments</span>
+                Biaya
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="description">description</span>
+                Invoice
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="chat">chat</span>
+                Komunikasi
+            </a>
+<a class="flex items-center gap-3 px-4 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="assessment">assessment</span>
+                Laporan
+            </a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-sidebar min-h-screen flex flex-col bg-surface">
+<!-- Sticky Header -->
+<header class="h-header sticky top-0 z-50 bg-surface border-b border-outline-variant flex justify-between items-center px-content-padding">
+<div class="flex items-center gap-2">
+<h2 class="font-page-title text-[18px] font-semibold text-on-surface">Pembayaran</h2>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+<button class="bg-primary text-on-primary font-label text-label px-4 py-2 rounded flex items-center gap-2 hover:bg-primary-fixed-variant transition-colors">
+                    Catat Pembayaran
+                </button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="p-content-padding flex-1 flex flex-col gap-section-gap max-w-[1400px]">
+<!-- Navigation Tabs -->
+<div class="flex border-b border-outline-variant">
+<a class="px-4 py-2 border-b-2 border-primary text-primary font-label text-label font-bold" href="#">
+                    Piutang (4)
+                </a>
+<a class="px-4 py-2 border-b-2 border-transparent text-on-surface-variant font-label text-label hover:text-primary transition-colors" href="#">
+                    Riwayat Pembayaran
+                </a>
+<a class="px-4 py-2 border-b-2 border-transparent text-on-surface-variant font-label text-label hover:text-primary transition-colors" href="#">
+                    Rekap Metode
+                </a>
+</div>
+<!-- Summary Cards (Bento style grid) -->
+<div class="grid grid-cols-4 gap-4">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-card-padding flex items-start gap-4">
+<div class="p-2 bg-primary-container/10 rounded text-primary">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-label text-label text-on-surface-variant">Total Piutang</p>
+<p class="font-metric text-[24px] font-semibold text-on-surface mt-1 tabular-nums">Rp 8.050.000</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-card-padding flex items-start gap-4">
+<div class="p-2 bg-[#ffb4ab]/20 rounded text-error">
+<span class="material-symbols-outlined" data-icon="schedule">schedule</span>
+</div>
+<div>
+<p class="font-label text-label text-on-surface-variant">Jatuh Tempo ≤ 7 hari</p>
+<p class="font-metric text-[24px] font-semibold text-[#8c4a00] mt-1 tabular-nums">Rp 550.000</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-card-padding flex items-start gap-4">
+<div class="p-2 bg-error-container rounded text-on-error-container">
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+</div>
+<div>
+<p class="font-label text-label text-on-surface-variant">Lewat Jatuh Tempo</p>
+<p class="font-metric text-[24px] font-semibold text-error mt-1 tabular-nums">Rp 1.500.000</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-card-padding flex items-start gap-4">
+<div class="p-2 bg-secondary-container rounded text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div>
+<p class="font-label text-label text-on-surface-variant">Order Belum Lunas</p>
+<p class="font-metric text-[24px] font-semibold text-on-surface mt-1 tabular-nums">4</p>
+</div>
+</div>
+</div>
+<!-- Filters Bar -->
+<div class="flex justify-between items-center bg-surface-container-lowest p-2 border border-outline-variant rounded-lg">
+<div class="relative w-[300px]">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+<input class="w-full pl-10 pr-3 py-1.5 bg-surface border-none text-body font-body rounded focus:ring-1 focus:ring-primary h-[32px] text-sm" placeholder="Cari order atau customer..." type="text"/>
+</div>
+<div class="flex gap-2">
+<select class="h-[32px] pl-3 pr-8 py-0 bg-surface border border-outline-variant text-body font-body rounded focus:ring-1 focus:ring-primary text-sm">
+<option>Semua tipe</option>
+</select>
+<select class="h-[32px] pl-3 pr-8 py-0 bg-surface border border-outline-variant text-body font-body rounded focus:ring-1 focus:ring-primary text-sm">
+<option>Urut: Umur tagihan</option>
+</select>
+</div>
+</div>
+<!-- Receivables Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container border-b border-outline-variant h-table-header-height">
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant">No Order</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant">Customer</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant">Tipe</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant">Jadwal</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant text-right">Total</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant text-right">Dibayar</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant text-right">Sisa Tagihan</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant">Umur</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant">Status Bayar</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-table-header text-on-surface-variant text-center w-[120px]">Aksi</th>
+</tr>
+</thead>
+<tbody class="font-table-cell text-table-cell text-on-surface tabular-nums">
+<!-- Row 1: Overdue -->
+<tr class="h-table-row-height border-b border-outline-variant bg-error-container/30 hover:bg-surface-container-low transition-colors">
+<td class="px-cell-padding-x py-0">
+<a class="font-data-mono text-data-mono text-primary hover:underline" href="#">ORD-0008</a>
+</td>
+<td class="px-cell-padding-x py-0 font-medium flex items-center gap-2 mt-[12px]">
+                                    Nadia Salsabila
+                                    <span class="material-symbols-outlined text-[#25D366] text-[16px]" data-icon="chat">chat</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-0.5 border border-outline rounded text-[11px] font-medium leading-none">Event</span>
+</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">12 Agu 2026</td>
+<td class="px-cell-padding-x py-0 text-right">Rp 2.500.000</td>
+<td class="px-cell-padding-x py-0 text-right text-on-surface-variant">Rp 1.000.000</td>
+<td class="px-cell-padding-x py-0 text-right font-semibold">Rp 1.500.000</td>
+<td class="px-cell-padding-x py-0 text-[#8c4a00] font-medium">14 hari</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-1 bg-[#ffdf99]/30 text-[#8c4a00] rounded text-[11px] font-medium leading-none">DP 40%</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<div class="flex items-center justify-end gap-1">
+<button class="px-2 py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-fixed-variant transition-colors">Catat</button>
+<button class="p-1 text-on-surface-variant hover:bg-surface-variant rounded">
+<span class="material-symbols-outlined text-[16px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Future Schedule / Unpaid -->
+<tr class="h-table-row-height border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="px-cell-padding-x py-0">
+<a class="font-data-mono text-data-mono text-primary hover:underline" href="#">ORD-0005</a>
+</td>
+<td class="px-cell-padding-x py-0 font-medium flex items-center gap-2 mt-[12px]">
+                                    Dewi Anggraini
+                                    <span class="material-symbols-outlined text-[#25D366] text-[16px]" data-icon="chat">chat</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-0.5 border border-outline rounded text-[11px] font-medium leading-none">Studio</span>
+</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">29 Agu 2026</td>
+<td class="px-cell-padding-x py-0 text-right">Rp 350.000</td>
+<td class="px-cell-padding-x py-0 text-right text-on-surface-variant">Rp 0</td>
+<td class="px-cell-padding-x py-0 text-right font-semibold">Rp 350.000</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">—</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-1 bg-error-container text-on-error-container rounded text-[11px] font-medium leading-none">Belum Bayar</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<div class="flex items-center justify-end gap-1">
+<button class="px-2 py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-fixed-variant transition-colors">Catat</button>
+<button class="p-1 text-on-surface-variant hover:bg-surface-variant rounded">
+<span class="material-symbols-outlined text-[16px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Due Today -->
+<tr class="h-table-row-height border-b border-outline-variant hover:bg-surface-container-low transition-colors">
+<td class="px-cell-padding-x py-0">
+<a class="font-data-mono text-data-mono text-primary hover:underline" href="#">ORD-0012</a>
+</td>
+<td class="px-cell-padding-x py-0 font-medium flex items-center gap-2 mt-[12px]">
+                                    Sinta Prameswari
+                                    <span class="material-symbols-outlined text-[#25D366] text-[16px]" data-icon="chat">chat</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-0.5 border border-outline rounded text-[11px] font-medium leading-none">Studio</span>
+</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">26 Agu 2026</td>
+<td class="px-cell-padding-x py-0 text-right">Rp 350.000</td>
+<td class="px-cell-padding-x py-0 text-right text-on-surface-variant">Rp 150.000</td>
+<td class="px-cell-padding-x py-0 text-right font-semibold">Rp 200.000</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">hari ini</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-1 bg-[#ffdf99]/30 text-[#8c4a00] rounded text-[11px] font-medium leading-none">DP 43%</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<div class="flex items-center justify-end gap-1">
+<button class="px-2 py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-fixed-variant transition-colors">Catat</button>
+<button class="p-1 text-on-surface-variant hover:bg-surface-variant rounded">
+<span class="material-symbols-outlined text-[16px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Future Schedule -->
+<tr class="h-table-row-height hover:bg-surface-container-low transition-colors">
+<td class="px-cell-padding-x py-0">
+<a class="font-data-mono text-data-mono text-primary hover:underline" href="#">ORD-0011</a>
+</td>
+<td class="px-cell-padding-x py-0 font-medium flex items-center gap-2 mt-[12px]">
+                                    Rani &amp; Dimas
+                                    <span class="material-symbols-outlined text-[#25D366] text-[16px]" data-icon="chat">chat</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-0.5 border border-outline rounded text-[11px] font-medium leading-none">Event</span>
+</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">18 Okt 2026</td>
+<td class="px-cell-padding-x py-0 text-right">Rp 8.500.000</td>
+<td class="px-cell-padding-x py-0 text-right text-on-surface-variant">Rp 2.500.000</td>
+<td class="px-cell-padding-x py-0 text-right font-semibold">Rp 6.000.000</td>
+<td class="px-cell-padding-x py-0 text-on-surface-variant">—</td>
+<td class="px-cell-padding-x py-0">
+<span class="inline-block px-2 py-1 bg-[#ffdf99]/30 text-[#8c4a00] rounded text-[11px] font-medium leading-none">DP 29%</span>
+</td>
+<td class="px-cell-padding-x py-0">
+<div class="flex items-center justify-end gap-1">
+<button class="px-2 py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-fixed-variant transition-colors">Catat</button>
+<button class="p-1 text-on-surface-variant hover:bg-surface-variant rounded">
+<span class="material-symbols-outlined text-[16px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer -->
+<div class="bg-surface-container border-t border-outline-variant p-3 flex justify-between items-center font-table-cell text-sm">
+<span class="text-on-surface-variant font-medium pl-2">Total sisa tagihan</span>
+<div class="flex pr-[200px]"> <!-- Align somewhat under the column -->
+<span class="font-semibold tabular-nums text-on-surface">Rp 8.050.000</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

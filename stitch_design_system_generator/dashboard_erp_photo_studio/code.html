@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard - Studio Foto Agung</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "inverse-surface": "#2f3132",
+                        "on-tertiary-fixed-variant": "#003baf",
+                        "inverse-on-surface": "#f1f0f2",
+                        "tertiary-container": "#004cdb",
+                        "surface-dim": "#dadadb",
+                        "surface-container-low": "#f4f3f4",
+                        "primary-fixed": "#dde1ff",
+                        "primary-fixed-dim": "#b9c3ff",
+                        "secondary": "#5c5f5f",
+                        "surface": "#f9f9fa",
+                        "surface-container-highest": "#e2e2e3",
+                        "on-tertiary-fixed": "#00164e",
+                        "surface-container-high": "#e8e8e9",
+                        "outline": "#747687",
+                        "on-surface-variant": "#434655",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#1447e6",
+                        "tertiary-fixed": "#dce1ff",
+                        "secondary-fixed": "#e1e3e3",
+                        "error": "#ba1a1a",
+                        "tertiary": "#0038a7",
+                        "on-secondary-container": "#606363",
+                        "on-error-container": "#93000a",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#001356",
+                        "background": "#f9f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#0035be",
+                        "inverse-primary": "#b9c3ff",
+                        "on-tertiary-container": "#c6d1ff",
+                        "surface-tint": "#1c4bea",
+                        "on-background": "#1a1c1d",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f9f9fa",
+                        "outline-variant": "#c4c5d8",
+                        "on-primary-container": "#c9d0ff",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e2e2e3",
+                        "secondary-fixed-dim": "#c4c7c7",
+                        "secondary-container": "#dee0e0",
+                        "primary": "#0032b6",
+                        "on-surface": "#1a1c1d",
+                        "tertiary-fixed-dim": "#b6c4ff",
+                        "surface-container": "#eeeeef",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#444748",
+                        "on-secondary-fixed": "#191c1d"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "content-padding": "24px",
+                        "table-header-height": "40px",
+                        "card-padding": "20px",
+                        "cell-padding-y": "10px",
+                        "section-gap": "24px",
+                        "table-row-height": "44px",
+                        "sidebar": "256px",
+                        "header-height": "56px",
+                        "cell-padding-x": "12px"
+                    },
+                    fontFamily: {
+                        "page-title": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "card-title": ["Inter"],
+                        "label": ["Inter"],
+                        "metric": ["Inter"],
+                        "body": ["Inter"],
+                        "table-header": ["Inter"],
+                        "table-cell": ["Inter"]
+                    },
+                    fontSize: {
+                        "page-title": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+                        "data-mono": ["12px", { lineHeight: "16px", fontWeight: "500" }],
+                        "card-title": ["16px", { lineHeight: "24px", fontWeight: "600" }],
+                        "label": ["12px", { lineHeight: "16px", fontWeight: "500" }],
+                        "metric": ["30px", { lineHeight: "36px", fontWeight: "600" }],
+                        "body": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "table-header": ["12px", { lineHeight: "16px", letterSpacing: "0", fontWeight: "500" }],
+                        "table-cell": ["14px", { lineHeight: "20px", fontWeight: "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        
+        /* Custom scrollbar for tables if needed */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: theme('colors.outline-variant'); border-radius: 4px; }
+        
+        .work-status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .work-status-gap { width: 3px; display: inline-block; }
+    </style>
+</head>
+<body class="font-body text-body bg-background text-on-background min-h-screen">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface fixed left-0 top-0 h-full w-[256px] border-r border-outline-variant dark:border-outline flex flex-col p-4 gap-y-2 z-50">
+<div class="font-page-title text-page-title text-on-surface dark:text-inverse-on-surface mb-6 px-4">
+            Studio Foto Agung
+            <div class="font-body text-body text-on-surface-variant dark:text-outline-variant mt-1 text-sm font-normal">Pemilik</div>
+</div>
+<ul class="flex flex-col gap-1 w-full flex-grow">
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-secondary-container dark:bg-on-secondary-fixed-variant text-primary dark:text-primary-fixed-dim border-l-2 border-primary font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+                    POS
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="event_upcoming">event_upcoming</span>
+                    Order &amp; Booking
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                    Pembayaran
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                    Customer
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+                    Katalog
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                    Biaya
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="receipt">receipt</span>
+                    Invoice
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+                    Komunikasi
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant dark:text-outline-variant font-label text-label rounded-lg w-full transition-colors cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+                    Laporan
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area (ml-sidebar for desktop) -->
+<main class="ml-sidebar flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface/90 dark:bg-inverse-surface/90 backdrop-blur-sm sticky top-0 right-0 h-[56px] z-40 border-b border-outline-variant dark:border-outline flex items-center justify-between px-content-padding transition-all duration-150">
+<div class="flex items-center gap-4">
+<div>
+<h1 class="font-page-title text-page-title text-primary dark:text-primary-fixed leading-none">Dashboard</h1>
+<span class="font-label text-label text-on-surface-variant mt-1 block">Rabu, 26 Agustus 2026</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden md:block">
+<select class="appearance-none bg-surface-container-low border border-outline-variant rounded-lg px-4 py-1.5 pr-8 font-label text-label text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer">
+<option>Agustus 2026</option>
+<option>Juli 2026</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-highest">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-highest">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label text-label hover:bg-primary/90 transition-colors flex items-center gap-2 font-medium ml-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Buat Order
+                </button>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-content-padding flex flex-col gap-section-gap">
+<!-- Row 1: Stat Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Card 1 -->
+<div class="bg-surface rounded-xl border border-outline-variant p-card-padding flex flex-col justify-between">
+<div class="flex items-start justify-between mb-4">
+<span class="font-label text-label text-on-surface-variant">Omzet Bulan Ini</span>
+<div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+</div>
+</div>
+<div>
+<div class="font-metric text-metric text-on-surface">Rp 5.790.000</div>
+<div class="font-label text-label text-on-surface-variant mt-1">Bulan pertama pencatatan</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface rounded-xl border border-outline-variant p-card-padding flex flex-col justify-between">
+<div class="flex items-start justify-between mb-4">
+<span class="font-label text-label text-on-surface-variant">Piutang Berjalan</span>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+</div>
+<div>
+<div class="font-metric text-metric text-on-surface">Rp 8.050.000</div>
+<div class="font-label text-label text-on-surface-variant mt-1">4 order belum lunas</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface rounded-xl border border-outline-variant p-card-padding flex flex-col justify-between">
+<div class="flex items-start justify-between mb-4">
+<span class="font-label text-label text-on-surface-variant">Booking Hari Ini</span>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+</div>
+</div>
+<div>
+<div class="font-metric text-metric text-on-surface">1</div>
+<div class="font-label text-label text-on-surface-variant mt-1">14:00 Sinta Prameswari</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-error/5 rounded-xl border border-error/20 p-card-padding flex flex-col justify-between">
+<div class="flex items-start justify-between mb-4">
+<span class="font-label text-label text-error">Perlu Ditindak</span>
+<div class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[20px]">error</span>
+</div>
+</div>
+<div>
+<div class="font-metric text-metric text-error">4</div>
+<div class="font-label text-label text-error mt-1">3 tagihan, 1 hasil belum dikirim</div>
+</div>
+</div>
+</div>
+<!-- Row 2: Charts and Tasks -->
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-section-gap">
+<!-- Chart Card -->
+<div class="bg-surface rounded-xl border border-outline-variant p-card-padding flex flex-col">
+<h2 class="font-card-title text-card-title text-on-surface mb-6">Omzet per Lini — Agustus 2026</h2>
+<div class="flex-grow flex flex-col justify-center relative pb-8">
+<!-- X Axis Labels (bottom) -->
+<div class="absolute bottom-0 left-[100px] right-0 flex justify-between font-label text-label text-on-surface-variant border-t border-outline-variant pt-2">
+<span>0</span>
+<span>1jt</span>
+<span>2jt</span>
+<span>3jt</span>
+<span>4jt</span>
+</div>
+<!-- Grid Lines (vertical) -->
+<div class="absolute top-0 bottom-8 left-[100px] right-0 flex justify-between pointer-events-none">
+<div class="w-px h-full bg-outline-variant/30"></div>
+<div class="w-px h-full bg-outline-variant/30"></div>
+<div class="w-px h-full bg-outline-variant/30"></div>
+<div class="w-px h-full bg-outline-variant/30"></div>
+<div class="w-px h-full bg-outline-variant/30"></div>
+</div>
+<!-- Bars -->
+<div class="flex flex-col gap-[12px] z-10 w-full relative">
+<!-- Event Bar -->
+<div class="flex items-center h-[32px] w-full group">
+<div class="w-[100px] shrink-0 font-label text-label text-on-surface pr-4 text-right">Event</div>
+<div class="flex-grow relative h-full flex items-center">
+<div class="h-full rounded-r-md transition-all duration-300 group-hover:brightness-110" style="width: 100%; background-color: #ad46ff;"></div>
+<span class="font-data-mono text-data-mono text-on-surface ml-3 absolute left-full whitespace-nowrap">Rp 4.000.000</span>
+</div>
+</div>
+<!-- Studio Bar -->
+<div class="flex items-center h-[32px] w-full group">
+<div class="w-[100px] shrink-0 font-label text-label text-on-surface pr-4 text-right">Studio</div>
+<div class="flex-grow relative h-full flex items-center">
+<div class="h-full rounded-r-md transition-all duration-300 group-hover:brightness-110" style="width: 37.5%; background-color: #fe9a00;"></div>
+<span class="font-data-mono text-data-mono text-on-surface ml-3 absolute" style="left: 37.5%">Rp 1.500.000</span>
+</div>
+</div>
+<!-- Retail Bar -->
+<div class="flex items-center h-[32px] w-full group">
+<div class="w-[100px] shrink-0 font-label text-label text-on-surface pr-4 text-right">Retail</div>
+<div class="flex-grow relative h-full flex items-center">
+<div class="h-full rounded-r-md transition-all duration-300 group-hover:brightness-110" style="width: 7.25%; background-color: #155dfc;"></div>
+<span class="font-data-mono text-data-mono text-on-surface ml-3 absolute" style="left: 7.25%">Rp 290.000</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tasks Card -->
+<div class="bg-surface rounded-xl border border-outline-variant flex flex-col h-full">
+<div class="p-4 border-b border-outline-variant bg-surface-container-lowest rounded-t-xl">
+<h2 class="font-card-title text-card-title text-on-surface">Perlu Ditindaklanjuti</h2>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant overflow-y-auto max-h-[300px] lg:max-h-none">
+<!-- Task 1 -->
+<div class="p-4 hover:bg-surface-container-lowest transition-colors flex items-start gap-3">
+<div class="text-error mt-0.5">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</div>
+<div class="flex-grow min-w-0">
+<div class="font-label text-label text-error font-semibold truncate">Tagihan lewat 14 hari</div>
+<div class="font-body text-sm text-on-surface-variant truncate mt-0.5">ORD-0008 · Nadia Salsabila · Rp 1.500.000</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 text-error hover:bg-error/10 rounded-lg font-label text-label transition-colors border border-transparent">
+                                Tagih
+                            </button>
+</div>
+<!-- Task 2 -->
+<div class="p-4 hover:bg-surface-container-lowest transition-colors flex items-start gap-3">
+<div class="text-[#b36b00] mt-0.5">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+</div>
+<div class="flex-grow min-w-0">
+<div class="font-label text-label text-[#b36b00] font-semibold truncate">Sisa tagihan hari ini</div>
+<div class="font-body text-sm text-on-surface-variant truncate mt-0.5">ORD-0012 · Sinta Prameswari · Rp 200.000</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 text-[#b36b00] hover:bg-[#b36b00]/10 rounded-lg font-label text-label transition-colors border border-transparent">
+                                Tagih
+                            </button>
+</div>
+<!-- Task 3 -->
+<div class="p-4 hover:bg-surface-container-lowest transition-colors flex items-start gap-3">
+<div class="text-on-surface-variant mt-0.5">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+</div>
+<div class="flex-grow min-w-0">
+<div class="font-label text-label text-on-surface font-medium truncate">Booking belum bayar DP</div>
+<div class="font-body text-sm text-on-surface-variant truncate mt-0.5">ORD-0005 · Dewi Anggraini · 29 Agu 2026</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 text-primary hover:bg-primary/10 rounded-lg font-label text-label transition-colors border border-transparent">
+                                Ingatkan
+                            </button>
+</div>
+<!-- Task 4 -->
+<div class="p-4 hover:bg-surface-container-lowest transition-colors flex items-start gap-3">
+<div class="text-on-surface-variant mt-0.5">
+<span class="material-symbols-outlined text-[20px]">image</span>
+</div>
+<div class="flex-grow min-w-0">
+<div class="font-label text-label text-on-surface font-medium truncate">Hasil foto belum ditempel</div>
+<div class="font-body text-sm text-on-surface-variant truncate mt-0.5">ORD-0008 · Nadia Salsabila</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 text-primary hover:bg-primary/10 rounded-lg font-label text-label transition-colors border border-transparent">
+                                Tempel Link
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Row 3: Recent Orders Table -->
+<div class="bg-surface rounded-xl border border-outline-variant overflow-hidden flex flex-col">
+<div class="p-4 border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center">
+<h2 class="font-card-title text-card-title text-on-surface">Order Terbaru</h2>
+<a class="font-label text-label text-primary hover:underline flex items-center gap-1" href="#">
+                        Lihat semua <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="border-b border-outline-variant bg-surface h-[40px]">
+<th class="font-table-header text-table-header text-on-surface-variant font-medium px-4 py-2 w-[120px]">No Order</th>
+<th class="font-table-header text-table-header text-on-surface-variant font-medium px-4 py-2">Customer</th>
+<th class="font-table-header text-table-header text-on-surface-variant font-medium px-4 py-2 w-[120px]">Tipe</th>
+<th class="font-table-header text-table-header text-on-surface-variant font-medium px-4 py-2 w-[140px] text-right">Total</th>
+<th class="font-table-header text-table-header text-on-surface-variant font-medium px-4 py-2 w-[160px]">Status Kerja</th>
+<th class="font-table-header text-table-header text-on-surface-variant font-medium px-4 py-2 w-[140px]">Status Bayar</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant font-table-cell text-table-cell">
+<!-- ORD-0012 -->
+<tr class="h-[44px] hover:bg-surface-container-lowest transition-colors group">
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface">ORD-0012</td>
+<td class="px-4 py-2 text-on-surface truncate max-w-[200px]">Sinta Prameswari</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-outline text-xs font-medium text-on-surface-variant">Studio</span>
+</td>
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">Rp 400.000</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-1" title="Baru">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-surface-variant text-on-surface-variant text-xs font-medium">DP 50%</span>
+</td>
+</tr>
+<!-- ORD-0011 -->
+<tr class="h-[44px] hover:bg-surface-container-lowest transition-colors group">
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface">ORD-0011</td>
+<td class="px-4 py-2 text-on-surface truncate max-w-[200px]">PT Maju Bersama</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-outline text-xs font-medium text-on-surface-variant">Event</span>
+</td>
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">Rp 4.000.000</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-1" title="Proses">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-surface-variant text-on-surface-variant text-xs font-medium">DP 30%</span>
+</td>
+</tr>
+<!-- ORD-0010 -->
+<tr class="h-[44px] hover:bg-surface-container-lowest transition-colors group">
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface">ORD-0010</td>
+<td class="px-4 py-2 text-on-surface truncate max-w-[200px]">Budi Santoso</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-outline text-xs font-medium text-on-surface-variant">Retail</span>
+</td>
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">Rp 150.000</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-1" title="Diserahkan">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+</div>
+</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">Lunas</span>
+</td>
+</tr>
+<!-- ORD-0009 -->
+<tr class="h-[44px] opacity-60 hover:bg-surface-container-lowest transition-colors group">
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface">ORD-0009</td>
+<td class="px-4 py-2 text-on-surface truncate max-w-[200px]">Siti Aminah</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-outline text-xs font-medium text-on-surface-variant">Studio</span>
+</td>
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">Rp 600.000</td>
+<td class="px-4 py-2">
+<div class="flex items-center text-error" title="Batal">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+</div>
+</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg border border-outline-variant text-on-surface-variant text-xs font-medium">Batal</span>
+</td>
+</tr>
+<!-- ORD-0008 -->
+<tr class="h-[44px] hover:bg-surface-container-lowest transition-colors group">
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface">ORD-0008</td>
+<td class="px-4 py-2 text-on-surface truncate max-w-[200px]">Nadia Salsabila</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-outline text-xs font-medium text-on-surface-variant">Event</span>
+</td>
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">Rp 2.500.000</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-1" title="Selesai">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-surface-variant text-on-surface-variant text-xs font-medium">DP 40%</span>
+</td>
+</tr>
+<!-- ORD-0007 -->
+<tr class="h-[44px] hover:bg-surface-container-lowest transition-colors group">
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface">ORD-0007</td>
+<td class="px-4 py-2 text-on-surface truncate max-w-[200px]">Ahmad Wijaya</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded border border-outline text-xs font-medium text-on-surface-variant">Retail</span>
+</td>
+<td class="px-4 py-2 font-data-mono text-data-mono text-on-surface text-right">Rp 80.000</td>
+<td class="px-4 py-2">
+<div class="flex items-center gap-1" title="Diserahkan">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+</div>
+</td>
+<td class="px-4 py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">Lunas</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</body></html>

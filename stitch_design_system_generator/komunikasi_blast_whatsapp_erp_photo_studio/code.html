@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Komunikasi - Studio Foto Agung</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#f9f9fa",
+                        "outline-variant": "#c4c5d8",
+                        "on-primary-fixed-variant": "#0035be",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "outline": "#747687",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#c9d0ff",
+                        "surface-container-high": "#e8e8e9",
+                        "inverse-primary": "#b9c3ff",
+                        "surface-tint": "#1c4bea",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#e2e2e3",
+                        "inverse-surface": "#2f3132",
+                        "on-surface-variant": "#434655",
+                        "surface-container-highest": "#e2e2e3",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#dde1ff",
+                        "on-primary-fixed": "#001356",
+                        "on-secondary-fixed": "#191c1d",
+                        "secondary-fixed": "#e1e3e3",
+                        "on-tertiary-container": "#c6d1ff",
+                        "on-tertiary-fixed-variant": "#003baf",
+                        "on-surface": "#1a1c1d",
+                        "surface-container": "#eeeeef",
+                        "secondary-container": "#dee0e0",
+                        "on-tertiary-fixed": "#00164e",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#1447e6",
+                        "tertiary-fixed": "#dce1ff",
+                        "primary": "#0032b6",
+                        "surface-dim": "#dadadb",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#b6c4ff",
+                        "secondary": "#5c5f5f",
+                        "on-background": "#1a1c1d",
+                        "tertiary-container": "#004cdb",
+                        "tertiary": "#0038a7",
+                        "on-secondary-container": "#606363",
+                        "inverse-on-surface": "#f1f0f2",
+                        "primary-fixed-dim": "#b9c3ff",
+                        "on-secondary-fixed-variant": "#444748",
+                        "surface-container-low": "#f4f3f4",
+                        "surface-bright": "#f9f9fa",
+                        "secondary-fixed-dim": "#c4c7c7",
+                        "surface": "#f9f9fa",
+                        "warning-subtle": "#ffefd1",
+                        "warning-subtle-foreground": "#8c4a00",
+                        "success-subtle": "#dcfce7",
+                        "success-subtle-foreground": "#166534"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "card": "14px",
+                        "badge": "8px"
+                    },
+                    spacing: {
+                        "card-padding": "20px",
+                        "sidebar": "256px",
+                        "cell-padding-y": "10px",
+                        "section-gap": "24px",
+                        "cell-padding-x": "12px",
+                        "table-header-height": "40px",
+                        "content-padding": "24px",
+                        "header-height": "56px",
+                        "table-row-height": "44px"
+                    },
+                    fontFamily: {
+                        "data-mono": ["JetBrains Mono"],
+                        "metric": ["Inter"],
+                        "table-header": ["Inter"],
+                        "card-title": ["Inter"],
+                        "page-title": ["Inter"],
+                        "table-cell": ["Inter"],
+                        "label": ["Inter"],
+                        "body": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .fill-icon { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- SideNavBar -->
+<nav class="w-sidebar h-screen fixed left-0 top-0 bg-background border-r border-outline-variant flex flex-col h-full p-4 z-40">
+<div class="mb-8 px-2">
+<h1 class="font-page-title text-[24px] font-bold text-primary leading-8 tracking-tight">Studio Foto Agung</h1>
+<p class="font-label text-[12px] font-medium text-on-surface-variant">Pemilik</p>
+</div>
+<div class="flex-1 overflow-y-auto space-y-1">
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">dashboard</span>
+<span class="font-label text-[12px] font-medium">Dashboard</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">point_of_sale</span>
+<span class="font-label text-[12px] font-medium">POS</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">event_available</span>
+<span class="font-label text-[12px] font-medium">Order &amp; Booking</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">payments</span>
+<span class="font-label text-[12px] font-medium">Pembayaran</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">person</span>
+<span class="font-label text-[12px] font-medium">Customer</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">inventory_2</span>
+<span class="font-label text-[12px] font-medium">Katalog</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">payments</span>
+<span class="font-label text-[12px] font-medium">Biaya</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">description</span>
+<span class="font-label text-[12px] font-medium">Invoice</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center px-3 py-2 bg-secondary-container text-on-secondary-container border-l-2 border-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] fill-icon text-primary">chat</span>
+<span class="font-label text-[12px] font-bold text-primary">Komunikasi</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px] group-hover:text-on-surface">assessment</span>
+<span class="font-label text-[12px] font-medium">Laporan</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-sidebar flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="h-header sticky top-0 z-30 bg-surface border-b border-outline-variant flex justify-between items-center px-content-padding w-full">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="font-label text-[12px] font-medium">Komunikasi</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-label text-[12px] font-bold text-primary">Blast WhatsApp</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+<button class="bg-primary text-on-primary font-label text-[12px] font-medium px-4 py-2 rounded flex items-center gap-2 hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                    Template Baru
+                </button>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-content-padding flex-1 flex flex-col gap-section-gap">
+<!-- Page Header & Tab Bar -->
+<div class="flex flex-col gap-4">
+<h2 class="font-page-title text-[24px] font-bold text-on-surface">Komunikasi</h2>
+<div class="flex gap-6 border-b border-outline-variant pb-[-1px]">
+<button class="pb-2 text-on-surface-variant font-label text-[12px] font-medium hover:text-primary transition-colors border-b-2 border-transparent hover:border-outline-variant">Template</button>
+<button class="pb-2 text-on-surface-variant font-label text-[12px] font-medium hover:text-primary transition-colors border-b-2 border-transparent hover:border-outline-variant">Blast Email</button>
+<button class="pb-2 text-primary font-label text-[12px] font-bold border-b-2 border-primary">Blast WhatsApp</button>
+<button class="pb-2 text-on-surface-variant font-label text-[12px] font-medium hover:text-primary transition-colors border-b-2 border-transparent hover:border-outline-variant">Riwayat</button>
+</div>
+</div>
+<!-- Warning Alert -->
+<div class="bg-warning-subtle text-warning-subtle-foreground rounded-card p-3 flex gap-3 items-start border border-[#ffd580]">
+<span class="material-symbols-outlined text-[20px] mt-0.5">info</span>
+<p class="font-body text-[14px] leading-5">WhatsApp dikirim manual dari HP kamu. App menyiapkan nomor dan pesannya, lalu kamu yang menekan kirim. Broadcast list WhatsApp Business hanya sampai ke penerima yang sudah menyimpan nomor studio.</p>
+</div>
+<!-- Main Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-section-gap items-start">
+<!-- Left Column -->
+<div class="flex flex-col gap-section-gap">
+<!-- Pesan Card -->
+<div class="bg-surface rounded-card border border-outline-variant p-card-padding flex flex-col gap-4">
+<h3 class="font-card-title text-[16px] font-semibold text-on-surface">Pesan</h3>
+<div class="flex flex-col gap-2">
+<label class="font-label text-[12px] font-medium text-on-surface-variant">Template Pesan</label>
+<select class="w-full bg-surface-container-lowest border border-outline rounded-badge px-3 py-2 font-body text-[14px] text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none">
+<option>Promo / Blast</option>
+</select>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label text-[12px] font-medium text-on-surface-variant">Variabel Tersedia (Klik untuk insert)</label>
+<div class="flex flex-wrap gap-2">
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{nama_customer}</button>
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{no_order}</button>
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{nama_paket}</button>
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{tanggal_acara}</button>
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{link_hasil}</button>
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{sisa_tagihan}</button>
+<button class="bg-surface-variant text-on-surface-variant font-data-mono text-[12px] px-2 py-1 rounded-badge hover:bg-surface-container-high transition-colors">{nama_studio}</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+<div class="flex flex-col gap-2">
+<label class="font-label text-[12px] font-medium text-on-surface-variant">Draf Pesan</label>
+<textarea class="w-full h-[180px] bg-surface-container-lowest border border-outline rounded-badge p-3 font-body text-[14px] text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none">Halo {nama_customer},
+
+Ada promo spesial dari {nama_studio} khusus untuk kamu! Dapatkan diskon 20% untuk sesi foto keluarga bulan ini.
+
+Balas pesan ini untuk info lebih lanjut.</textarea>
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-label text-[12px] font-medium text-on-surface-variant">Pratinjau</label>
+<div class="bg-surface-container p-4 rounded-badge h-[180px] flex flex-col justify-end items-start overflow-y-auto border border-outline-variant">
+<div class="bg-surface-container-lowest max-w-[300px] rounded-[12px] rounded-tl-none p-3 shadow-sm border border-outline-variant relative pb-6">
+<p class="font-body text-[13px] text-on-surface leading-snug">Halo <span class="bg-primary/10 text-primary px-1 rounded font-medium">Budi Hartono</span>,<br/><br/>Ada promo spesial dari Studio Foto Agung khusus untuk kamu! Dapatkan diskon 20% untuk sesi foto keluarga bulan ini.<br/><br/>Balas pesan ini untuk info lebih lanjut.</p>
+<span class="absolute bottom-1.5 right-2 font-data-mono text-[10px] text-on-surface-variant">10:42</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Cara Kirim Card -->
+<div class="bg-surface rounded-card border border-outline-variant p-card-padding flex flex-col gap-4">
+<h3 class="font-card-title text-[16px] font-semibold text-on-surface">Cara Kirim</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Option A: Selected -->
+<div class="h-[120px] rounded-badge border-2 border-primary bg-primary/5 p-4 flex gap-3 cursor-pointer relative overflow-hidden transition-all">
+<div class="absolute top-0 right-0 bg-primary text-on-primary px-2 py-1 rounded-bl-badge font-label text-[10px] font-bold">PILIHAN</div>
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">chat</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-card-title text-[14px] font-semibold text-on-surface mb-1">Kirim Satu per Satu</h4>
+<p class="font-body text-[12px] text-on-surface-variant leading-tight">Buka WhatsApp per customer dengan pesan sudah terisi. Nama otomatis dipersonalisasi. Cocok untuk di bawah 20 penerima.</p>
+</div>
+</div>
+<!-- Option B -->
+<div class="h-[120px] rounded-badge border border-outline-variant bg-surface hover:bg-surface-container-low p-4 flex gap-3 cursor-pointer transition-all">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">content_copy</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-card-title text-[14px] font-semibold text-on-surface mb-1">Salin Daftar Nomor</h4>
+<p class="font-body text-[12px] text-on-surface-variant leading-tight">Salin semua nomor untuk ditempel ke broadcast list WhatsApp Business. Maksimal 256 kontak, pesan tidak dipersonalisasi.</p>
+</div>
+</div>
+</div>
+<!-- Antrean Section (Shown because Option A is selected) -->
+<div class="mt-4 border-t border-outline-variant pt-4 flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<h4 class="font-label text-[14px] font-semibold text-on-surface">Antrean Kirim</h4>
+<span class="font-label text-[12px] text-on-surface-variant">1 dari 4 terkirim</span>
+</div>
+<div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/4 rounded-full"></div>
+</div>
+<div class="overflow-x-auto border border-outline-variant rounded-lg mt-2">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant h-[40px]">
+<th class="px-cell-padding-x py-cell-padding-y w-10 text-center"><input class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/></th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-[12px] text-on-surface-variant font-medium">Nama</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-[12px] text-on-surface-variant font-medium">No HP</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-[12px] text-on-surface-variant font-medium">Status</th>
+<th class="px-cell-padding-x py-cell-padding-y font-table-header text-[12px] text-on-surface-variant font-medium text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="font-table-cell text-[14px] text-on-surface">
+<tr class="border-b border-outline-variant h-table-row-height hover:bg-surface-container-lowest bg-surface transition-colors">
+<td class="px-cell-padding-x py-2 text-center"><input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" disabled="" type="checkbox"/></td>
+<td class="px-cell-padding-x py-2 font-medium">Sinta Prameswari</td>
+<td class="px-cell-padding-x py-2 font-data-mono text-[12px] tabular-nums">0812-3344-5566</td>
+<td class="px-cell-padding-x py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-badge bg-success-subtle text-success-subtle-foreground font-label text-[11px] font-medium border border-[#bbf7d0]">Terkirim</span>
+</td>
+<td class="px-cell-padding-x py-2 text-right">
+<button class="text-primary font-label text-[12px] font-medium hover:underline focus:outline-none bg-transparent">Kirim ulang</button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant h-table-row-height hover:bg-surface-container-lowest bg-surface transition-colors">
+<td class="px-cell-padding-x py-2 text-center"><input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/></td>
+<td class="px-cell-padding-x py-2 font-medium">Budi Hartono</td>
+<td class="px-cell-padding-x py-2 font-data-mono text-[12px] tabular-nums">0813-2211-9087</td>
+<td class="px-cell-padding-x py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-badge bg-surface-variant text-on-surface-variant font-label text-[11px] font-medium border border-outline-variant">Belum</span>
+</td>
+<td class="px-cell-padding-x py-2 text-right">
+<button class="bg-primary text-on-primary font-label text-[12px] font-medium px-3 py-1.5 rounded-badge hover:bg-primary-container hover:text-on-primary-container transition-colors focus:outline-none">Buka WhatsApp</button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant h-table-row-height hover:bg-surface-container-lowest bg-surface transition-colors">
+<td class="px-cell-padding-x py-2 text-center"><input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/></td>
+<td class="px-cell-padding-x py-2 font-medium">Rani &amp; Dimas</td>
+<td class="px-cell-padding-x py-2 font-data-mono text-[12px] tabular-nums">0857-8899-1200</td>
+<td class="px-cell-padding-x py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-badge bg-surface-variant text-on-surface-variant font-label text-[11px] font-medium border border-outline-variant">Belum</span>
+</td>
+<td class="px-cell-padding-x py-2 text-right">
+<button class="bg-primary text-on-primary font-label text-[12px] font-medium px-3 py-1.5 rounded-badge hover:bg-primary-container hover:text-on-primary-container transition-colors focus:outline-none">Buka WhatsApp</button>
+</td>
+</tr>
+<tr class="h-table-row-height hover:bg-surface-container-lowest bg-surface transition-colors">
+<td class="px-cell-padding-x py-2 text-center"><input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/></td>
+<td class="px-cell-padding-x py-2 font-medium">Nadia Salsabila</td>
+<td class="px-cell-padding-x py-2 font-data-mono text-[12px] tabular-nums">0896-1122-8899</td>
+<td class="px-cell-padding-x py-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-badge bg-surface-variant text-on-surface-variant font-label text-[11px] font-medium border border-outline-variant">Belum</span>
+</td>
+<td class="px-cell-padding-x py-2 text-right">
+<button class="bg-primary text-on-primary font-label text-[12px] font-medium px-3 py-1.5 rounded-badge hover:bg-primary-container hover:text-on-primary-container transition-colors focus:outline-none">Buka WhatsApp</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Sticky) -->
+<div class="sticky top-[80px] bg-surface rounded-[14px] border border-outline-variant p-card-padding flex flex-col gap-4 shadow-sm">
+<div class="flex justify-between items-center border-b border-outline-variant pb-3">
+<h3 class="font-card-title text-[16px] font-semibold text-on-surface">Penerima</h3>
+<button class="text-primary font-label text-[12px] font-medium hover:underline focus:outline-none">Reset filter</button>
+</div>
+<!-- Filters -->
+<div class="flex flex-col gap-3">
+<select class="w-full bg-surface-container-lowest border border-outline rounded-badge px-3 py-2 font-body text-[13px] text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none">
+<option>Pernah beli: Studio</option>
+<option>Pernah beli: Retail</option>
+<option>Pernah beli: Event</option>
+</select>
+<select class="w-full bg-surface-container-lowest border border-outline rounded-badge px-3 py-2 font-body text-[13px] text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none">
+<option>Sumber: Semua</option>
+<option>Sumber: Walk-in</option>
+<option>Sumber: Instagram</option>
+</select>
+<div class="relative">
+<select class="w-full bg-surface-container-low border border-outline-variant text-on-surface-variant rounded-badge px-3 py-2 pl-8 font-body text-[13px] appearance-none opacity-80 cursor-not-allowed" disabled="">
+<option>Punya nomor HP</option>
+</select>
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">lock</span>
+</div>
+<p class="font-label text-[11px] text-on-surface-variant italic mt-[-4px]">Wajib — blast WhatsApp butuh nomor.</p>
+</div>
+<!-- Summary -->
+<div class="bg-primary/5 rounded-badge p-4 flex flex-col items-center justify-center border border-primary/20 my-2">
+<div class="font-metric text-[30px] font-bold text-primary tabular-nums leading-none">4</div>
+<div class="font-label text-[12px] text-on-surface-variant mt-1">penerima terpilih</div>
+</div>
+<!-- List -->
+<div class="flex flex-col gap-2 overflow-y-auto max-h-[200px] pr-1">
+<!-- Item 1 -->
+<div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-bold text-[12px] shrink-0">SP</div>
+<div class="flex flex-col flex-1 min-w-0">
+<span class="font-label text-[13px] font-semibold text-on-surface truncate">Sinta Prameswari</span>
+<span class="font-data-mono text-[11px] text-on-surface-variant tabular-nums truncate">0812-3344-5566</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-bold text-[12px] shrink-0">BH</div>
+<div class="flex flex-col flex-1 min-w-0">
+<span class="font-label text-[13px] font-semibold text-on-surface truncate">Budi Hartono</span>
+<span class="font-data-mono text-[11px] text-on-surface-variant tabular-nums truncate">0813-2211-9087</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-bold text-[12px] shrink-0">R&amp;</div>
+<div class="flex flex-col flex-1 min-w-0">
+<span class="font-label text-[13px] font-semibold text-on-surface truncate">Rani &amp; Dimas</span>
+<span class="font-data-mono text-[11px] text-on-surface-variant tabular-nums truncate">0857-8899-1200</span>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<input checked="" class="rounded border-outline text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-bold text-[12px] shrink-0">NS</div>
+<div class="flex flex-col flex-1 min-w-0">
+<span class="font-label text-[13px] font-semibold text-on-surface truncate">Nadia Salsabila</span>
+<span class="font-data-mono text-[11px] text-on-surface-variant tabular-nums truncate">0896-1122-8899</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

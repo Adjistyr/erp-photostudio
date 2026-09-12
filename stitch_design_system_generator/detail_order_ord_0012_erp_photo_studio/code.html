@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Order Detail - ERP Photo Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e8e8e9",
+                        "inverse-surface": "#2f3132",
+                        "background": "#f9f9fa",
+                        "outline-variant": "#c4c5d8",
+                        "on-error": "#ffffff",
+                        "secondary": "#5c5f5f",
+                        "surface-bright": "#f9f9fa",
+                        "secondary-fixed": "#e1e3e3",
+                        "on-surface-variant": "#434655",
+                        "surface-tint": "#1c4bea",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#00164e",
+                        "on-tertiary-fixed-variant": "#003baf",
+                        "tertiary-fixed": "#dce1ff",
+                        "primary": "#0032b6",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#0038a7",
+                        "surface-dim": "#dadadb",
+                        "on-tertiary-container": "#c6d1ff",
+                        "primary-fixed-dim": "#b9c3ff",
+                        "tertiary-fixed-dim": "#b6c4ff",
+                        "on-secondary-container": "#606363",
+                        "surface-container-low": "#f4f3f4",
+                        "surface": "#f9f9fa",
+                        "primary-container": "#1447e6",
+                        "surface-variant": "#e2e2e3",
+                        "outline": "#747687",
+                        "inverse-on-surface": "#f1f0f2",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#004cdb",
+                        "on-primary-fixed": "#001356",
+                        "error-container": "#ffdad6",
+                        "on-background": "#1a1c1d",
+                        "on-primary-fixed-variant": "#0035be",
+                        "surface-container": "#eeeeef",
+                        "on-surface": "#1a1c1d",
+                        "surface-container-highest": "#e2e2e3",
+                        "secondary-container": "#dee0e0",
+                        "on-primary-container": "#c9d0ff",
+                        "on-secondary-fixed-variant": "#444748",
+                        "secondary-fixed-dim": "#c4c7c7",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#191c1d",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#b9c3ff",
+                        "primary-fixed": "#dde1ff",
+                        "warning": "#f59e0b",
+                        "warning-subtle": "#fef3c7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "sheet": "14px"
+                    },
+                    "spacing": {
+                        "content-padding": "24px",
+                        "header-height": "56px",
+                        "cell-padding-y": "10px",
+                        "card-padding": "20px",
+                        "cell-padding-x": "12px",
+                        "sidebar": "256px",
+                        "section-gap": "24px",
+                        "table-header-height": "40px",
+                        "table-row-height": "44px"
+                    },
+                    "fontFamily": {
+                        "body": ["Inter"],
+                        "table-cell": ["Inter"],
+                        "card-title": ["Inter"],
+                        "metric": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label": ["Inter"],
+                        "page-title": ["Inter"],
+                        "table-header": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "table-cell": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "card-title": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "metric": ["30px", {"lineHeight": "36px", "fontWeight": "600"}],
+                        "data-mono": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "label": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "page-title": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "table-header": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body overflow-hidden h-screen w-screen flex relative">
+<!-- Background App Shell (Dimmed) -->
+<div class="flex-1 flex flex-col pointer-events-none opacity-40 grayscale-[0.3]">
+<!-- TopNavBar (Simplified) -->
+<header class="sticky top-0 h-header-height w-full z-40 bg-background border-b border-outline-variant flex items-center justify-between px-content-padding">
+<h1 class="font-page-title text-page-title text-on-surface">Order &amp; Booking</h1>
+</header>
+<!-- Data Grid Content (Simplified) -->
+<main class="p-content-padding overflow-y-auto">
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant font-table-header text-table-header text-on-surface-variant">
+<tr>
+<th class="px-cell-padding-x py-cell-padding-y">ID Order</th>
+<th class="px-cell-padding-x py-cell-padding-y">Pelanggan</th>
+<th class="px-cell-padding-x py-cell-padding-y">Status</th>
+</tr>
+</thead>
+<tbody class="font-table-cell text-table-cell text-on-surface">
+<tr class="border-b border-outline-variant bg-surface-container-lowest">
+<td class="px-cell-padding-x py-cell-padding-y font-data-mono text-data-mono">ORD-0012</td>
+<td class="px-cell-padding-x py-cell-padding-y">Sinta Prameswari</td>
+<td class="px-cell-padding-x py-cell-padding-y">Dikerjakan</td>
+</tr>
+<!-- More rows would go here -->
+</tbody>
+</table>
+</div>
+</main>
+</div>
+<!-- Overlay / Dimmer -->
+<div class="fixed inset-0 bg-on-background/40 z-50 transition-opacity"></div>
+<!-- Sheet -->
+<div class="fixed top-0 right-0 h-screen w-full sm:w-[640px] bg-surface-container-lowest shadow-2xl z-50 flex flex-col rounded-l-sheet transform transition-transform duration-300 ease-in-out border-l border-outline-variant">
+<!-- Sheet Header -->
+<header class="px-6 py-5 border-b border-outline-variant flex justify-between items-start shrink-0">
+<div>
+<p class="font-data-mono text-data-mono text-on-surface-variant mb-1">ORD-0012</p>
+<h2 class="text-[20px] font-semibold leading-[28px] text-on-surface mb-3">Paket Studio 1 Jam</h2>
+<div class="flex gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                        Studio
+                    </span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-warning-subtle text-warning border border-warning/20">
+                        DP 43%
+                    </span>
+</div>
+</div>
+<button aria-label="Close" class="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</header>
+<!-- Status Stepper Section -->
+<div class="px-6 py-5 border-b border-outline-variant bg-surface-bright shrink-0">
+<div class="flex items-center justify-between relative mb-5 before:absolute before:top-1/2 before:-translate-y-1/2 before:left-0 before:h-[1px] before:w-full before:bg-outline-variant before:z-0">
+<!-- Step 1 -->
+<div class="flex flex-col items-center gap-2 relative z-10 w-16">
+<div class="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface-bright"></div>
+<span class="text-[10px] font-medium text-on-surface-variant whitespace-nowrap text-center">Booking</span>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center gap-2 relative z-10 w-16">
+<div class="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface-bright"></div>
+<span class="text-[10px] font-medium text-on-surface-variant whitespace-nowrap text-center">Dijadwalkan</span>
+</div>
+<!-- Step 3 Active -->
+<div class="flex flex-col items-center gap-2 relative z-10 w-16">
+<div class="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface-bright"></div>
+<span class="text-[10px] font-bold text-on-surface whitespace-nowrap text-center">Dikerjakan</span>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center gap-2 relative z-10 w-16">
+<div class="w-2.5 h-2.5 rounded-full bg-surface-bright border border-outline ring-4 ring-surface-bright"></div>
+<span class="text-[10px] font-medium text-on-surface-variant whitespace-nowrap text-center">Selesai<br/>Dikerjakan</span>
+</div>
+<!-- Step 5 -->
+<div class="flex flex-col items-center gap-2 relative z-10 w-16">
+<div class="w-2.5 h-2.5 rounded-full bg-surface-bright border border-outline ring-4 ring-surface-bright"></div>
+<span class="text-[10px] font-medium text-on-surface-variant whitespace-nowrap text-center">Diserahkan</span>
+</div>
+</div>
+<button class="w-full py-2 px-4 rounded border border-primary text-primary font-medium text-sm hover:bg-primary/5 transition-colors">
+                Tandai Selesai Dikerjakan
+            </button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto overflow-x-hidden">
+<!-- 1. Customer Section -->
+<section class="px-6 py-5 border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold text-lg">
+                        SP
+                    </div>
+<div>
+<p class="font-medium text-on-surface text-sm">Sinta Prameswari</p>
+<div class="flex items-center gap-1 text-on-surface-variant mt-0.5">
+<span class="material-symbols-outlined text-[14px]" data-icon="phone_iphone">phone_iphone</span>
+<span class="font-data-mono text-data-mono">0812-3456-7890</span>
+</div>
+</div>
+</div>
+<a class="text-sm text-primary font-medium hover:underline" href="#">Lihat profil</a>
+</section>
+<!-- 2. Jadwal Section -->
+<section class="px-6 py-4 border-b border-outline-variant flex items-center gap-3 text-on-surface text-sm">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="calendar_month">calendar_month</span>
+<span>26 Agu 2026, 14:00 · 1 jam · Studio</span>
+</section>
+<!-- 3. Item Section -->
+<section class="px-6 py-5 border-b border-outline-variant">
+<h3 class="font-semibold text-on-surface mb-3 text-sm">Item Order</h3>
+<div class="border border-outline-variant rounded bg-surface-bright">
+<table class="w-full text-left text-sm">
+<thead class="bg-surface-container-low border-b border-outline-variant text-on-surface-variant font-medium text-xs">
+<tr>
+<th class="px-3 py-2">Item</th>
+<th class="px-3 py-2 w-16 text-center">Qty</th>
+<th class="px-3 py-2 text-right">Subtotal</th>
+</tr>
+</thead>
+<tbody class="text-on-surface">
+<tr class="border-b border-outline-variant">
+<td class="px-3 py-2.5">Paket Studio 1 Jam</td>
+<td class="px-3 py-2.5 text-center">1</td>
+<td class="px-3 py-2.5 text-right">Rp 350.000</td>
+</tr>
+<tr class="bg-surface-container-lowest font-semibold">
+<td class="px-3 py-3 text-right" colspan="2">Total</td>
+<td class="px-3 py-3 text-right">Rp 350.000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- 4. Pembayaran Section -->
+<section class="px-6 py-5 border-b border-outline-variant">
+<div class="flex items-center justify-between mb-3">
+<h3 class="font-semibold text-on-surface text-sm">Pembayaran</h3>
+<button class="py-1 px-3 border border-outline-variant rounded text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors">
+                        + Catat Pembayaran
+                    </button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between text-sm text-on-surface p-3 bg-surface-bright border border-outline-variant rounded">
+<div>
+<p class="font-medium">26 Agu 2026</p>
+<p class="text-xs text-on-surface-variant mt-0.5">Note: DP</p>
+</div>
+<div class="text-right">
+<p class="font-data-mono">Rp 150.000</p>
+<span class="inline-block mt-1 text-[10px] bg-surface-container-highest px-1.5 py-0.5 rounded text-on-surface-variant">Transfer</span>
+</div>
+</div>
+<div class="pt-2 flex flex-col items-end gap-1 text-sm">
+<p class="text-on-surface-variant">Total dibayar <span class="font-data-mono text-on-surface ml-2">Rp 150.000</span></p>
+<p class="font-bold text-warning">Sisa tagihan <span class="font-data-mono ml-2">Rp 200.000</span></p>
+</div>
+</div>
+</section>
+<!-- 5. Biaya Job Section -->
+<section class="px-6 py-5 border-b border-outline-variant">
+<div class="flex items-center justify-between mb-3">
+<h3 class="font-semibold text-on-surface text-sm">Biaya Langsung</h3>
+<button class="py-1 px-3 border border-outline-variant rounded text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors">
+                        + Tambah Biaya
+                    </button>
+</div>
+<div class="flex items-center gap-2 p-3 bg-surface-container-low border border-outline-variant rounded border-dashed text-on-surface-variant text-sm">
+<span class="material-symbols-outlined text-[18px]" data-icon="receipt_long">receipt_long</span>
+<span>Belum ada biaya langsung untuk order ini.</span>
+</div>
+</section>
+<!-- 6. Hasil Foto Section -->
+<section class="px-6 py-5 border-b border-outline-variant">
+<h3 class="font-semibold text-on-surface mb-3 text-sm">Link Hasil Foto</h3>
+<div class="flex gap-2">
+<input class="flex-1 bg-surface-container-low border border-outline-variant rounded px-3 py-2 text-sm text-on-surface-variant cursor-not-allowed" disabled="" placeholder="Tempel link Google Drive..." type="text"/>
+<button class="py-2 px-4 bg-surface-container-highest text-on-surface-variant rounded font-medium text-sm cursor-not-allowed" disabled="">
+                        Simpan
+                    </button>
+</div>
+<p class="text-xs text-on-surface-variant mt-2">Bisa diisi setelah status Selesai Dikerjakan.</p>
+</section>
+<!-- 7. Catatan Section -->
+<section class="px-6 py-5 mb-4">
+<h3 class="font-semibold text-on-surface mb-2 text-sm">Catatan Internal</h3>
+<textarea class="w-full bg-surface-bright border border-outline-variant rounded px-3 py-2 text-sm text-on-surface min-h-[80px] focus:ring-1 focus:ring-primary focus:border-primary outline-none" placeholder="Tambahkan catatan khusus terkait order ini..."></textarea>
+</section>
+</div>
+<!-- Sticky Footer -->
+<footer class="px-6 py-4 border-t border-outline-variant bg-surface-container-lowest shrink-0 flex items-center justify-between">
+<button class="text-error hover:bg-error/10 font-medium text-sm py-2 px-4 rounded transition-colors">
+                Batalkan Order
+            </button>
+<button class="py-2 px-4 border border-outline-variant rounded font-medium text-sm text-on-surface hover:bg-surface-container-low transition-colors">
+                Edit
+            </button>
+</footer>
+</div>
+</body></html>

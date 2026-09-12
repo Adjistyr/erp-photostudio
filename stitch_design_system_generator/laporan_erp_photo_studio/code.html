@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Laporan - Studio Foto Agung</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#2f3132",
+                      "on-error-container": "#93000a",
+                      "primary-fixed-dim": "#b9c3ff",
+                      "error-container": "#ffdad6",
+                      "on-primary-container": "#c9d0ff",
+                      "secondary-container": "#dee0e0",
+                      "tertiary-container": "#004cdb",
+                      "surface-variant": "#e2e2e3",
+                      "on-surface-variant": "#434655",
+                      "surface-container-low": "#f4f3f4",
+                      "on-secondary-fixed": "#191c1d",
+                      "outline-variant": "#c4c5d8",
+                      "surface-bright": "#f9f9fa",
+                      "inverse-on-surface": "#f1f0f2",
+                      "on-surface": "#1a1c1d",
+                      "on-primary-fixed-variant": "#0035be",
+                      "on-tertiary-container": "#c6d1ff",
+                      "on-secondary-fixed-variant": "#444748",
+                      "tertiary-fixed": "#dce1ff",
+                      "secondary-fixed-dim": "#c4c7c7",
+                      "secondary-fixed": "#e1e3e3",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed-dim": "#b6c4ff",
+                      "background": "#f9f9fa",
+                      "surface-container": "#eeeeef",
+                      "secondary": "#5c5f5f",
+                      "surface-dim": "#dadadb",
+                      "surface-container-highest": "#e2e2e3",
+                      "primary-container": "#1447e6",
+                      "on-primary-fixed": "#001356",
+                      "surface-container-lowest": "#ffffff",
+                      "outline": "#747687",
+                      "surface": "#f9f9fa",
+                      "surface-container-high": "#e8e8e9",
+                      "error": "#ba1a1a",
+                      "on-secondary-container": "#606363",
+                      "inverse-primary": "#b9c3ff",
+                      "primary-fixed": "#dde1ff",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "on-tertiary-fixed-variant": "#003baf",
+                      "on-tertiary": "#ffffff",
+                      "tertiary": "#0038a7",
+                      "on-background": "#1a1c1d",
+                      "primary": "#0032b6",
+                      "on-tertiary-fixed": "#00164e",
+                      "surface-tint": "#1c4bea",
+                      "chart-retail": "#3b82f6",
+                      "chart-studio": "#8b5cf6",
+                      "chart-event": "#10b981",
+                      "chart-profit": "#10b981",
+                      "chart-expense": "#ef4444"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "md": "8px",
+                      "lg": "14px",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "sidebar": "256px",
+                      "table-row-height": "44px",
+                      "card-padding": "20px",
+                      "cell-padding-x": "12px",
+                      "content-padding": "24px",
+                      "table-header-height": "40px",
+                      "cell-padding-y": "10px",
+                      "section-gap": "24px",
+                      "header-height": "56px"
+              },
+              "fontFamily": {
+                      "table-cell": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "card-title": [
+                              "Inter"
+                      ],
+                      "table-header": [
+                              "Inter"
+                      ],
+                      "body": [
+                              "Inter"
+                      ],
+                      "metric": [
+                              "Inter"
+                      ],
+                      "label": [
+                              "Inter"
+                      ],
+                      "page-title": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "table-cell": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "card-title": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "table-header": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "metric": [
+                              "30px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "page-title": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .tabular-nums {
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen">
+<!-- SideNavBar -->
+<aside class="bg-surface dark:bg-inverse-surface fixed left-0 top-0 h-full w-sidebar border-r border-outline-variant dark:border-outline flex flex-col p-4 gap-2 z-50">
+<div class="px-4 py-3 mb-4">
+<h1 class="font-page-title text-page-title text-primary dark:text-primary-fixed-dim">Studio Foto Agung</h1>
+<p class="font-label text-label text-on-surface-variant">Pemilik</p>
+</div>
+<nav class="flex flex-col gap-1 flex-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-body text-body">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">point_of_sale</span>
+<span class="font-body text-body">POS</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">event_available</span>
+<span class="font-body text-body">Order &amp; Booking</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">payments</span>
+<span class="font-body text-body">Pembayaran</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span>
+<span class="font-body text-body">Customer</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span class="font-body text-body">Katalog</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">payments</span>
+<span class="font-body text-body">Biaya</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">receipt</span>
+<span class="font-body text-body">Invoice</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">chat</span>
+<span class="font-body text-body">Komunikasi</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container dark:bg-on-secondary-fixed-variant text-primary dark:text-primary-fixed-dim border-l-2 border-primary dark:border-primary-fixed-dim opacity-90 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span class="font-body text-body font-medium">Laporan</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-sidebar min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-inverse-surface sticky top-0 z-40 h-header-height border-b border-outline-variant dark:border-outline flex items-center justify-between px-content-padding transition-all duration-200">
+<div class="flex items-center gap-4">
+<h2 class="font-page-title text-page-title font-bold text-on-surface dark:text-inverse-on-surface">Laporan</h2>
+</div>
+<div class="flex items-center gap-4">
+<select class="border-outline-variant rounded-md font-body text-body py-1.5 pl-3 pr-8 bg-surface focus:ring-primary focus:border-primary">
+<option>Agustus 2026</option>
+</select>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-md border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors font-label text-label">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Unduh PDF
+                </button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-md border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors font-label text-label">
+                    Ekspor CSV
+                </button>
+<div class="flex items-center gap-3 ml-4 border-l border-outline-variant pl-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of an Indonesian business owner, smiling slightly, wearing neat corporate casual attire, well-lit against a neutral grey studio background, high quality, crisp focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhkkimESaD2NWnWlvrHD6gBDRxnDf4gBBY31iLfJAToNpHwhjg-0f63V89fAA2g6-tSyFXCD9magXCiht-bsMcFOVcHuY79ACQP1P3kWoIQTpAajHIQep87yLi4w_aMRuTj1keppmwRhVyF-Y4sUxp2mYcVGAlDAZjp-h3eCPUhy9ecv02Yl4FI6VJvHHgAJDjb5svsdAnDGdUFylqDzLz1lA_NzAPRuS9kjDOCzIkL7AqzGKuekr9ug"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-content-padding flex-1 flex flex-col gap-section-gap">
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant">
+<button class="px-4 py-3 font-body text-body font-medium text-primary border-b-2 border-primary">Laba Rugi</button>
+<button class="px-4 py-3 font-body text-body text-on-surface-variant hover:text-on-surface transition-colors">Margin per Lini</button>
+<button class="px-4 py-3 font-body text-body text-on-surface-variant hover:text-on-surface transition-colors">Penjualan</button>
+<button class="px-4 py-3 font-body text-body text-on-surface-variant hover:text-on-surface transition-colors">Piutang</button>
+</div>
+<!-- Alert -->
+<div class="bg-surface-container rounded-md p-3 flex items-start gap-3 border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] mt-0.5">info</span>
+<p class="font-label text-label text-on-surface-variant leading-relaxed">
+                    Basis kas — omzet dihitung dari uang yang benar-benar diterima bulan ini, bukan dari nilai order. Order yang sudah dikerjakan tapi belum lunas ada di tab Piutang.
+                </p>
+</div>
+<!-- Stat Cards -->
+<div class="grid grid-cols-4 gap-4">
+<div class="bg-surface rounded-lg border border-outline-variant p-4 flex flex-col gap-2">
+<div class="flex justify-between items-start text-on-surface-variant">
+<span class="font-body text-body">Total Omzet</span>
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<div class="font-card-title text-card-title text-on-surface tabular-nums">Rp 5.790.000</div>
+</div>
+<div class="bg-surface rounded-lg border border-outline-variant p-4 flex flex-col gap-2">
+<div class="flex justify-between items-start text-on-surface-variant">
+<span class="font-body text-body">Laba Kotor</span>
+<span class="material-symbols-outlined">layers</span>
+</div>
+<div class="font-card-title text-card-title text-on-surface tabular-nums">Rp 2.695.500</div>
+<div class="font-label text-label text-on-surface-variant">47% dari omzet</div>
+</div>
+<div class="bg-surface rounded-lg border border-outline-variant p-4 flex flex-col gap-2">
+<div class="flex justify-between items-start text-on-surface-variant">
+<span class="font-body text-body">Biaya Operasional</span>
+<span class="material-symbols-outlined">domain</span>
+</div>
+<div class="font-card-title text-card-title text-on-surface tabular-nums">Rp 4.800.000</div>
+</div>
+<div class="bg-surface rounded-lg border border-outline-variant p-4 flex flex-col gap-2">
+<div class="flex justify-between items-start text-error">
+<span class="font-body text-body">Laba Bersih</span>
+<span class="material-symbols-outlined">trending_down</span>
+</div>
+<div class="font-card-title text-card-title text-error tabular-nums">−Rp 2.104.500</div>
+<div class="font-label text-label text-error">Rugi bulan ini</div>
+</div>
+</div>
+<!-- Layout -->
+<div class="grid grid-cols-[1fr_380px] gap-section-gap">
+<!-- KIRI -->
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="p-card-padding border-b border-outline-variant">
+<h3 class="font-card-title text-card-title text-on-surface">Laba Rugi Agustus 2026</h3>
+</div>
+<div class="flex-1 p-0">
+<table class="w-full text-left border-collapse">
+<tbody>
+<!-- OMZET -->
+<tr>
+<td class="pt-4 pb-2 px-card-padding font-table-header text-table-header text-on-surface-variant uppercase tracking-wider" colspan="2">Omzet</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Retail
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 290.000</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Studio
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 1.500.000</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Event
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 4.000.000</td>
+</tr>
+<tr class="border-t border-outline-variant">
+<td class="pl-card-padding py-3 font-table-cell text-[14px] font-semibold text-on-surface">Total Omzet</td>
+<td class="pr-card-padding py-3 font-data-mono text-[14px] font-semibold text-on-surface text-right tabular-nums whitespace-nowrap">Rp 5.790.000</td>
+</tr>
+<!-- BIAYA LANGSUNG -->
+<tr>
+<td class="pt-6 pb-2 px-card-padding font-table-header text-table-header text-on-surface-variant uppercase tracking-wider" colspan="2">Biaya Langsung</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        HPP bahan produk
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 94.500</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Biaya job
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 3.000.000</td>
+</tr>
+<tr class="border-t border-outline-variant">
+<td class="pl-card-padding py-3 font-table-cell text-[14px] font-semibold text-on-surface">Total Biaya Langsung</td>
+<td class="pr-card-padding py-3 font-data-mono text-[14px] font-semibold text-on-surface text-right tabular-nums whitespace-nowrap">Rp 3.094.500</td>
+</tr>
+<!-- LABA KOTOR -->
+<tr class="bg-surface-container border-y border-outline-variant">
+<td class="pl-card-padding py-[12px] font-card-title text-[16px] font-semibold text-on-surface flex items-center gap-3">
+                                        Laba Kotor
+                                        <span class="bg-surface border border-outline-variant px-2 py-0.5 rounded font-data-mono text-[12px] font-medium text-on-surface-variant">47%</span>
+</td>
+<td class="pr-card-padding py-[12px] font-data-mono text-[16px] font-semibold text-on-surface text-right tabular-nums whitespace-nowrap">Rp 2.695.500</td>
+</tr>
+<!-- BIAYA OPERASIONAL -->
+<tr>
+<td class="pt-6 pb-2 px-card-padding font-table-header text-table-header text-on-surface-variant uppercase tracking-wider" colspan="2">Biaya Operasional</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Sewa tempat
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 3.500.000</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Utilitas
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 800.000</td>
+</tr>
+<tr class="hover:bg-surface-container-low group cursor-pointer transition-colors">
+<td class="pl-[40px] py-1.5 font-table-cell text-table-cell text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity -ml-[24px]">chevron_right</span>
+                                        Marketing
+                                    </td>
+<td class="pr-card-padding py-1.5 font-data-mono text-data-mono text-on-surface text-right tabular-nums whitespace-nowrap">Rp 500.000</td>
+</tr>
+<tr class="border-t border-outline-variant">
+<td class="pl-card-padding py-3 font-table-cell text-[14px] font-semibold text-on-surface">Total Biaya Operasional</td>
+<td class="pr-card-padding py-3 font-data-mono text-[14px] font-semibold text-on-surface text-right tabular-nums whitespace-nowrap">Rp 4.800.000</td>
+</tr>
+<!-- LABA BERSIH -->
+<tr class="bg-error-container/30 border-y border-outline-variant">
+<td class="pl-card-padding py-[12px] font-card-title text-[18px] font-semibold text-error">
+                                        = Laba Bersih
+                                    </td>
+<td class="pr-card-padding py-[12px] font-data-mono text-[18px] font-semibold text-error text-right tabular-nums whitespace-nowrap">−Rp 2.104.500</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- KANAN -->
+<div class="flex flex-col gap-4">
+<!-- Komposisi Omzet -->
+<div class="bg-surface border border-outline-variant rounded-lg p-card-padding flex flex-col gap-4">
+<h3 class="font-card-title text-card-title text-on-surface">Komposisi Omzet</h3>
+<div class="flex h-[40px] rounded-md overflow-hidden">
+<div class="bg-[#3b82f6]" style="width: 5%" title="Retail 5%"></div>
+<div class="bg-[#8b5cf6]" style="width: 26%" title="Studio 26%"></div>
+<div class="bg-[#10b981]" style="width: 69%" title="Event 69%"></div>
+</div>
+<div class="flex flex-col gap-2 mt-2">
+<div class="flex items-center justify-between font-table-cell text-table-cell">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded bg-[#10b981]"></div>
+<span class="text-on-surface">Event (69%)</span>
+</div>
+<span class="font-data-mono text-data-mono tabular-nums">Rp 4.000.000</span>
+</div>
+<div class="flex items-center justify-between font-table-cell text-table-cell">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded bg-[#8b5cf6]"></div>
+<span class="text-on-surface">Studio (26%)</span>
+</div>
+<span class="font-data-mono text-data-mono tabular-nums">Rp 1.500.000</span>
+</div>
+<div class="flex items-center justify-between font-table-cell text-table-cell">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded bg-[#3b82f6]"></div>
+<span class="text-on-surface">Retail (5%)</span>
+</div>
+<span class="font-data-mono text-data-mono tabular-nums">Rp 290.000</span>
+</div>
+</div>
+</div>
+<!-- Omzet vs Biaya -->
+<div class="bg-surface border border-outline-variant rounded-lg p-card-padding flex flex-col gap-4">
+<h3 class="font-card-title text-card-title text-on-surface">Omzet vs Biaya</h3>
+<div class="flex flex-col gap-3 pt-2">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-table-cell text-table-cell">
+<span class="text-on-surface-variant">Uang Masuk</span>
+<span class="font-data-mono text-data-mono tabular-nums text-on-surface">Rp 5.790.000</span>
+</div>
+<div class="w-full bg-surface-container rounded-sm h-3 overflow-hidden">
+<div class="bg-[#10b981] h-full" style="width: 73%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-table-cell text-table-cell">
+<span class="text-on-surface-variant">Uang Keluar</span>
+<span class="font-data-mono text-data-mono tabular-nums text-on-surface">Rp 7.894.500</span>
+</div>
+<div class="w-full bg-surface-container rounded-sm h-3 overflow-hidden">
+<div class="bg-[#ef4444] h-full" style="width: 100%"></div>
+</div>
+</div>
+</div>
+<div class="mt-2 pt-4 border-t border-outline-variant flex justify-between items-center font-card-title text-card-title text-error">
+<span>Selisih</span>
+<span class="font-data-mono text-[16px] tabular-nums">−Rp 2.104.500</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
