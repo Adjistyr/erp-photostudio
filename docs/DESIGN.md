@@ -180,9 +180,12 @@ Ini **blocker** — harus diperbaiki sebelum merge.
 ### R2 — Tipografi: satu sans, satu mono, angka wajib tabular
 
 ```
-Sans : Inter          (Google Fonts)
-Mono : JetBrains Mono (Google Fonts) — nomor invoice, ID order, kode
+Sans    : DM Sans        (dari preset shadcn b311momZs0)
+Heading : Outfit         (dari preset)
+Mono    : JetBrains Mono (ditambah manual) — nomor invoice, ID order, kolom uang
 ```
+
+Sans dan heading mengikuti preset, bukan Inter seperti rancangan awal: preset yang jadi sumber kebenaran token, dan mengubah fontnya berarti menyimpang dari sistem desain yang justru dipilih supaya konsisten. Mono tidak ada di preset mana pun sehingga ditambahkan sebagai dependency terpisah.
 
 | Peran | Ukuran / Berat | Catatan |
 |---|---|---|
@@ -199,9 +202,11 @@ Mono : JetBrains Mono (Google Fonts) — nomor invoice, ID order, kode
 // ❌ Salah — kolom Rp zigzag
 <td className="text-right">{formatRp(order.total)}</td>
 
-// ✅ Benar
-<td className="text-right tabular-nums">{formatRp(order.total)}</td>
+// ✅ Benar — mono sudah tabular secara bawaan
+<td className="text-right font-mono">{formatRp(order.total)}</td>
 ```
+
+**Gotcha yang menentukan cara memenuhi aturan ini.** `tabular-nums` itu `font-variant-numeric`, dan kalau font yang aktif tidak punya fitur OpenType `tnum`, browser **diam-diam mengabaikannya tanpa error**. Kolom Rp balik zigzag dan tidak ada yang memberi tahu. Karena itu kolom uang dan angka KPI memakai **mono** — lebar digitnya sama secara bawaan, jadi tidak bergantung pada fitur font yang mungkin tidak ada. `tabular-nums` boleh dipakai sebagai tambahan, tapi tidak boleh jadi satu-satunya andalan.
 
 Ini **blocker** untuk semua kolom numerik di tabel dan semua angka KPI.
 
@@ -416,8 +421,26 @@ Ditulis eksplisit supaya tidak ditambahkan "biar lengkap". Menuliskannya justru 
 
 ---
 
-## 4. Langkah Berikutnya
+## 4. Status Implementasi
 
-1. Tempel bagian 2 dan 3 sebagai DESIGN.md di Stitch.
-2. Generate per layar mengikuti [stitch-prompts.md](./stitch-prompts.md) — 22 layar, urut sesuai ketergantungan data: Katalog → Customer → Order → Pembayaran → Biaya → POS → Dashboard → Invoice → Komunikasi → Laporan.
-3. Setelah 2–3 layar pertama jadi, cek konsistensi badge dan density sebelum lanjut. Lebih murah membetulkan aturan di sini daripada meregenerate 22 layar.
+Jalur Stitch **ditutup**. Hasilnya tidak bisa dipakai sebagai kode: tiap layar mengarang ulang Tailwind config sendiri (47–61 color key, berbeda-beda antar layar), namespace tokennya Material bukan shadcn, dan tiga aturan blocker di dokumen ini gagal secara merata — R3 badge "Belum Bayar" dirender empat cara di lima layar, R7 empty state ada di 1 dari 21 layar, R8 label grup sidebar nol dari 21. Mockup Stitch di `stitch_design_system_generator/` tetap berguna sebagai **referensi layout**, bukan sumber kode.
+
+Penggantinya ada di `web/` — React Router 7 (SPA) + shadcn preset `b311momZs0`, yaitu preset yang bagian 2 dokumen ini memang ditulis di atasnya. Tiga delta yang perlu ditambal setelah `init` persis tiga modifikasi yang sudah didokumentasikan di atas:
+
+| Delta | Di preset | Tindakan |
+|---|---|---|
+| `chartColor: mist` | monokrom, chroma 0.007–0.021 | override `--chart-1..5` kategorikal (R6) |
+| `success` / `warning` / `*-subtle` | tidak ada | tambah 10 token (R3) |
+| `.dark --primary` | kontras 1.96 di atas `--card` | ganti ke `oklch(0.623 0.214 259.815)` |
+
+Tiga blocker yang gagal di Stitch sekarang mustahil menyimpang per layar karena hanya punya satu definisi: R8 di `AppShell`, R3 di `BadgeStatusBayar`, R4/R7 di `TabelData` + `KosongTabel`.
+
+**Checklist angka di [stitch-prompts.md](./stitch-prompts.md) bagian 6 dijalankan sebagai test**, bukan dicek mata — omzet Rp 5.790.000, piutang Rp 8.050.000 dari 4 order, laba bersih −Rp 2.104.500, margin per lini, kelompok umur piutang, produk terlaris. Seluruh rekap diturunkan dari satu daftar order di `web/app/lib/dummy.ts`, jadi angka yang tidak cocok antar layar tidak mungkin terjadi.
+
+### Yang masih menunggu client
+
+Tiga jawaban masih mengubah layar yang sudah jadi, dan ini alasan mockup dibangun sebelum spesifikasi difinalkan — bukan sesudah:
+
+1. **Basis kas vs akrual** ([business-flow bagian 7](./business-flow.md)) — mengubah Laba Rugi dan KPI omzet Dashboard.
+2. **Aturan DP** (persentase tetap vs nego per deal) — mengubah Form Order dan badge DP.
+3. **Status crew** (freelance vs tetap) — menentukan biaya masuk BiayaJob atau BiayaOperasional, mengubah Margin per Lini.
