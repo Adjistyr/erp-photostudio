@@ -1,0 +1,5 @@
+# macOS — metadata folder Finder, berubah setiap folder dibuka
+.DS_Store
+
+# Screenshot & log verifikasi UI dari Playwright MCP
+.playwright-mcp/
