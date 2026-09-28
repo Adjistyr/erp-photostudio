@@ -16,7 +16,7 @@
 // Ekstensi .ts eksplisit: Vite maupun `node --test` dua-duanya resolve bentuk
 // ini, sedangkan tanpa ekstensi hanya Vite yang bisa. Satu gaya import, nol
 // dependency test tambahan.
-import { formatBulan, formatRp, selisihHari } from "./format.ts";
+import { formatBulan, formatRp, selisihHari, tambahBulan } from "./format.ts";
 
 /** Hari ini di seluruh mockup. Semua angka relatif dihitung dari sini. */
 export const HARI_INI = "2026-08-26";
@@ -153,9 +153,11 @@ export interface Owner {
  *
  * Mengubah rasio = menambah baris baru, bukan mengedit baris lama. Kalau satu
  * pengaturan diedit di tempat, mengubah 70/30 jadi 60/40 akan diam-diam
- * mengubah bagi hasil semua bulan lama. Alokasi maintenance ikut di sini
- * dengan alasan yang sama: nominalnya berubah saat alat bertambah, dan laba
- * bulan lalu tidak boleh ikut berubah karenanya.
+ * mengubah bagi hasil semua bulan lama.
+ *
+ * Alokasi maintenance TIDAK di sini — dihitung dari daftar aset (8.9). Aset
+ * punya tanggal beli dan tanggal lepas, jadi aset baru otomatis tidak
+ * mengubah bulan lalu tanpa perlu disimpan per periode.
  *
  * Persen disimpan sebagai bilangan bulat 0..100, bukan pecahan 0..1: pecahan
  * float tidak selalu berjumlah persis 1 (0.7 + 0.2 + 0.1 = 0.9999999999999999)
@@ -164,10 +166,73 @@ export interface Owner {
 export interface PengaturanBagiHasil {
   /** "YYYY-MM" */
   berlakuMulai: string;
-  alokasiMaintenance: number;
   persenCadangan: number;
   bagian: { ownerId: string; persen: number }[];
 }
+
+// ── Aset & maintenance (business-flow 8.9) ──────────────────────────────────
+
+export type StatusAset = "aktif" | "rusak" | "dilepas";
+
+/**
+ * Satu baris = satu jenis alat dengan jumlah unit, seperti sheet client
+ * (baterai × 2, lighting × 2). Status berlaku untuk semua unit di baris itu;
+ * kalau satu dari dua lighting rusak, pecah jadi dua baris.
+ */
+export interface Aset {
+  id: string;
+  nama: string;
+  kategori: string;
+  /** Merek/model, mis. "Canon EOS M50". */
+  catatan: string;
+  unit: number;
+  hargaSatuan: number;
+  tanggalBeli: string;
+  /** Persen harga beli yang disisihkan per bulan untuk dana maintenance. */
+  persenMaintenance: number;
+  /** Umur ekonomis — hanya untuk nilai buku, tidak masuk laba rugi. */
+  umurBulan: number;
+  /** `null` = tidak punya jadwal perawatan berkala (mis. baterai). */
+  intervalRawatBulan: number | null;
+  status: StatusAset;
+  lepas: { tanggal: string; alasan: string; hargaJual: number } | null;
+  /** Investasi yang membelinya. `null` untuk aset yang dicatat tanpa investasi. */
+  investasiId: string | null;
+}
+
+/**
+ * Riwayat perawatan & perbaikan per aset. Biayanya diambil dari dana
+ * maintenance — satu-satunya jalur keluar dana itu selain pemakaian umum.
+ * Nominal boleh 0: head cleaning printer yang dikerjakan sendiri tetap
+ * perawatan dan tetap mereset jadwal, walaupun tidak ada uang keluar.
+ */
+export interface ServisAset {
+  id: string;
+  asetId: string;
+  tanggal: string;
+  jenis: "rutin" | "perbaikan";
+  keterangan: string;
+  nominal: number;
+}
+
+/**
+ * Default per kategori — praktik umum studio foto UMKM, BUKAN data client
+ * (docs/demo-client.md). Dipakai mengisi form Tambah Aset; tiap aset tetap
+ * bisa diubah sendiri.
+ */
+export const KATEGORI_ASET: {
+  nama: string;
+  umurBulan: number;
+  intervalRawatBulan: number | null;
+}[] = [
+  { nama: "Kamera", umurBulan: 48, intervalRawatBulan: 6 },
+  { nama: "Lensa", umurBulan: 48, intervalRawatBulan: 12 },
+  { nama: "Lighting", umurBulan: 48, intervalRawatBulan: 12 },
+  { nama: "Printer", umurBulan: 36, intervalRawatBulan: 1 },
+  { nama: "Aksesori", umurBulan: 24, intervalRawatBulan: null },
+  { nama: "Komputer", umurBulan: 36, intervalRawatBulan: 12 },
+  { nama: "Properti & furnitur", umurBulan: 36, intervalRawatBulan: null },
+];
 
 export type PosDana = "maintenance" | "cadangan";
 
@@ -366,9 +431,6 @@ export const owners: Owner[] = [
 export const pengaturanBagiHasil: PengaturanBagiHasil[] = [
   {
     berlakuMulai: "2026-07",
-    // Rp 790.450, bukan Rp 693.100 seperti di sheet — sheet lupa mengalikan
-    // jumlah unit baterai, memory card, dan lighting (business-flow 8.1).
-    alokasiMaintenance: 790_450,
     persenCadangan: 10,
     bagian: [
       { ownerId: "OWN-01", persen: 70 },
@@ -400,8 +462,26 @@ export const investasi: Investasi[] = [
   { id: "INV-01", tanggal: "2026-07-01", keterangan: "Kamera, printer, lighting & aksesori", nominal: 15_809_000, setoranId: "STR-01" },
 ];
 
-export const pemakaianDana: PemakaianDana[] = [
-  { id: "DNA-01", tanggal: "2026-08-10", pos: "maintenance", nominal: 150_000, keterangan: "Servis lighting Godox SK400 II" },
+/** Pemakaian dana di luar servis aset — servis dicatat di `servisAset`. */
+export const pemakaianDana: PemakaianDana[] = [];
+
+/**
+ * Alat dari sheet maintenance client, 5% per bulan. Total alokasinya
+ * Rp 790.450 — bukan Rp 693.100 seperti di sheet, yang lupa mengalikan
+ * jumlah unit baterai, memory card, dan lighting (business-flow 8.1).
+ * Umur ekonomis dan interval perawatan adalah default umum (KATEGORI_ASET).
+ */
+export const aset: Aset[] = [
+  { id: "AST-01", nama: "Kamera mirrorless", kategori: "Kamera", catatan: "Canon EOS M50", unit: 1, hargaSatuan: 7_000_000, tanggalBeli: "2026-07-01", persenMaintenance: 5, umurBulan: 48, intervalRawatBulan: 6, status: "aktif", lepas: null, investasiId: "INV-01" },
+  { id: "AST-02", nama: "Baterai kamera", kategori: "Aksesori", catatan: "Kingma LP-E12", unit: 2, hargaSatuan: 120_000, tanggalBeli: "2026-07-01", persenMaintenance: 5, umurBulan: 24, intervalRawatBulan: null, status: "aktif", lepas: null, investasiId: "INV-01" },
+  { id: "AST-03", nama: "Trigger flash", kategori: "Aksesori", catatan: "Godox X2T", unit: 1, hargaSatuan: 565_000, tanggalBeli: "2026-07-01", persenMaintenance: 5, umurBulan: 24, intervalRawatBulan: null, status: "aktif", lepas: null, investasiId: "INV-01" },
+  { id: "AST-04", nama: "Memory card", kategori: "Aksesori", catatan: "SanDisk 32GB", unit: 2, hargaSatuan: 477_000, tanggalBeli: "2026-07-01", persenMaintenance: 5, umurBulan: 24, intervalRawatBulan: null, status: "aktif", lepas: null, investasiId: "INV-01" },
+  { id: "AST-05", nama: "Lighting studio", kategori: "Lighting", catatan: "Godox SK400 II", unit: 2, hargaSatuan: 1_350_000, tanggalBeli: "2026-07-01", persenMaintenance: 5, umurBulan: 48, intervalRawatBulan: 12, status: "aktif", lepas: null, investasiId: "INV-01" },
+  { id: "AST-06", nama: "Printer foto", kategori: "Printer", catatan: "Epson L8050", unit: 1, hargaSatuan: 4_350_000, tanggalBeli: "2026-07-01", persenMaintenance: 5, umurBulan: 36, intervalRawatBulan: 1, status: "aktif", lepas: null, investasiId: "INV-01" },
+];
+
+export const servisAset: ServisAset[] = [
+  { id: "SRV-01", asetId: "AST-05", tanggal: "2026-08-10", jenis: "perbaikan", keterangan: "Ganti kipas pendingin", nominal: 150_000 },
 ];
 
 // ── Turunan per order ───────────────────────────────────────────────────────
@@ -599,7 +679,7 @@ export function labaRugi(bulan: string): LabaRugi {
   const operasional = biayaOperasional.filter((b) => b.tanggal.startsWith(bulan));
   const totalOperasional = biayaOperasionalPeriode(bulan);
   // Tetap diambil saat rugi — alat tetap aus walaupun omzet sepi.
-  const alokasiMaintenance = pengaturanUntuk(bulan)?.alokasiMaintenance ?? 0;
+  const alokasiMaintenance = alokasiMaintenanceBulan(bulan);
   return {
     omzetPerLini,
     totalOmzet,
@@ -1013,6 +1093,7 @@ export function bagiHasilBulan(bulan: string): BagiHasilBulan | undefined {
 export type JenisMutasiDana =
   | "Alokasi"
   | "Pemakaian"
+  | "Hasil jual aset"
   | "Pinjaman owner"
   | "Pengembalian pinjaman";
 
@@ -1027,8 +1108,48 @@ export interface BarisMutasiDana {
 
 type KejadianDana =
   | { tanggal: string; urutan: 0; setoran: SetoranOwner }
-  | { tanggal: string; urutan: 1; pakai: PemakaianDana }
+  | {
+      tanggal: string;
+      urutan: 1;
+      jenis: "Pemakaian" | "Hasil jual aset";
+      keterangan: string;
+      masuk: number;
+      keluar: number;
+    }
   | { tanggal: string; urutan: 2; bulan: string; nominal: number };
+
+/**
+ * Uang masuk-keluar dana maintenance dari aset: biaya servis keluar, hasil
+ * jual aset masuk. Hasil jual ke dana maintenance, bukan omzet — uangnya
+ * untuk membeli pengganti, dan memasukkannya ke omzet membuat laba bulan itu
+ * naik oleh sesuatu yang bukan penjualan (asumsi umum, docs/demo-client.md).
+ */
+function kejadianAset(): Extract<KejadianDana, { urutan: 1 }>[] {
+  const jual = aset.flatMap((a) =>
+    a.lepas && a.lepas.hargaJual > 0
+      ? [{
+          tanggal: a.lepas.tanggal,
+          urutan: 1 as const,
+          jenis: "Hasil jual aset" as const,
+          keterangan: `${a.nama} — ${a.lepas.alasan}`,
+          masuk: a.lepas.hargaJual,
+          keluar: 0,
+        }]
+      : [],
+  );
+  // Servis Rp 0 (dikerjakan sendiri) tidak menggerakkan dana — tidak dicatat.
+  const servis = servisAset
+    .filter((s) => s.nominal > 0)
+    .map((s) => ({
+      tanggal: s.tanggal,
+      urutan: 1 as const,
+      jenis: "Pemakaian" as const,
+      keterangan: `${aset.find((a) => a.id === s.asetId)?.nama ?? s.asetId} — ${s.keterangan}`,
+      masuk: 0,
+      keluar: s.nominal,
+    }));
+  return [...jual, ...servis];
+}
 
 /**
  * Alokasi masuk di akhir bulan dan hanya untuk bulan yang sudah TUTUP: laba
@@ -1046,17 +1167,22 @@ function jalankanPosDana(pos: PosDana): {
     ...setoranOwner
       .filter((s) => s.jenis === "pinjaman" && s.tujuan === pos)
       .map((s) => ({ tanggal: s.tanggal, urutan: 0 as const, setoran: s })),
+    ...(pos === "maintenance" ? kejadianAset() : []),
     ...pemakaianDana
       .filter((p) => p.pos === pos)
-      .map((p) => ({ tanggal: p.tanggal, urutan: 1 as const, pakai: p })),
+      .map((p) => ({
+        tanggal: p.tanggal,
+        urutan: 1 as const,
+        jenis: "Pemakaian" as const,
+        keterangan: p.keterangan,
+        masuk: 0,
+        keluar: p.nominal,
+      })),
     ...tutup.map((b) => ({
       tanggal: akhirBulan(b.bulan),
       urutan: 2 as const,
       bulan: b.bulan,
-      nominal:
-        pos === "maintenance"
-          ? (pengaturanUntuk(b.bulan)?.alokasiMaintenance ?? 0)
-          : b.cadangan,
+      nominal: pos === "maintenance" ? alokasiMaintenanceBulan(b.bulan) : b.cadangan,
     })),
   ].sort((a, b) => a.tanggal.localeCompare(b.tanggal) || a.urutan - b.urutan);
 
@@ -1079,7 +1205,7 @@ function jalankanPosDana(pos: PosDana): {
       hutang.push({ setoranId: k.setoran.id, ownerId: k.setoran.ownerId, sisa: k.setoran.nominal });
       catat(k.tanggal, "Pinjaman owner", `${namaOwner(k.setoran.ownerId)} — ${k.setoran.keterangan}`, k.setoran.nominal, 0);
     } else if (k.urutan === 1) {
-      catat(k.tanggal, "Pemakaian", k.pakai.keterangan, 0, k.pakai.nominal);
+      catat(k.tanggal, k.jenis, k.keterangan, k.masuk, k.keluar);
     } else {
       // Bulan rugi tidak punya alokasi cadangan — baris Rp 0 cuma noise.
       if (k.nominal <= 0) continue;
@@ -1187,9 +1313,6 @@ export function validasiPengaturan(p: PengaturanBagiHasil): string | null {
   const total = p.bagian.reduce((s, b) => s + b.persen, 0);
   if (total !== 100) return `Total bagian owner ${total}%, harus 100%.`;
   if (!bulat(p.persenCadangan)) return "Persen dana cadangan harus bilangan bulat 0–100.";
-  if (!Number.isInteger(p.alokasiMaintenance) || p.alokasiMaintenance < 0) {
-    return "Alokasi maintenance tidak boleh negatif.";
-  }
   return null;
 }
 
@@ -1217,4 +1340,132 @@ export function titikImpas(bulan: string): TitikImpas {
     kurang: Math.max(0, biayaTetap - lr.labaKotor),
     rasio: biayaTetap === 0 ? 1 : lr.labaKotor / biayaTetap,
   };
+}
+
+// ── Aset & maintenance — turunan (business-flow 8.9) ────────────────────────
+
+/** "2026-07" → "2026-08" = 1. */
+function selisihBulan(dari: string, sampai: string): number {
+  const [th1, bl1] = dari.split("-").map(Number);
+  const [th2, bl2] = sampai.split("-").map(Number);
+  return th2 * 12 + bl2 - (th1 * 12 + bl1);
+}
+
+/**
+ * Dimiliki di AKHIR bulan: sudah dibeli dan belum dilepas per akhir bulan.
+ * Akhir bulan, bukan "pernah dimiliki di bulan itu": alokasi dihitung saat
+ * tutup buku, dan aset yang dijual tanggal 20 tidak perlu dana servis lagi.
+ */
+function dimilikiAkhirBulan(a: Aset, bulan: string): boolean {
+  const akhir = akhirBulan(bulan);
+  if (a.tanggalBeli > akhir) return false;
+  return !a.lepas || a.lepas.tanggal > akhir;
+}
+
+/**
+ * Pembulatan per aset, bukan di total: nominal per aset yang tampil di tabel
+ * harus berjumlah persis sama dengan alokasi di Laba Rugi.
+ */
+export function alokasiMaintenanceAset(a: Aset, bulan: string): number {
+  if (!dimilikiAkhirBulan(a, bulan)) return 0;
+  return Math.round((a.hargaSatuan * a.unit * a.persenMaintenance) / 100);
+}
+
+/**
+ * Alokasi dana maintenance satu bulan = Σ harga × unit × % aset yang
+ * dimiliki di akhir bulan. Menggantikan nominal manual: di sheet client
+ * nominal manual itulah yang salah Rp 97.350 karena unit lupa dikali. Aset
+ * baru tidak mengubah bulan lalu karena tanggal belinya sesudah bulan itu.
+ */
+export function alokasiMaintenanceBulan(bulan: string): number {
+  return aset.reduce((s, a) => s + alokasiMaintenanceAset(a, bulan), 0);
+}
+
+/**
+ * Nilai buku garis lurus — INFORMASI saja, tidak masuk Laba Rugi. Biaya aus
+ * alat sudah diwakili alokasi maintenance; memasukkan penyusutan juga
+ * berarti membebankan keausan yang sama dua kali. Bulan beli dihitung penuh.
+ */
+export function nilaiBuku(a: Aset, bulan: string = BULAN_BERJALAN): number {
+  if (!dimilikiAkhirBulan(a, bulan)) return 0;
+  const terpakai = selisihBulan(a.tanggalBeli.slice(0, 7), bulan) + 1;
+  const sisa = Math.max(0, 1 - terpakai / a.umurBulan);
+  return Math.round(a.hargaSatuan * a.unit * sisa);
+}
+
+export function riwayatServis(asetId: string): ServisAset[] {
+  return servisAset
+    .filter((s) => s.asetId === asetId)
+    .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+}
+
+/**
+ * Perawatan berikutnya = servis terakhir (jenis apa pun) + interval, atau
+ * tanggal beli + interval kalau belum pernah. Perbaikan ikut mereset: alat
+ * yang baru dibongkar teknisi tidak perlu dirawat lagi bulan depannya.
+ */
+export function rawatBerikutnya(a: Aset): string | null {
+  if (a.intervalRawatBulan === null) return null;
+  const terakhir = riwayatServis(a.id)[0]?.tanggal ?? a.tanggalBeli;
+  return tambahBulan(terakhir, a.intervalRawatBulan);
+}
+
+/** Batas "segera" — cukup waktu untuk menjadwalkan teknisi. */
+const HARI_PERINGATAN_RAWAT = 14;
+
+export interface PerluRawat {
+  aset: Aset;
+  tanggal: string;
+  /** Negatif = sudah lewat. */
+  selisihHari: number;
+}
+
+/** Aset yang jadwal perawatannya lewat atau ≤ 14 hari lagi, paling mendesak dulu. */
+export function asetPerluRawat(): PerluRawat[] {
+  return aset
+    .filter((a) => !a.lepas)
+    .flatMap((a) => {
+      const tanggal = rawatBerikutnya(a);
+      if (!tanggal) return [];
+      const selisih = selisihHari(HARI_INI, tanggal);
+      return selisih <= HARI_PERINGATAN_RAWAT ? [{ aset: a, tanggal, selisihHari: selisih }] : [];
+    })
+    .sort((a, b) => a.selisihHari - b.selisihHari);
+}
+
+/** Alokasi maintenance per aset yang sudah masuk dana (bulan yang sudah tutup). */
+export function akumulasiMaintenanceAset(a: Aset): number {
+  return bagiHasil(BULAN_BERJALAN)
+    .filter((b) => b.final)
+    .reduce((s, b) => s + alokasiMaintenanceAset(a, b.bulan), 0);
+}
+
+/**
+ * Nominal 0 sah — perawatan yang dikerjakan sendiri. Di atas 0, biayanya
+ * keluar dari dana maintenance dan tunduk pada aturan saldo tidak boleh minus.
+ */
+export function validasiServis(nominal: number): string | null {
+  if (nominal < 0) return "Biaya servis tidak boleh negatif.";
+  if (nominal === 0) return null;
+  return validasiPemakaian("maintenance", nominal);
+}
+
+export function validasiAset(a: Aset): string | null {
+  if (a.nama.trim() === "") return "Nama aset wajib diisi.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.tanggalBeli)) return "Tanggal beli wajib diisi.";
+  if (!Number.isInteger(a.unit) || a.unit < 1) return "Jumlah unit minimal 1.";
+  if (!(a.hargaSatuan > 0)) return "Harga beli harus lebih dari 0.";
+  if (!(a.persenMaintenance >= 0 && a.persenMaintenance <= 100)) {
+    return "Persen maintenance harus 0–100.";
+  }
+  if (!Number.isInteger(a.umurBulan) || a.umurBulan < 1) {
+    return "Umur ekonomis minimal 1 bulan.";
+  }
+  if (
+    a.intervalRawatBulan !== null &&
+    (!Number.isInteger(a.intervalRawatBulan) || a.intervalRawatBulan < 1)
+  ) {
+    return "Interval perawatan minimal 1 bulan, atau kosongkan kalau tidak ada jadwal.";
+  }
+  return null;
 }

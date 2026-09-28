@@ -22,6 +22,8 @@ import {
   formatBulan,
   kelasRp,
   selisihHari,
+  tambahBulan,
+  hanyaDigit,
 } from "./format.ts";
 
 test("formatRp — titik ribuan, tanpa desimal", () => {
@@ -56,6 +58,28 @@ test("formatPersen — rasio dibulatkan, tanpa desimal", () => {
   assert.equal(formatPersen(2500000 / 8500000), "29%");
   assert.equal(formatPersen(0), "0%");
   assert.equal(formatPersen(1), "100%");
+});
+
+test("hanyaDigit — titik ribuan, 'Rp', dan spasi dibuang", () => {
+  assert.equal(hanyaDigit("1.500.000"), "1500000");
+  assert.equal(hanyaDigit("Rp 250.000"), "250000");
+  assert.equal(hanyaDigit(""), "");
+  // Minus ikut dibuang — nominal di form tidak pernah negatif.
+  assert.equal(hanyaDigit("-5000"), "5000");
+});
+
+test("tambahBulan — tanggal sama di bulan berikutnya", () => {
+  assert.equal(tambahBulan("2026-07-01", 1), "2026-08-01");
+  assert.equal(tambahBulan("2026-08-10", 12), "2027-08-10");
+  assert.equal(tambahBulan("2026-12-15", 1), "2027-01-15");
+});
+
+test("tambahBulan — tanggal 31 dijepit ke akhir bulan, bukan meluber", () => {
+  // `Date#setMonth` membuat 31 Jan + 1 bulan jadi 3 Mar. Jadwal servis
+  // yang melompati satu bulan penuh tidak akan kelihatan salah sampai telat.
+  assert.equal(tambahBulan("2026-01-31", 1), "2026-02-28");
+  assert.equal(tambahBulan("2028-01-31", 1), "2028-02-29");
+  assert.equal(tambahBulan("2026-03-31", 1), "2026-04-30");
 });
 
 test("formatBulan — 'YYYY-MM' jadi nama bulan Indonesia", () => {

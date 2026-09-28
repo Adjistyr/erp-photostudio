@@ -23,9 +23,15 @@
 import { useSyncExternalStore } from "react";
 
 import {
+  aset,
   biayaOperasional,
   customers,
   investasi,
+  servisAset,
+  validasiAset,
+  validasiServis,
+  type Aset,
+  type ServisAset,
   katalog,
   orders,
   pemakaianDana,
@@ -186,20 +192,63 @@ export const aksi = {
     inv: Omit<Investasi, "setoranId">,
     dibayarOwnerId: string | null,
   ) {
-    let setoranId: string | null = null;
-    if (dibayarOwnerId) {
-      setoranId = idBaru("STR");
-      setoranOwner.push({
-        id: setoranId,
-        tanggal: inv.tanggal,
-        ownerId: dibayarOwnerId,
-        nominal: inv.nominal,
-        jenis: "modal",
-        tujuan: "investasi",
-        keterangan: inv.keterangan,
-      });
+    simpanInvestasi(inv, dibayarOwnerId);
+    emit();
+  },
+
+  /**
+   * Aset baru SELALU lewat investasi (dan setoran modal kalau dibayar owner).
+   * Satu aksi: owner yang membeli lighting tidak berpikir "saya catat
+   * investasi, lalu aset, lalu setoran" — dan kalau salah satu terlewat,
+   * progres balik modal atau alokasi maintenance jadi salah tanpa terlihat.
+   */
+  tambahAset(a: Omit<Aset, "id" | "investasiId">, dibayarOwnerId: string | null) {
+    const investasiId = idBaru("INV");
+    const baru: Aset = { ...a, id: idBaru("AST"), investasiId };
+    const salah = validasiAset(baru);
+    if (salah) throw new Error(salah);
+    simpanInvestasi(
+      {
+        id: investasiId,
+        tanggal: a.tanggalBeli,
+        keterangan: a.unit > 1 ? `${a.nama} × ${a.unit}` : a.nama,
+        nominal: a.hargaSatuan * a.unit,
+      },
+      dibayarOwnerId,
+    );
+    aset.push(baru);
+    emit();
+  },
+
+  /** Biaya servis keluar dari dana maintenance — validasi saldo diulang di sini. */
+  catatServis(s: ServisAset) {
+    const salah = validasiServis(s.nominal);
+    if (salah) throw new Error(salah);
+    servisAset.push(s);
+    emit();
+  },
+
+  ubahStatusAset(id: string, status: "aktif" | "rusak") {
+    const a = aset.find((x) => x.id === id);
+    if (!a || a.lepas) return;
+    a.status = status;
+    emit();
+  },
+
+  /**
+   * Aset dilepas (dijual, rusak total, hilang) — tidak dihapus. Menghapus
+   * akan mengubah alokasi maintenance bulan-bulan saat aset itu masih
+   * dimiliki, dan riwayat servisnya ikut hilang.
+   */
+  lepasAset(id: string, lepas: NonNullable<Aset["lepas"]>) {
+    const a = aset.find((x) => x.id === id);
+    if (!a) return;
+    if (lepas.tanggal < a.tanggalBeli) {
+      throw new Error("Tanggal lepas tidak boleh sebelum tanggal beli.");
     }
-    investasi.push({ ...inv, setoranId });
+    if (lepas.hargaJual < 0) throw new Error("Harga jual tidak boleh negatif.");
+    a.status = "dilepas";
+    a.lepas = lepas;
     emit();
   },
 
@@ -210,6 +259,31 @@ export const aksi = {
     emit();
   },
 };
+
+/**
+ * Investasi + setoran modal (kalau dibayar owner), tanpa emit — dipakai
+ * `catatInvestasi` dan `tambahAset` supaya keduanya mencatat dengan cara yang
+ * persis sama.
+ */
+function simpanInvestasi(
+  inv: Omit<Investasi, "setoranId">,
+  dibayarOwnerId: string | null,
+) {
+  let setoranId: string | null = null;
+  if (dibayarOwnerId) {
+    setoranId = idBaru("STR");
+    setoranOwner.push({
+      id: setoranId,
+      tanggal: inv.tanggal,
+      ownerId: dibayarOwnerId,
+      nominal: inv.nominal,
+      jenis: "modal",
+      tujuan: "investasi",
+      keterangan: inv.keterangan,
+    });
+  }
+  investasi.push({ ...inv, setoranId });
+}
 
 /** ID berurutan untuk entitas baru selama demo. */
 export function idBaru(prefiks: string): string {

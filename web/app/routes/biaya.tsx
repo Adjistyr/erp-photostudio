@@ -17,6 +17,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -379,6 +380,25 @@ function IsiDialogBiaya({
               {mode === "job"
                 ? "Menempel ke satu order dan mengurangi margin lini order itu."
                 : "Bulanan, tidak dinisbatkan ke order mana pun. Dikurangkan setelah laba kotor."}
+            </p>
+            {/*
+              Dua salah catat yang memotong laba dua kali (business-flow 8.2
+              & 8.4, blocker): beli alat/renovasi dicatat sebagai biaya, dan
+              servis alat dicatat sebagai biaya padahal sudah disisihkan lewat
+              dana maintenance. Ditaruh di form ini karena di sinilah owner
+              memutuskan "ini biaya" — layar Modal & Bagi Hasil baru dibuka
+              setelah salahnya terjadi.
+            */}
+            <p className="text-xs text-muted-foreground">
+              Beli alat atau renovasi? Itu investasi, bukan biaya. Servis alat
+              dibayar dari dana maintenance. Keduanya dicatat di{" "}
+              <Link
+                to="/bagi-hasil"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Modal & Bagi Hasil
+              </Link>
+              .
             </p>
           </Field>
 

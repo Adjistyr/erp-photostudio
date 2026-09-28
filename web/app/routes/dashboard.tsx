@@ -15,6 +15,7 @@ import {
   Target,
   TriangleAlert,
   Wallet,
+  Wrench,
 } from "lucide-react";
 
 import { HeaderHalaman, KontenHalaman } from "~/components/app-shell";
@@ -50,6 +51,7 @@ import {
 } from "~/components/ui/table";
 import {
   HARI_INI,
+  asetPerluRawat,
   bookingHariIni,
   customerDari,
   daftarPiutang,
@@ -81,6 +83,7 @@ export default function Dashboard() {
   const piutang = daftarPiutang();
   const lewat = piutangLewatJatuhTempo();
   const omzet = omzetPeriode(BULAN);
+  const perluRawat = asetPerluRawat();
 
   /**
    * Dashboard bergantung pada Katalog: tanpa item, tidak ada yang bisa dijual
@@ -151,6 +154,30 @@ export default function Dashboard() {
               {formatRp(totalPiutang())} menggantung, sementara yang benar-benar
               masuk sepanjang Agustus {formatRp(omzet)}. Lebih banyak uang di
               tagihan daripada di rekening.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/*
+          Perawatan alat ikut di Dashboard karena Dashboard adalah "apa yang
+          menunggu owner hari ini". Kalau hanya ada di layar Aset, jadwalnya
+          baru terlihat saat owner kebetulan membuka layar itu — biasanya
+          setelah alatnya bermasalah.
+        */}
+        {perluRawat.length > 0 && (
+          <Alert>
+            <Wrench />
+            <AlertTitle>{perluRawat.length} aset perlu dirawat</AlertTitle>
+            <AlertDescription>
+              <span>
+                {perluRawat
+                  .map((p) => `${p.aset.nama} — ${formatUmurPiutang(p.selisihHari)}`)
+                  .join(" · ")}
+                .{" "}
+                <Link to="/aset" className="font-medium text-foreground underline underline-offset-2">
+                  Buka Aset & Maintenance
+                </Link>
+              </span>
             </AlertDescription>
           </Alert>
         )}

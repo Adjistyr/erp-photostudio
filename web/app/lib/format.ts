@@ -97,6 +97,15 @@ export function keNomorWa(hp: string): string {
   return digit.replace(/^0/, "62");
 }
 
+/**
+ * Isian nominal → hanya digit. Rupiah di app ini selalu integer (R5), jadi
+ * "1.500.000" yang di-paste dari mutasi rekening harus jadi "1500000", bukan
+ * ditolak atau dibaca 1,5.
+ */
+export function hanyaDigit(v: string): string {
+  return v.replace(/\D/g, "");
+}
+
 /** Rasio 0..1 → "43%". Bulat, tanpa desimal (R5). */
 export function formatPersen(rasio: number): string {
   return `${Math.round(rasio * 100)}%`;
@@ -192,6 +201,22 @@ export function formatUmurPiutang(selisihHari: number): string {
   if (selisihHari === 0) return "jatuh tempo hari ini";
   if (selisihHari > 0) return `${selisihHari} hari lagi`;
   return `lewat ${Math.abs(selisihHari)} hari`;
+}
+
+/**
+ * "2026-07-01" + 1 bulan → "2026-08-01". Tanggal yang tidak ada di bulan
+ * tujuan dijepit ke hari terakhirnya: 31 Jan + 1 → 28/29 Feb.
+ *
+ * Tidak memakai `Date#setMonth` langsung: 31 Jan + 1 bulan di sana jadi
+ * 3 Mar — jadwal servis melompati Februari tanpa ada yang sadar.
+ */
+export function tambahBulan(tanggal: string, n: number): string {
+  const d = keDate(tanggal);
+  const target = new Date(d.getFullYear(), d.getMonth() + n, 1);
+  const hariTerakhir = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  const hari = Math.min(d.getDate(), hariTerakhir);
+  const bl = String(target.getMonth() + 1).padStart(2, "0");
+  return `${target.getFullYear()}-${bl}-${String(hari).padStart(2, "0")}`;
 }
 
 /** Selisih hari kalender, mengabaikan jam. Positif = `sampai` di masa depan. */
