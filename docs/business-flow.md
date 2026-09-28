@@ -1,6 +1,7 @@
 # Flow Bisnis — Web App Photo Studio
 
 Dokumen: 22 Agustus 2026
+Revisi: 28 September 2026 — modal, pos dana & bagi hasil (bagian 8), dari sheet [HPP & pembagian hasil](./original-template/hpp-pembagaian-hasil-potraittime.md) client
 Status: Draft untuk dikonfirmasi ke client
 
 ---
@@ -18,7 +19,7 @@ Client bergerak di bidang fotografi dengan empat lini pendapatan:
 
 **Kondisi saat ini:** bisnis baru berjalan ± 1 minggu. Belum ada pendataan sama sekali — tidak ada buku, tidak ada spreadsheet. Owner sadar ini masalah dan ingin langsung pakai web app.
 
-**Pengguna app:** owner sendiri (1 orang). Volume transaksi masih sepi (< 10/hari).
+**Pengguna app:** dua owner — Agung dan Raka — dengan akses penuh ke semua module. Keduanya tidak digaji; penghasilan owner hanya dari bagi hasil (bagian 8). Staf yang digaji (marketing, tim desain) belum ikut input. Volume transaksi masih sepi (< 10/hari).
 
 **Goal utama:** pendataan yang transparan — owner tahu uang masuk dari mana, keluar ke mana, dan lini mana yang benar-benar untung.
 
@@ -42,11 +43,14 @@ Bagian ini yang paling perlu dibawa ke client. Selama belum terjawab, dokumen in
 | 2 | "Pendataan pos barang dan jasa" — maksudnya Point of Sale, atau pelacakan stok barang? | Point of Sale. Stok belum dilacak |
 | 3 | Aturan DP: persentase tetap (mis. 30%) atau nego per deal? | Nego per deal, nominal bebas |
 | 4 | Harga paket jasa: fixed dari katalog atau custom per deal? | Fixed untuk studio, custom untuk event |
-| 5 | Crew (fotografer, videografer, MUA): karyawan tetap atau freelance per job? | Freelance per job → masuk biaya langsung, bukan biaya operasional |
+| 5 | Crew (fotografer, videografer, MUA): karyawan tetap atau freelance per job? | **Terjawab:** belum ada crew tetap. Freelance, transport, dan sewa lokasi/alat dicatat per job sebagai biaya langsung — ini inti yang client mau lihat, jadi Biaya Job diprioritaskan |
 | 6 | Kebijakan pembatalan & refund DP? | Belum ada. Order bisa dibatalkan, DP dicatat sebagai hangus |
 | 7 | Laporan pakai basis kas atau akrual? | Basis kas (lihat bagian 7) |
 | 8 | Perlu nomor invoice resmi berurutan untuk pajak? | Belum. Nomor internal saja |
 | 9 | Sesi studio bisa walk-in (customer datang langsung tanpa booking, kalau slot kosong) atau wajib booking dulu? | Bisa walk-in. Ditangani sebagai Order `studio` yang langsung berstatus **Dikerjakan** tanpa melewati **Booking** — tidak butuh flow baru |
+| 10 | Satu botol tinta cukup untuk berapa lembar cetak? | Belum diketahui. Tinta dicatat sebagai biaya operasional dulu (bagian 7, Soal HPP) |
+| 11 | Ada kesepakatan rasio bagi hasil berubah setelah modal owner kembali? | Belum diketahui. Tidak menghambat — perubahan rasio selalu manual (bagian 8) |
+| 12 | Aturan rugi bulanan: dibawa ke bulan berikutnya? | Dibawa ke bulan berikutnya, dikompensasi sebelum laba dibagi (bagian 8) |
 
 ---
 
@@ -64,7 +68,16 @@ Customer
           └──< BiayaJob     (uang keluar yang nempel ke order ini)
 
 BiayaOperasional  (uang keluar bulanan, tidak nempel ke order mana pun)
+
+Owner ──< SetoranOwner      (uang masuk dari owner: pinjaman / modal — bukan omzet)
+  └────< RasioBagiHasil     (persen per owner, berlaku mulai bulan tertentu)
+
+PosDana ──< MutasiDana      (dana maintenance & cadangan: alokasi masuk, pemakaian keluar)
+
+Investasi                   (renovasi, beli alat — di luar laba rugi, dibiayai SetoranOwner modal)
 ```
+
+Entitas di blok bawah dijelaskan di bagian 8.
 
 **Customer** — nama, no HP, email, sumber tahu (IG / teman / lewat depan studio), catatan, tanggal pertama transaksi.
 
@@ -80,7 +93,7 @@ BiayaOperasional  (uang keluar bulanan, tidak nempel ke order mana pun)
 
 **BiayaJob** — biaya langsung yang nempel ke satu order: fee fotografer, fee MUA, transport, sewa lokasi, sewa alat, bahan tambahan.
 
-**BiayaOperasional** — biaya bulanan yang tidak bisa dinisbatkan ke order tertentu: sewa tempat, listrik, internet, langganan software, iklan.
+**BiayaOperasional** — biaya bulanan yang tidak bisa dinisbatkan ke order tertentu: sewa tempat, listrik, internet, langganan software, iklan, gaji staf. Kategori berupa saran, bukan daftar tertutup — kalau nanti owner mulai digaji, cukup dicatat dengan kategori "Gaji Owner" tanpa fitur baru.
 
 ### Keputusan desain yang perlu dicatat
 
@@ -215,16 +228,17 @@ Yang dibutuhkan di sini bukan CRM dalam arti sales pipeline — client sudah men
 
 ### 5.7 Tutup Buku Bulanan
 
-1. Owner mencatat biaya operasional bulan berjalan (sewa, listrik, internet, iklan).
+1. Owner mencatat biaya operasional bulan berjalan (sewa, listrik, internet, iklan, gaji staf). Form diisi otomatis dari bulan lalu — sebagian besar barisnya sama tiap bulan, owner tinggal mengoreksi yang berubah.
 2. Buka laporan laba rugi periode tersebut.
 3. Cek breakdown margin per lini — ini output paling berharga bagi owner.
 4. Cek daftar piutang yang masih menggantung.
+5. Cek bagian bawah laporan: alokasi dana maintenance & cadangan, kompensasi rugi bulan lalu, dan bagian tiap owner (bagian 8). Angka ini dihitung, bukan diinput.
 
 ---
 
 ## 6. Daftar Module
 
-Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena penggunanya satu orang dan volumenya kecil, setiap module bisa dibuat versi tipis — tidak perlu POS berkecepatan tinggi, tidak perlu manajemen hak akses.
+Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena penggunanya dua owner dengan akses penuh dan volumenya kecil, setiap module bisa dibuat versi tipis — tidak perlu POS berkecepatan tinggi. Manajemen peran & hak akses tetap ada di kontrak (quotation deliverable 16), tapi ditunda sampai staf ikut input.
 
 | # | Module | Isi | Melayani flow |
 |---|---|---|---|
@@ -234,19 +248,19 @@ Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena pen
 | 4 | **POS** | Transaksi walk-in cepat, pilih item, diskon, bayar, nota | 5.1 |
 | 5 | **Order & Booking** | Order studio & event, kalender jadwal, status kerja, link hasil foto | 5.2, 5.3 |
 | 6 | **Pembayaran** | Catat DP/termin/pelunasan, daftar piutang, rekap metode bayar | 5.4 |
-| 7 | **Biaya** | Biaya langsung per order + biaya operasional bulanan | 5.3, 5.7 |
+| 7 | **Biaya** | Biaya langsung per order + biaya operasional bulanan + pos dana (maintenance, cadangan), setoran owner, pengeluaran investasi | 5.3, 5.7, 8 |
 | 8 | **Invoice** | Generate dari order, bagikan link/PDF, riwayat pengiriman | 5.5 |
 | 9 | **Komunikasi** | Thank You mail, blast email, penyiapan blast WA, editor template | 5.5, 5.6 |
-| 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas | 5.7 |
+| 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas, bagi hasil owner, progress balik modal | 5.7, 8 |
 
 ### Urutan pengerjaan yang disarankan
 
 Bukan pemangkasan scope — semua module tetap dibangun. Ini soal urutan, supaya app bisa mulai dipakai (dan mulai mengumpulkan data) sebelum semuanya selesai:
 
-1. **Fondasi** — Katalog, Customer, Order, Pembayaran, Biaya. Tanpa ini tidak ada yang bisa dicatat.
+1. **Fondasi** — Katalog, Customer, Order, Pembayaran, Biaya. Tanpa ini tidak ada yang bisa dicatat. Di dalam Biaya, **biaya job** (transport, sewa lokasi, fee freelance, sewa alat) dikerjakan lebih dulu — itu yang client paling ingin lihat.
 2. **Dipakai harian** — POS, Order & Booking, Dashboard. Titik ini app sudah bisa dipakai operasional.
 3. **Menghadap customer** — Invoice, Komunikasi.
-4. **Hasil** — Laporan. Ditaruh terakhir karena butuh data dari semua module sebelumnya untuk bisa diuji dengan angka nyata.
+4. **Hasil** — Laporan. Ditaruh terakhir karena butuh data dari semua module sebelumnya untuk bisa diuji dengan angka nyata. Bagi hasil paling akhir di dalamnya, karena bergantung pada laba bersih yang sudah benar.
 
 ---
 
@@ -283,13 +297,23 @@ LABA KOTOR = Total Omzet − Total Biaya Langsung
 
 BIAYA OPERASIONAL
    Sewa tempat, listrik, internet
-   Gaji tetap (kalau ada)
+   Gaji staf (marketing, tim desain) — owner tidak digaji
+   Tinta (sementara, sampai HPP per lembar diketahui)
    Iklan & marketing
    Lain-lain
  = Total Biaya Operasional
 
-LABA BERSIH = Laba Kotor − Total Biaya Operasional
+ALOKASI DANA MAINTENANCE    (nominal tetap per bulan, bagian 8)
+
+LABA BERSIH = Laba Kotor − Total Biaya Operasional − Alokasi Dana Maintenance
+
+   − Kompensasi rugi bulan-bulan sebelumnya
+ = LABA YANG DIBAGI (kalau > 0)
+   → Dana cadangan     (% sesuai rasio yang berlaku)
+   → Bagian tiap owner (% sesuai rasio yang berlaku)
 ```
+
+Blok setelah laba bersih — kompensasi rugi, cadangan, dan bagian owner — dijelaskan di bagian 8. Setoran owner, pemakaian pos dana, dan pengeluaran investasi **tidak muncul** di laporan ini sama sekali.
 
 ### Margin per lini
 
@@ -305,9 +329,166 @@ Dokumen kebutuhan menanyakan "perlu menghitung HPP? riset dulu". Jawabannya: per
 
 **Yang sengaja tidak dilakukan:** metode costing persediaan (FIFO / rata-rata) dan alokasi biaya overhead ke tiap job. Keduanya menambah kerumitan besar dengan manfaat yang tidak terasa di skala bisnis ini. Overhead cukup dicatat sebagai biaya operasional bulanan, tidak perlu dibagi-bagi ke tiap order.
 
+**Istilah "HPP" di sheet client berbeda arti.** Di sheet [HPP & pembagian hasil](./original-template/hpp-pembagaian-hasil-potraittime.md), "HPP Operasional" dan "HPP Maintenance" sebenarnya overhead bulanan dan dana servis alat — bukan HPP dalam arti dokumen ini. Di app dipakai nama **Biaya Operasional** dan **Dana Maintenance**, supaya "HPP" hanya punya satu arti: biaya bahan per unit.
+
+**Tinta & kertas.** Di sheet client keduanya masuk biaya bulanan tetap. Padahal pemakaiannya naik-turun mengikuti jumlah cetak — cetak 500 lembar sebulan butuh kertas 10× lipat, tapi sheet tetap mencatat Rp 39.000.
+- **Kertas** dipindah ke HPP per unit di katalog: Rp 39.000 isi 50 = **Rp 780/lembar**.
+- **Tinta** tetap di biaya operasional sampai jumlah lembar per botol diketahui. Ini normal di UMKM untuk bahan habis pakai yang sulit diukur per unit. Konsekuensinya margin retail tampil sedikit lebih tinggi dari kenyataan (± Rp 277.000/bulan tidak masuk HPP retail).
+- Angka tinta bisa didapat dari app sendiri: catat tanggal buka botol baru, lalu saat habis bagi dengan jumlah lembar cetak yang terjual di POS pada rentang itu.
+- **Gotcha:** begitu bahan masuk HPP per unit, **hapus dari biaya operasional**. Kalau tidak, biayanya terhitung dua kali.
+
 ---
 
-## 8. Yang Sengaja Tidak Masuk
+## 8. Modal, Pos Dana & Bagi Hasil
+
+Sumber bagian ini: sheet [HPP & pembagian hasil](./original-template/hpp-pembagaian-hasil-potraittime.md) yang dipakai client sekarang. Usaha ini dimiliki dua owner — Agung 70%, Raka 30% — yang tidak digaji dan hanya menerima bagi hasil. Rasio 70/30 kemungkinan cara agar modal yang disetor Agung lebih cepat kembali.
+
+Laporan laba rugi (bagian 7) berhenti di laba bersih. Bagian ini mengatur apa yang terjadi **sesudahnya**, dan uang yang keluar-masuk **di luar** laba rugi.
+
+### 8.1 Dari sheet client ke app
+
+| Di sheet | Di app | Catatan |
+|---|---|---|
+| Biaya Bulanan (sewa, listrik, internet, gaji staf, VPS) | Biaya Operasional | Sudah ada di bagian 3 |
+| Tinta & kertas di Biaya Bulanan | Kertas → HPP per unit, tinta → Biaya Operasional sementara | Bagian 7, Soal HPP |
+| Biaya Maintenance (5% harga alat per bulan) | **Pos Dana Maintenance** | 8.2 |
+| Dana cadangan 10% | **Pos Dana Cadangan** | 8.2 |
+| Pembagian hasil 70/30 | **Rasio Bagi Hasil** | 8.5, 8.6 |
+| HPP per hari (total ÷ 31) | KPI **titik impas** di Dashboard | Omzet bulan berjalan dibanding total biaya tetap bulanan. Angka harian hanya tampilan — pembaginya jumlah hari bulan itu, bukan 31 tetap |
+
+**Koreksi angka sheet — perlu disampaikan ke client.** Total maintenance per bulan di sheet (Rp 693.100) tidak dikali jumlah unit, padahal baterai, memory card, dan lighting masing-masing 2 unit. Yang benar **Rp 790.450**. Kolom per harinya (Rp 25.498) sudah dikali jumlah unit, sehingga dua kolom itu tidak konsisten (Rp 277.010 × 31 = Rp 8.587.310, bukan Rp 8.489.949). Akibatnya laba di sheet terlalu tinggi Rp 97.350/bulan dan ikut terbagi ke owner.
+
+Contoh sheet dengan angka terkoreksi (omzet Rp 10.000.000, belum termasuk HPP bahan dan biaya job):
+
+```
+Omzet                              10.000.000
+− Biaya operasional                −7.796.849
+− Alokasi dana maintenance           −790.450
+= Laba bersih                       1.412.701
+− Dana cadangan 10%                  −141.270
+= Dibagi                            1.271.431
+   Agung 70%                          890.002   (sheet: 951.332)
+   Raka  30%                          381.429   (sheet: 407.714)
+```
+
+Titik impas dengan angka ini ± Rp 8.590.000/bulan.
+
+### 8.2 Pos Dana — maintenance & cadangan
+
+Dua dana yang disisihkan dari laba, dengan satu mekanisme yang sama:
+
+| Pos | Alokasi masuk | Dipakai untuk |
+|---|---|---|
+| **Maintenance** | Nominal tetap per bulan (sekarang Rp 790.450), diambil sebelum laba bersih — tetap diambil saat rugi | Servis dan ganti alat |
+| **Cadangan** | Persentase dari laba yang dibagi (sekarang 10%), hanya kalau laba > 0 | Pembelian mendesak |
+
+**Saldo** = total alokasi − total pemakaian. Setiap pemakaian dicatat sebagai `MutasiDana`: tanggal, pos, nominal, keterangan, pencatat.
+
+Aturan:
+- **Pemakaian pos dana tidak masuk laba rugi.** Uangnya sudah dikurangi dari laba saat disisihkan. Kalau servis kamera dicatat juga sebagai biaya operasional, laba terpotong dua kali. Ini **blocker** — form pemakaian dana dan form biaya operasional harus terpisah jelas.
+- **Saldo tidak boleh minus.** Kalau pemakaian melebihi saldo, app menolak dan meminta setoran owner dicatat lebih dulu (8.3). Pinjaman ini dikembalikan dari alokasi pos dana yang sama di bulan-bulan berikutnya, sebelum saldo bertambah.
+- Maintenance **tidak berhenti** setelah 20 bulan (5% × 20). Ini dana servis untuk siklus ganti alat, bukan penyusutan akuntansi.
+- Nominal maintenance diubah manual saat alat bertambah atau berkurang, lewat aturan per periode yang sama dengan rasio (8.6) — supaya laba bulan lalu tidak ikut berubah. Tidak ada daftar aset — lihat bagian 9.
+- Pos dana adalah **peruntukan**, bukan rekening terpisah. Uangnya tetap di rekening usaha yang sama.
+
+### 8.3 Setoran owner — pinjaman atau modal
+
+Uang yang masuk dari owner ke usaha. **Bukan omzet** dan tidak memengaruhi laba. Dicatat sebagai `SetoranOwner`: owner, tanggal, nominal, jenis, tujuan (kas / pos dana / investasi), keterangan.
+
+| | Pinjaman | Modal |
+|---|---|---|
+| Contoh | Menutup rugi, menutup kekurangan pos dana | Modal awal, renovasi, beli alat baru |
+| Dikembalikan? | Ya — dari laba sebelum dibagi (8.5), atau dari alokasi pos dana kalau tujuannya pos dana (8.2) | Tidak dikembalikan langsung. Kembalinya lewat bagi hasil |
+| Memengaruhi rasio? | Tidak | Tidak otomatis — perubahan rasio keputusan owner (8.6) |
+
+**Kenapa pinjaman jadi default untuk menutup rugi, bukan modal:** kalau Agung menyetor dan Raka tidak, model modal membuat 70/30 tidak adil lagi dan rasio harus dinegosiasi ulang. Model pinjaman adil tanpa mengubah rasio — uang Agung kembali dulu, baru sisanya dibagi.
+
+Pinjaman dari lebih dari satu owner dikembalikan berurutan berdasarkan tanggal setor.
+
+### 8.4 Pengeluaran investasi
+
+Renovasi, beli kamera, beli lighting — pengeluaran besar yang manfaatnya bertahun-tahun. Dicatat dengan kategori **Investasi**, **di luar laba rugi**, dan bisa ditautkan ke setoran modal owner yang membiayainya.
+
+**Kenapa tidak dicatat sebagai biaya operasional:** renovasi Rp 20 juta di satu bulan membuat bulan itu rugi besar. Rugi itu dikompensasi dari laba bulan-bulan berikutnya (8.5), sehingga bagi hasil **kedua** owner tertahan berbulan-bulan — artinya modal Agung ikut "dikembalikan" dari bagian Raka. Itu bertentangan dengan tujuan rasio 70/30. Pencatatan sebagai Investasi adalah **blocker** — form biaya harus membedakannya.
+
+Servis dan ganti alat yang rutin **bukan** Investasi — itu pemakaian Pos Dana Maintenance.
+
+### 8.5 Kompensasi rugi & perhitungan bagi hasil
+
+Kalau satu bulan rugi, bulan itu tidak ada bagi hasil dan tidak ada alokasi cadangan. Rugi dibawa ke bulan berikutnya dan ditutup lebih dulu sebelum laba dibagi.
+
+Rugi dan pinjaman owner sering berupa **uang yang sama** — owner meminjamkan uang justru karena rugi. Kalau keduanya dipotong terpisah, laba terpotong dua kali. Karena itu potongannya satu:
+
+```
+Potongan  = min( laba bersih,
+                 max( akumulasi rugi belum tertutup,
+                      sisa pinjaman owner ke kas ) )
+
+Potongan dipakai:   1. melunasi pinjaman owner (urut tanggal setor)
+                    2. sisanya tetap di kas
+Akumulasi rugi dan sisa pinjaman sama-sama berkurang sebesar potongan.
+
+Laba yang dibagi = laba bersih − potongan
+   → Dana cadangan : % cadangan × laba yang dibagi
+   → Tiap owner    : % owner × (laba yang dibagi − dana cadangan)
+```
+
+Contoh:
+
+```
+Bulan 1: rugi −2.000.000 → Agung setor pinjaman 2.000.000
+Bulan 2: laba bersih 3.000.000
+   Potongan = min(3 jt, max(2 jt, 2 jt)) = 2.000.000 → pinjaman Agung lunas
+   Dibagi   = 1.000.000
+   → Cadangan 100.000 · Agung 630.000 · Raka 270.000
+```
+
+Kalau tidak ada yang menyetor (rugi ditutup dari kas yang ada), potongannya sama — bedanya uang itu tetap di kas, tidak dibayarkan ke siapa pun.
+
+Semua angka di bagian ini **dihitung dari riwayat setiap kali laporan dibuka**, bukan disimpan. Pada volume transaksi ini tidak ada masalah performa, dan tidak ada angka tersimpan yang bisa basi.
+
+### 8.6 Rasio bagi hasil — berubah per periode
+
+Rasio bisa berubah, misalnya setelah modal Agung kembali. Karena itu rasio **tidak** disimpan sebagai satu pengaturan yang diedit langsung — mengubah 70/30 jadi 60/40 akan diam-diam mengubah bagi hasil semua bulan lama.
+
+`RasioBagiHasil`: berlaku mulai (bulan), persen per owner, persen dana cadangan, dan nominal alokasi dana maintenance. Satu baris memuat seluruh aturan satu periode, jadi validasi "total 100%" dicek per baris. Persen disimpan sebagai bilangan bulat — pecahan desimal tidak selalu berjumlah persis 100%.
+
+- Mengubah rasio = **menambah baris baru** yang berlaku mulai bulan tertentu, bukan mengedit baris lama.
+- Laporan bulan M memakai rasio terakhir yang berlaku mulai ≤ M.
+- Total persen owner harus 100%. Baris yang sudah dipakai laporan tidak bisa diedit atau dihapus.
+- Owner baru masuk = baris baru dengan rasio baru.
+- **Tidak ada perubahan rasio otomatis.** Kalau ada kesepakatan "setelah balik modal, rasio jadi X", owner yang menambah barisnya saat waktunya tiba. Kesepakatan ini belum diketahui (bagian 2, pertanyaan 11) dan tidak menghambat pengembangan.
+
+Ini **blocker** — rasio yang bisa diedit langsung mengubah angka historis tanpa jejak.
+
+### 8.7 Progress balik modal
+
+Per owner: total bagi hasil yang menjadi haknya dibanding total setoran modal. Contoh tampilan: "Agung — 62% balik modal". Yang dihitung adalah **hak** bagi hasil dari laporan, bukan uang yang benar-benar dicairkan — pencatatan pencairan tidak dibangun (bagian 9).
+
+Butuh data **modal awal per owner** — renovasi dan alat yang sudah dibeli sebelum app dipakai, siapa yang membayar, berapa. Dicatat sebagai `SetoranOwner` jenis modal dengan tanggal sebelum go-live. Data ini **belum ada**. Selama belum diisi, widget ini **disembunyikan**, bukan ditampilkan 0% — angka 0% menyesatkan. Laba rugi, pos dana, dan bagi hasil tidak bergantung pada data ini.
+
+### 8.8 Saldo awal saat go-live
+
+Client sudah berjalan dengan sheet sebelum app dipakai. Bulan-bulan itu tidak punya order di app, jadi labanya tidak bisa diturunkan — tapi rumus di 8.5 butuh riwayatnya: rugi yang belum tertutup, pinjaman owner yang belum kembali, dan hak bagi hasil untuk progres balik modal.
+
+Karena itu setiap bulan sebelum go-live dibawa sebagai **ringkasan bulanan**: bulan, omzet, laba bersih, sumber. Ini satu-satunya angka laba yang ditulis tangan — semua bulan sesudah go-live tetap diturunkan dari order. Pinjaman owner dan modal awal yang terjadi sebelum go-live dicatat sebagai `SetoranOwner` biasa dengan tanggal aslinya.
+
+Yang perlu disiapkan client, sejajar dengan data master di bagian 10:
+- Laba bersih per bulan sejak usaha berjalan, **dengan dana maintenance yang sudah dikoreksi** (8.1). Kalau memakai angka sheet lama, laba tiap bulannya terlalu tinggi Rp 97.350.
+- Pinjaman owner yang belum dikembalikan per tanggal go-live.
+- Modal awal per owner (8.7).
+
+Di mockup, Juli 2026 memakai contoh omzet Rp 10.000.000 dari sheet client dengan angka yang sudah dikoreksi.
+
+### Gaji owner di masa depan
+
+Sekarang owner tidak digaji karena laba masih kecil. Kalau nanti digaji, **tidak perlu fitur baru**: catat sebagai biaya operasional kategori "Gaji Owner", dan bagi hasil otomatis dihitung dari sisa laba. Gaji tetap berjalan saat rugi — kalau kas tidak cukup, ujungnya setoran pinjaman (8.3).
+
+Pengambilan uang owner di luar bagi hasil — misalnya ambil dulu di tengah bulan — tidak dicatat app (bagian 9). Kalau itu mulai sering terjadi, itu tanda sudah waktunya owner digaji.
+
+---
+
+## 9. Yang Sengaja Tidak Masuk
 
 Bukan karena tidak berguna, tapi karena biayanya melebihi manfaatnya pada skala saat ini. Ditulis eksplisit supaya tidak diperdebatkan ulang di kemudian hari.
 
@@ -316,7 +497,11 @@ Bukan karena tidak berguna, tapi karena biayanya melebihi manfaatnya pada skala 
 | Penyimpanan & galeri foto di app | Biaya penyimpanan foto wedding besar, dan client sudah punya Google Drive. Cukup tempel link di Order | Kalau client minta customer bisa login lihat hasil sendiri |
 | Portal login customer | Satu link Drive menyelesaikan masalah yang sama | Sama seperti di atas |
 | Payment gateway | Pembayaran masih transfer manual, dan pencocokan manual masih ringan di volume ini | Kalau transaksi > 30/hari |
-| Hak akses & peran pengguna | Penggunanya satu orang | Saat ada staff yang ikut input |
+| Hak akses & peran pengguna | Penggunanya dua owner dengan akses penuh. Tetap ada di kontrak (quotation deliverable 16) — ditunda, bukan dibuang | Saat ada staff yang ikut input |
+| Kunci periode / tutup buku | Tanpa kunci, biaya yang telat diinput ke bulan lalu ikut mengubah bagi hasil bulan itu. Diterima dulu: rasio sudah versi per periode (8.6), jadi satu-satunya sumber perubahan historis adalah input telat | Saat owner mulai mencairkan bagi hasil berdasarkan angka app, lalu angka bulan yang sudah dicairkan berubah |
+| Pencatatan pencairan bagi hasil & pengambilan owner | App menghitung **hak** tiap owner, bukan uang yang benar-benar dicairkan. Pencairan terjadi di luar app | Bersamaan dengan kunci periode |
+| Daftar aset & penyusutan per alat | Dana maintenance cukup satu nominal tetap per bulan yang diubah manual saat alat berubah (8.2) | Kalau alat sering berganti dan nominalnya sering dihitung ulang |
+| Perubahan rasio otomatis setelah balik modal | Kesepakatannya belum ada, dan perubahan rasio jarang — menambah baris manual cukup (8.6) | Tidak perlu ditinjau |
 | Pelacakan stok bahan | HPP manual di katalog sudah cukup untuk laporan. Stok baru penting kalau sering kehabisan bahan | Kalau pernah kehilangan penjualan karena kehabisan stok |
 | WhatsApp Business API | Lihat gotcha di 5.6 | Kalau customer > 1000 |
 | Program loyalitas / poin | Belum ada basis customer untuk diloyalkan | Setelah ada customer berulang yang signifikan |
@@ -324,9 +509,12 @@ Bukan karena tidak berguna, tapi karena biayanya melebihi manfaatnya pada skala 
 
 ---
 
-## 9. Langkah Berikutnya
+## 10. Langkah Berikutnya
 
-1. Bawa **bagian 2 (Pertanyaan Terbuka)** ke client. Sembilan jawaban itu mengunci sisa desain.
+1. Bawa **bagian 2 (Pertanyaan Terbuka)** ke client. Jawaban yang belum terisi mengunci sisa desain.
 2. Konfirmasi **basis kas vs akrual** (bagian 7) — ini keputusan yang paling mahal kalau diubah belakangan.
 3. Minta client menyiapkan daftar produk, jasa, harga jual, dan harga bahan. Ini pekerjaan client, bukan pekerjaan developer, dan biasanya jadi penghambat terlama.
-4. Setelah pertanyaan terjawab, dokumen ini direvisi jadi spesifikasi final sebelum masuk ke rencana teknis.
+4. Sampaikan **koreksi dana maintenance** ke client: Rp 790.450/bulan, bukan Rp 693.100 (8.1).
+5. Minta client menyiapkan **modal awal per owner** — renovasi dan alat yang sudah dibeli, siapa yang membayar, berapa nominalnya (8.7). Tidak menghambat pengembangan, hanya menunda tampilan progress balik modal.
+6. Minta client menyiapkan **saldo awal** — laba bersih per bulan sebelum go-live dan pinjaman owner yang belum kembali (8.8).
+7. Setelah pertanyaan terjawab, dokumen ini direvisi jadi spesifikasi final sebelum masuk ke rencana teknis.

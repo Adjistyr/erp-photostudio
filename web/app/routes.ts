@@ -29,4 +29,7 @@ export default [
   route("laporan/margin", "routes/laporan-margin.tsx"),
   route("laporan/penjualan", "routes/laporan-penjualan.tsx"),
   route("laporan/piutang", "routes/laporan-piutang.tsx"),
+  // Modal, pos dana & bagi hasil — business-flow bagian 8. Di luar sepuluh
+  // module awal; bagian dari Laporan & Biaya di kontrak, tapi layar sendiri.
+  route("bagi-hasil", "routes/bagi-hasil.tsx"),
 ] satisfies RouteConfig;

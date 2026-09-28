@@ -16,7 +16,7 @@
 // Ekstensi .ts eksplisit: Vite maupun `node --test` dua-duanya resolve bentuk
 // ini, sedangkan tanpa ekstensi hanya Vite yang bisa. Satu gaya import, nol
 // dependency test tambahan.
-import { selisihHari } from "./format.ts";
+import { formatBulan, formatRp, selisihHari } from "./format.ts";
 
 /** Hari ini di seluruh mockup. Semua angka relatif dihitung dari sini. */
 export const HARI_INI = "2026-08-26";
@@ -139,6 +139,87 @@ export interface BiayaOperasional {
   kategori: string;
   keterangan: string;
   nominal: number;
+}
+
+// ── Modal, pos dana & bagi hasil (business-flow bagian 8) ───────────────────
+
+export interface Owner {
+  id: string;
+  nama: string;
+}
+
+/**
+ * Aturan bagi hasil yang berlaku MULAI bulan tertentu (business-flow 8.6).
+ *
+ * Mengubah rasio = menambah baris baru, bukan mengedit baris lama. Kalau satu
+ * pengaturan diedit di tempat, mengubah 70/30 jadi 60/40 akan diam-diam
+ * mengubah bagi hasil semua bulan lama. Alokasi maintenance ikut di sini
+ * dengan alasan yang sama: nominalnya berubah saat alat bertambah, dan laba
+ * bulan lalu tidak boleh ikut berubah karenanya.
+ *
+ * Persen disimpan sebagai bilangan bulat 0..100, bukan pecahan 0..1: pecahan
+ * float tidak selalu berjumlah persis 1 (0.7 + 0.2 + 0.1 = 0.9999999999999999)
+ * dan validasi "total harus 100%" jadi gagal untuk isian yang benar.
+ */
+export interface PengaturanBagiHasil {
+  /** "YYYY-MM" */
+  berlakuMulai: string;
+  alokasiMaintenance: number;
+  persenCadangan: number;
+  bagian: { ownerId: string; persen: number }[];
+}
+
+export type PosDana = "maintenance" | "cadangan";
+
+export const LABEL_POS_DANA: Record<PosDana, string> = {
+  maintenance: "Dana maintenance",
+  cadangan: "Dana cadangan",
+};
+
+/**
+ * Uang dari owner ke usaha — bukan omzet, tidak memengaruhi laba (8.3).
+ * `tujuan` menentukan dari mana pinjaman dikembalikan: pinjaman ke kas dari
+ * laba sebelum dibagi, pinjaman ke pos dana dari alokasi pos itu sendiri.
+ */
+export interface SetoranOwner {
+  id: string;
+  tanggal: string;
+  ownerId: string;
+  nominal: number;
+  jenis: "pinjaman" | "modal";
+  tujuan: "kas" | PosDana | "investasi";
+  keterangan: string;
+}
+
+/** Pemakaian pos dana. Alokasi masuk TIDAK dicatat — dihitung dari laporan. */
+export interface PemakaianDana {
+  id: string;
+  tanggal: string;
+  pos: PosDana;
+  nominal: number;
+  keterangan: string;
+}
+
+/** Renovasi, beli alat — di luar laba rugi (8.4). */
+export interface Investasi {
+  id: string;
+  tanggal: string;
+  keterangan: string;
+  nominal: number;
+  /** Setoran modal owner yang membiayai. `null` = dibayar dari kas usaha. */
+  setoranId: string | null;
+}
+
+/**
+ * Ringkasan bulan SEBELUM app dipakai, dibawa dari sheet client (8.8).
+ * Bulan ini tidak punya order di app, jadi labanya tidak bisa diturunkan —
+ * satu-satunya angka laba yang ditulis tangan di dataset.
+ */
+export interface SaldoAwalBulan {
+  bulan: string;
+  omzet: number;
+  labaBersih: number;
+  sumber: string;
 }
 
 // ── Master data ─────────────────────────────────────────────────────────────
@@ -275,6 +356,52 @@ export const biayaOperasional: BiayaOperasional[] = [
   { id: "OPS-01", tanggal: "2026-08-01", kategori: "Sewa tempat", keterangan: "Sewa ruko Agustus", nominal: 3_500_000 },
   { id: "OPS-02", tanggal: "2026-08-05", kategori: "Utilitas", keterangan: "Listrik + internet", nominal: 800_000 },
   { id: "OPS-03", tanggal: "2026-08-10", kategori: "Marketing", keterangan: "Iklan Instagram", nominal: 500_000 },
+];
+
+export const owners: Owner[] = [
+  { id: "OWN-01", nama: "Agung" },
+  { id: "OWN-02", nama: "Raka" },
+];
+
+export const pengaturanBagiHasil: PengaturanBagiHasil[] = [
+  {
+    berlakuMulai: "2026-07",
+    // Rp 790.450, bukan Rp 693.100 seperti di sheet — sheet lupa mengalikan
+    // jumlah unit baterai, memory card, dan lighting (business-flow 8.1).
+    alokasiMaintenance: 790_450,
+    persenCadangan: 10,
+    bagian: [
+      { ownerId: "OWN-01", persen: 70 },
+      { ownerId: "OWN-02", persen: 30 },
+    ],
+  },
+];
+
+/**
+ * Juli = contoh omzet Rp 10.000.000 di sheet client, dengan maintenance yang
+ * sudah dikoreksi: 10.000.000 − 7.796.849 − 790.450 = 1.412.701.
+ */
+export const saldoAwal: SaldoAwalBulan[] = [
+  { bulan: "2026-07", omzet: 10_000_000, labaBersih: 1_412_701, sumber: "Sheet HPP & pembagian hasil" },
+];
+
+/**
+ * Modal awal di bawah adalah CONTOH — data aslinya belum ada (business-flow
+ * 8.7). Nominalnya total alat di sheet maintenance: kamera 7.000.000, baterai
+ * 2 × 120.000, trigger 565.000, memory 2 × 477.000, lighting 2 × 1.350.000,
+ * printer 4.350.000.
+ */
+export const setoranOwner: SetoranOwner[] = [
+  { id: "STR-01", tanggal: "2026-07-01", ownerId: "OWN-01", nominal: 15_809_000, jenis: "modal", tujuan: "investasi", keterangan: "Modal awal — alat studio" },
+  { id: "STR-02", tanggal: "2026-08-25", ownerId: "OWN-01", nominal: 2_000_000, jenis: "pinjaman", tujuan: "kas", keterangan: "Menutup kekurangan kas Agustus" },
+];
+
+export const investasi: Investasi[] = [
+  { id: "INV-01", tanggal: "2026-07-01", keterangan: "Kamera, printer, lighting & aksesori", nominal: 15_809_000, setoranId: "STR-01" },
+];
+
+export const pemakaianDana: PemakaianDana[] = [
+  { id: "DNA-01", tanggal: "2026-08-10", pos: "maintenance", nominal: 150_000, keterangan: "Servis lighting Godox SK400 II" },
 ];
 
 // ── Turunan per order ───────────────────────────────────────────────────────
@@ -454,6 +581,8 @@ export interface LabaRugi {
   rasioLabaKotor: number;
   operasional: BiayaOperasional[];
   totalOperasional: number;
+  /** Dana servis alat, disisihkan sebelum laba bersih (business-flow 8.2). */
+  alokasiMaintenance: number;
   labaBersih: number;
 }
 
@@ -469,6 +598,8 @@ export function labaRugi(bulan: string): LabaRugi {
   const labaKotor = totalOmzet - totalBiayaLangsung;
   const operasional = biayaOperasional.filter((b) => b.tanggal.startsWith(bulan));
   const totalOperasional = biayaOperasionalPeriode(bulan);
+  // Tetap diambil saat rugi — alat tetap aus walaupun omzet sepi.
+  const alokasiMaintenance = pengaturanUntuk(bulan)?.alokasiMaintenance ?? 0;
   return {
     omzetPerLini,
     totalOmzet,
@@ -479,7 +610,8 @@ export function labaRugi(bulan: string): LabaRugi {
     rasioLabaKotor: totalOmzet === 0 ? 0 : labaKotor / totalOmzet,
     operasional,
     totalOperasional,
-    labaBersih: labaKotor - totalOperasional,
+    alokasiMaintenance,
+    labaBersih: labaKotor - totalOperasional - alokasiMaintenance,
   };
 }
 
@@ -682,4 +814,407 @@ export function bookingHariIni(): Order[] {
       o.statusKerja !== "Batal" &&
       o.tanggal.startsWith(HARI_INI),
   );
+}
+
+// ── Modal, pos dana & bagi hasil — turunan (business-flow bagian 8) ─────────
+//
+// Semua angka di bawah DIHITUNG ULANG dari riwayat setiap kali dipanggil,
+// tidak disimpan. Pada volume ini tidak ada masalah performa, dan tidak ada
+// angka tersimpan yang bisa basi saat biaya bulan lalu diinput telat.
+
+export const BULAN_BERJALAN = HARI_INI.slice(0, 7);
+
+/** "2026-07" → "2026-08" */
+export function bulanBerikut(bulan: string): string {
+  const [th, bl] = bulan.split("-").map(Number);
+  return bl === 12 ? `${th + 1}-01` : `${th}-${String(bl + 1).padStart(2, "0")}`;
+}
+
+/** "2026-07" → "2026-07-31". Hari ke-0 bulan berikutnya = hari terakhir bulan ini. */
+function akhirBulan(bulan: string): string {
+  const [th, bl] = bulan.split("-").map(Number);
+  return `${bulan}-${String(new Date(th, bl, 0).getDate()).padStart(2, "0")}`;
+}
+
+function jumlah(xs: { sisa: number }[]): number {
+  return xs.reduce((s, x) => s + x.sisa, 0);
+}
+
+export function namaOwner(id: string): string {
+  return owners.find((o) => o.id === id)?.nama ?? id;
+}
+
+function pengaturanUrut(): PengaturanBagiHasil[] {
+  return [...pengaturanBagiHasil].sort((a, b) =>
+    a.berlakuMulai.localeCompare(b.berlakuMulai),
+  );
+}
+
+/** Aturan yang berlaku di bulan itu = aturan terakhir yang mulai ≤ bulan. */
+export function pengaturanUntuk(bulan: string): PengaturanBagiHasil | undefined {
+  return pengaturanUrut()
+    .filter((p) => p.berlakuMulai <= bulan)
+    .at(-1);
+}
+
+export interface PinjamanTerbuka {
+  setoranId: string;
+  ownerId: string;
+  sisa: number;
+}
+
+export interface HasilBagiHasil {
+  potongan: number;
+  pelunasan: { setoranId: string; ownerId: string; nominal: number }[];
+  dibagi: number;
+  cadangan: number;
+  bagian: { ownerId: string; persen: number; nominal: number }[];
+  akumulasiRugi: number;
+  pinjaman: PinjamanTerbuka[];
+}
+
+/**
+ * Owner terakhir menerima sisa pembulatan, supaya semua bagian berjumlah
+ * persis sama dengan yang dibagi. Kalau tiap bagian dibulatkan sendiri,
+ * totalnya bisa selisih Rp 1 dari laba bersih di laporan.
+ */
+function bagiPersen(
+  total: number,
+  bagian: { ownerId: string; persen: number }[],
+): HasilBagiHasil["bagian"] {
+  let terpakai = 0;
+  return bagian.map((b, i) => {
+    const nominal =
+      i === bagian.length - 1 ? total - terpakai : Math.round((total * b.persen) / 100);
+    terpakai += nominal;
+    return { ...b, nominal };
+  });
+}
+
+/**
+ * Bagi hasil satu bulan — business-flow 8.5. Murni: input tidak dimutasi.
+ *
+ * Rugi yang dibawa dan pinjaman owner ke kas sering UANG YANG SAMA (owner
+ * meminjamkan justru karena rugi). Kalau keduanya dipotong terpisah, laba
+ * terpotong dua kali. Karena itu potongannya satu:
+ *
+ *   potongan = min(laba, max(akumulasi rugi, sisa pinjaman))
+ *
+ * Potongan melunasi pinjaman urut tanggal setor; sisanya tetap di kas.
+ * `pinjaman` wajib sudah urut tanggal setor.
+ */
+export function hitungBagiHasil(
+  labaBersih: number,
+  akumulasiRugi: number,
+  pinjaman: PinjamanTerbuka[],
+  aturan: Pick<PengaturanBagiHasil, "persenCadangan" | "bagian">,
+): HasilBagiHasil {
+  const sisa = pinjaman.map((p) => ({ ...p }));
+
+  if (labaBersih <= 0) {
+    return {
+      potongan: 0,
+      pelunasan: [],
+      dibagi: 0,
+      cadangan: 0,
+      bagian: aturan.bagian.map((b) => ({ ...b, nominal: 0 })),
+      akumulasiRugi: akumulasiRugi - labaBersih,
+      pinjaman: sisa,
+    };
+  }
+
+  const potongan = Math.min(labaBersih, Math.max(akumulasiRugi, jumlah(sisa)));
+  const pelunasan: HasilBagiHasil["pelunasan"] = [];
+  let bayar = potongan;
+  for (const p of sisa) {
+    const n = Math.min(p.sisa, bayar);
+    if (n <= 0) continue;
+    p.sisa -= n;
+    bayar -= n;
+    pelunasan.push({ setoranId: p.setoranId, ownerId: p.ownerId, nominal: n });
+  }
+
+  const dibagi = labaBersih - potongan;
+  const cadangan = Math.round((dibagi * aturan.persenCadangan) / 100);
+  return {
+    potongan,
+    pelunasan,
+    dibagi,
+    cadangan,
+    bagian: bagiPersen(dibagi - cadangan, aturan.bagian),
+    akumulasiRugi: Math.max(0, akumulasiRugi - potongan),
+    pinjaman: sisa,
+  };
+}
+
+export interface BagiHasilBulan extends HasilBagiHasil {
+  bulan: string;
+  labaBersih: number;
+  /** Bulan sebelum app dipakai — labanya dari sheet, bukan dari order. */
+  dariSaldoAwal: boolean;
+  /** Bulan sudah lewat. Bulan berjalan masih bisa berubah tiap ada transaksi. */
+  final: boolean;
+  akumulasiRugiAwal: number;
+  sisaPinjamanAwal: number;
+  sisaPinjaman: number;
+}
+
+/** Riwayat bagi hasil dari aturan pertama sampai `sampaiBulan`, urut bulan. */
+export function bagiHasil(sampaiBulan: string): BagiHasilBulan[] {
+  const awal = pengaturanUrut()[0]?.berlakuMulai;
+  if (!awal) return [];
+
+  const pinjamanKas = setoranOwner
+    .filter((s) => s.jenis === "pinjaman" && s.tujuan === "kas")
+    .sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+  const hasil: BagiHasilBulan[] = [];
+  let akumulasiRugi = 0;
+  let pinjaman: PinjamanTerbuka[] = [];
+  let i = 0;
+
+  for (let bulan = awal; bulan <= sampaiBulan; bulan = bulanBerikut(bulan)) {
+    // Pinjaman yang disetor sampai akhir bulan ini ikut dihitung di bulan ini.
+    while (i < pinjamanKas.length && pinjamanKas[i].tanggal.slice(0, 7) <= bulan) {
+      const s = pinjamanKas[i++];
+      pinjaman = [...pinjaman, { setoranId: s.id, ownerId: s.ownerId, sisa: s.nominal }];
+    }
+    const aturan = pengaturanUntuk(bulan);
+    if (!aturan) continue; // tidak mungkin: bulan ≥ aturan pertama
+    const sa = saldoAwal.find((x) => x.bulan === bulan);
+    const labaBersih = sa ? sa.labaBersih : labaRugi(bulan).labaBersih;
+    const akumulasiRugiAwal = akumulasiRugi;
+    const sisaPinjamanAwal = jumlah(pinjaman);
+
+    const h = hitungBagiHasil(labaBersih, akumulasiRugi, pinjaman, aturan);
+    akumulasiRugi = h.akumulasiRugi;
+    pinjaman = h.pinjaman;
+
+    hasil.push({
+      ...h,
+      bulan,
+      labaBersih,
+      dariSaldoAwal: Boolean(sa),
+      final: bulan < BULAN_BERJALAN,
+      akumulasiRugiAwal,
+      sisaPinjamanAwal,
+      sisaPinjaman: jumlah(pinjaman),
+    });
+  }
+  return hasil;
+}
+
+export function bagiHasilBulan(bulan: string): BagiHasilBulan | undefined {
+  return bagiHasil(bulan).find((b) => b.bulan === bulan);
+}
+
+// ── Pos dana (business-flow 8.2) ────────────────────────────────────────────
+
+export type JenisMutasiDana =
+  | "Alokasi"
+  | "Pemakaian"
+  | "Pinjaman owner"
+  | "Pengembalian pinjaman";
+
+export interface BarisMutasiDana {
+  tanggal: string;
+  jenis: JenisMutasiDana;
+  keterangan: string;
+  masuk: number;
+  keluar: number;
+  saldo: number;
+}
+
+type KejadianDana =
+  | { tanggal: string; urutan: 0; setoran: SetoranOwner }
+  | { tanggal: string; urutan: 1; pakai: PemakaianDana }
+  | { tanggal: string; urutan: 2; bulan: string; nominal: number };
+
+/**
+ * Alokasi masuk di akhir bulan dan hanya untuk bulan yang sudah TUTUP: laba
+ * bulan berjalan masih berubah tiap ada transaksi, jadi cadangannya belum
+ * pasti. Pinjaman ke pos dana dikembalikan dari alokasi pos itu sendiri,
+ * bukan dari laba — kalau dari laba, rumus potongan di 8.5 jadi menampung dua
+ * jenis utang dan bisa memotong dua kali.
+ */
+function jalankanPosDana(pos: PosDana): {
+  baris: BarisMutasiDana[];
+  hutang: PinjamanTerbuka[];
+} {
+  const tutup = bagiHasil(BULAN_BERJALAN).filter((b) => b.final);
+  const kejadian: KejadianDana[] = [
+    ...setoranOwner
+      .filter((s) => s.jenis === "pinjaman" && s.tujuan === pos)
+      .map((s) => ({ tanggal: s.tanggal, urutan: 0 as const, setoran: s })),
+    ...pemakaianDana
+      .filter((p) => p.pos === pos)
+      .map((p) => ({ tanggal: p.tanggal, urutan: 1 as const, pakai: p })),
+    ...tutup.map((b) => ({
+      tanggal: akhirBulan(b.bulan),
+      urutan: 2 as const,
+      bulan: b.bulan,
+      nominal:
+        pos === "maintenance"
+          ? (pengaturanUntuk(b.bulan)?.alokasiMaintenance ?? 0)
+          : b.cadangan,
+    })),
+  ].sort((a, b) => a.tanggal.localeCompare(b.tanggal) || a.urutan - b.urutan);
+
+  const baris: BarisMutasiDana[] = [];
+  const hutang: PinjamanTerbuka[] = [];
+  let saldo = 0;
+  const catat = (
+    tanggal: string,
+    jenis: JenisMutasiDana,
+    keterangan: string,
+    masuk: number,
+    keluar: number,
+  ) => {
+    saldo += masuk - keluar;
+    baris.push({ tanggal, jenis, keterangan, masuk, keluar, saldo });
+  };
+
+  for (const k of kejadian) {
+    if (k.urutan === 0) {
+      hutang.push({ setoranId: k.setoran.id, ownerId: k.setoran.ownerId, sisa: k.setoran.nominal });
+      catat(k.tanggal, "Pinjaman owner", `${namaOwner(k.setoran.ownerId)} — ${k.setoran.keterangan}`, k.setoran.nominal, 0);
+    } else if (k.urutan === 1) {
+      catat(k.tanggal, "Pemakaian", k.pakai.keterangan, 0, k.pakai.nominal);
+    } else {
+      // Bulan rugi tidak punya alokasi cadangan — baris Rp 0 cuma noise.
+      if (k.nominal <= 0) continue;
+      catat(k.tanggal, "Alokasi", `Alokasi ${formatBulan(k.bulan)}`, k.nominal, 0);
+      let tersedia = k.nominal;
+      for (const h of hutang) {
+        const n = Math.min(h.sisa, tersedia);
+        if (n <= 0) continue;
+        h.sisa -= n;
+        tersedia -= n;
+        catat(k.tanggal, "Pengembalian pinjaman", `Ke ${namaOwner(h.ownerId)}`, 0, n);
+      }
+    }
+  }
+  return { baris, hutang };
+}
+
+export function mutasiPosDana(pos: PosDana): BarisMutasiDana[] {
+  return jalankanPosDana(pos).baris;
+}
+
+export function saldoPosDana(pos: PosDana): number {
+  return mutasiPosDana(pos).at(-1)?.saldo ?? 0;
+}
+
+/**
+ * Saldo pos dana tidak boleh minus (business-flow 8.2). Kekurangannya
+ * ditutup setoran owner lebih dulu — kalau dibiarkan minus, dananya diam-diam
+ * meminjam dari kas dan tidak ada yang mencatat siapa yang harus mengganti.
+ */
+export function validasiPemakaian(pos: PosDana, nominal: number): string | null {
+  if (nominal <= 0) return "Nominal harus lebih dari 0.";
+  const saldo = saldoPosDana(pos);
+  if (nominal > saldo) {
+    return `Saldo ${LABEL_POS_DANA[pos].toLowerCase()} tinggal ${formatRp(saldo)}. Catat setoran owner ke pos ini dulu untuk menutup kekurangannya.`;
+  }
+  return null;
+}
+
+// ── Setoran, balik modal, aturan ────────────────────────────────────────────
+
+/**
+ * Sisa pinjaman per setoran, per hari ini. Setoran modal tidak punya sisa —
+ * modal tidak dikembalikan langsung, kembalinya lewat bagi hasil.
+ */
+export function sisaPinjamanPerSetoran(): Map<string, number> {
+  const sisa = new Map<string, number>();
+  const kas = bagiHasil(BULAN_BERJALAN).at(-1)?.pinjaman ?? [];
+  const pos = (["maintenance", "cadangan"] as PosDana[]).flatMap(
+    (p) => jalankanPosDana(p).hutang,
+  );
+  for (const p of [...kas, ...pos]) sisa.set(p.setoranId, p.sisa);
+  return sisa;
+}
+
+export interface ProgresModal {
+  owner: Owner;
+  modal: number;
+  hakBagiHasil: number;
+  rasio: number;
+}
+
+/**
+ * Hak bagi hasil dibanding modal yang disetor (business-flow 8.7). Yang
+ * dihitung HAK dari bulan yang sudah tutup, bukan uang yang dicairkan —
+ * pencairan tidak dicatat app. Owner tanpa setoran modal tidak ikut: rasio
+ * terhadap modal 0 tidak bermakna. Kosong = modal awal belum diisi, dan
+ * layarnya menyembunyikan widget, bukan menampilkan 0%.
+ */
+export function progresBalikModal(): ProgresModal[] {
+  const tutup = bagiHasil(BULAN_BERJALAN).filter((b) => b.final);
+  return owners
+    .map((owner) => {
+      const modal = setoranOwner
+        .filter((s) => s.ownerId === owner.id && s.jenis === "modal")
+        .reduce((s, x) => s + x.nominal, 0);
+      const hakBagiHasil = tutup
+        .flatMap((b) => b.bagian)
+        .filter((b) => b.ownerId === owner.id)
+        .reduce((s, b) => s + b.nominal, 0);
+      return { owner, modal, hakBagiHasil, rasio: modal === 0 ? 0 : hakBagiHasil / modal };
+    })
+    .filter((p) => p.modal > 0);
+}
+
+/**
+ * Aturan baru hanya boleh berlaku mulai bulan berjalan atau sesudahnya, dan
+ * sesudah aturan terakhir. Berlaku mundur berarti mengubah bagi hasil bulan
+ * yang sudah dihitung — tepat yang mau dicegah dengan menyimpan aturan per
+ * periode (business-flow 8.6).
+ */
+export function validasiPengaturan(p: PengaturanBagiHasil): string | null {
+  if (!/^\d{4}-\d{2}$/.test(p.berlakuMulai)) return "Pilih bulan mulai berlaku.";
+  if (p.berlakuMulai < BULAN_BERJALAN) {
+    return `${formatBulan(p.berlakuMulai)} sudah tutup — aturan tidak boleh berlaku mundur ke bulan yang bagi hasilnya sudah dihitung.`;
+  }
+  const terakhir = pengaturanUrut().at(-1);
+  if (terakhir && p.berlakuMulai <= terakhir.berlakuMulai) {
+    return `Sudah ada aturan yang berlaku mulai ${formatBulan(terakhir.berlakuMulai)}. Pilih bulan sesudahnya.`;
+  }
+  const bulat = (n: number) => Number.isInteger(n) && n >= 0 && n <= 100;
+  if (!p.bagian.every((b) => bulat(b.persen))) {
+    return "Persen tiap owner harus bilangan bulat 0–100.";
+  }
+  const total = p.bagian.reduce((s, b) => s + b.persen, 0);
+  if (total !== 100) return `Total bagian owner ${total}%, harus 100%.`;
+  if (!bulat(p.persenCadangan)) return "Persen dana cadangan harus bilangan bulat 0–100.";
+  if (!Number.isInteger(p.alokasiMaintenance) || p.alokasiMaintenance < 0) {
+    return "Alokasi maintenance tidak boleh negatif.";
+  }
+  return null;
+}
+
+// ── Titik impas (Dashboard) ─────────────────────────────────────────────────
+
+export interface TitikImpas {
+  biayaTetap: number;
+  labaKotor: number;
+  kurang: number;
+  rasio: number;
+}
+
+/**
+ * Dibandingkan dengan LABA KOTOR, bukan omzet seperti "HPP per hari" di sheet
+ * client. Omzet event yang besar tapi habis untuk fee crew akan terlihat
+ * menutup biaya tetap padahal tidak — laba kotor sudah memotong biaya
+ * langsungnya.
+ */
+export function titikImpas(bulan: string): TitikImpas {
+  const lr = labaRugi(bulan);
+  const biayaTetap = lr.totalOperasional + lr.alokasiMaintenance;
+  return {
+    biayaTetap,
+    labaKotor: lr.labaKotor,
+    kurang: Math.max(0, biayaTetap - lr.labaKotor),
+    rasio: biayaTetap === 0 ? 1 : lr.labaKotor / biayaTetap,
+  };
 }

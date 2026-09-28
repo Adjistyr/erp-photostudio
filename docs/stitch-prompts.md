@@ -1480,7 +1480,7 @@ Cek setelah semua layar jadi, sebelum masuk implementasi. Yang paling sering mel
 - [ ] Piutang Rp 8.050.000 dari 4 order sama di Dashboard, Piutang, dan Invoice
 - [ ] Total lini (290rb + 1,5jt + 4jt) berjumlah persis Rp 5.790.000
 - [ ] Total produk terlaris berjumlah persis Rp 290.000 omzet dan Rp 94.500 HPP
-- [ ] Laba bersih −Rp 2.104.500 = 5.790.000 − 3.094.500 − 4.800.000
+- [ ] Laba bersih −Rp 2.894.950 = 5.790.000 − 3.094.500 − 4.800.000 − 790.450 (alokasi dana maintenance, business-flow 8.2). Prompt layar di atas masih memakai −Rp 2.104.500 dari sebelum alokasi ini ada.
 
 **Isi yang gampang hilang** — tiap baris di sini menjaga satu keputusan di business-flow
 

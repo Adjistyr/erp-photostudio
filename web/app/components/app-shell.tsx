@@ -12,6 +12,7 @@ import {
   CalendarDays,
   ChartColumn,
   FileText,
+  HandCoins,
   LayoutDashboard,
   MessageSquare,
   Package,
@@ -82,6 +83,8 @@ const GRUP_NAV: { label: string; item: ItemNav[] }[] = [
       { label: "Invoice", ke: "/invoice", ikon: FileText },
       { label: "Komunikasi", ke: "/komunikasi", ikon: MessageSquare },
       { label: "Laporan", ke: "/laporan", ikon: ChartColumn },
+      // Setelah Laporan: dibuka sebulan sekali, setelah laba rugi dibaca.
+      { label: "Modal & Bagi Hasil", ke: "/bagi-hasil", ikon: HandCoins },
     ],
   },
 ];

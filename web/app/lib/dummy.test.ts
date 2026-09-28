@@ -66,7 +66,7 @@ test("order Batal tidak masuk piutang meski DP-nya belum menutup total", () => {
   assert.ok(omzetPeriode(AGT, "event") > 3_500_000);
 });
 
-test("laba rugi Agustus — rugi Rp 2.104.500", () => {
+test("laba rugi Agustus — rugi Rp 2.894.950", () => {
   const lr = labaRugi(AGT);
   assert.equal(lr.totalOmzet, 5_790_000);
   assert.equal(lr.hppBahan, 94_500);
@@ -75,14 +75,19 @@ test("laba rugi Agustus — rugi Rp 2.104.500", () => {
   assert.equal(lr.labaKotor, 2_695_500);
   assert.equal(formatPersen(lr.rasioLabaKotor), "47%");
   assert.equal(lr.totalOperasional, 4_800_000);
-  assert.equal(lr.labaBersih, -2_104_500);
+  // Dana maintenance dari sheet client, terkoreksi (business-flow 8.1).
+  assert.equal(lr.alokasiMaintenance, 790_450);
+  assert.equal(lr.labaBersih, -2_894_950);
 });
 
 test("laba bersih konsisten dengan komponennya", () => {
   const lr = labaRugi(AGT);
   assert.equal(
     lr.labaBersih,
-    lr.totalOmzet - lr.totalBiayaLangsung - lr.totalOperasional,
+    lr.totalOmzet -
+      lr.totalBiayaLangsung -
+      lr.totalOperasional -
+      lr.alokasiMaintenance,
   );
 });
 
