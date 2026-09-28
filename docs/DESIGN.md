@@ -374,7 +374,10 @@ KELUARAN
   Invoice
   Komunikasi        ← Thank You mail, blast, template
   Laporan
+  Modal & Bagi Hasil ← setoran owner, pos dana, investasi, rasio (business-flow bagian 8)
 ```
+
+Modal & Bagi Hasil jadi menu sendiri, bukan tab di Biaya: Biaya diisi harian, layar ini dibuka owner sebulan sekali. Menggabungkannya menaruh form biaya harian bersebelahan dengan pemakaian dana dan investasi — dua hal yang tidak boleh masuk Laba Rugi, dan tertukarnya memotong laba dua kali.
 
 Ini **blocker** — shell yang berbeda antar layar langsung terasa sebagai app yang tidak selesai.
 
@@ -435,7 +438,7 @@ Penggantinya ada di `web/` — React Router 7 (SPA) + shadcn preset `b311momZs0`
 
 Tiga blocker yang gagal di Stitch sekarang mustahil menyimpang per layar karena hanya punya satu definisi: R8 di `AppShell`, R3 di `BadgeStatusBayar`, R4/R7 di `TabelData` + `KosongTabel`.
 
-**Checklist angka di [stitch-prompts.md](./stitch-prompts.md) bagian 6 dijalankan sebagai test**, bukan dicek mata — omzet Rp 5.790.000, piutang Rp 8.050.000 dari 4 order, laba bersih −Rp 2.104.500, margin per lini, kelompok umur piutang, produk terlaris. Seluruh rekap diturunkan dari satu daftar order di `web/app/lib/dummy.ts`, jadi angka yang tidak cocok antar layar tidak mungkin terjadi.
+**Checklist angka di [stitch-prompts.md](./stitch-prompts.md) bagian 6 dijalankan sebagai test**, bukan dicek mata — omzet Rp 5.790.000, piutang Rp 8.050.000 dari 4 order, laba bersih −Rp 2.894.950 (−Rp 2.104.500 sebelum alokasi dana maintenance, business-flow 8.2), margin per lini, kelompok umur piutang, produk terlaris. Seluruh rekap diturunkan dari satu daftar order di `web/app/lib/dummy.ts`, jadi angka yang tidak cocok antar layar tidak mungkin terjadi.
 
 ### Yang masih menunggu client
 

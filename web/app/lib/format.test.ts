@@ -19,6 +19,7 @@ import {
   formatJadwal,
   formatTanggalJam,
   formatUmurPiutang,
+  formatBulan,
   kelasRp,
   selisihHari,
 } from "./format.ts";
@@ -55,6 +56,18 @@ test("formatPersen — rasio dibulatkan, tanpa desimal", () => {
   assert.equal(formatPersen(2500000 / 8500000), "29%");
   assert.equal(formatPersen(0), "0%");
   assert.equal(formatPersen(1), "100%");
+});
+
+test("formatBulan — 'YYYY-MM' jadi nama bulan Indonesia", () => {
+  assert.equal(formatBulan("2026-07"), "Juli 2026");
+  assert.equal(formatBulan("2026-12"), "Desember 2026");
+});
+
+test("formatBulan — tanggal lengkap & string yang cuma MEMUAT pola ditolak", () => {
+  assert.equal(formatBulan("2026-07-01"), "—");
+  assert.equal(formatBulan("ORD-2026-07"), "—");
+  assert.equal(formatBulan("2026-7"), "—");
+  assert.equal(formatBulan(""), "—");
 });
 
 test("formatTanggal — 'D Mmm YYYY' bahasa Indonesia", () => {

@@ -25,14 +25,24 @@ import { useSyncExternalStore } from "react";
 import {
   biayaOperasional,
   customers,
+  investasi,
   katalog,
   orders,
+  pemakaianDana,
+  pengaturanBagiHasil,
+  setoranOwner,
+  validasiPemakaian,
+  validasiPengaturan,
   type BiayaJob,
   type BiayaOperasional,
   type Customer,
+  type Investasi,
   type ItemKatalog,
   type Order,
   type Payment,
+  type PemakaianDana,
+  type PengaturanBagiHasil,
+  type SetoranOwner,
   type StatusKerja,
 } from "./dummy";
 
@@ -145,6 +155,58 @@ export const aksi = {
 
   tambahCustomer(c: Customer) {
     customers.unshift(c);
+    emit();
+  },
+
+  catatSetoran(s: SetoranOwner) {
+    setoranOwner.push(s);
+    emit();
+  },
+
+  /**
+   * Validasi diulang di sini walaupun dialog sudah mengeceknya: saldo bisa
+   * berubah di antara dialog dibuka dan Simpan ditekan, dan saldo minus adalah
+   * satu-satunya keadaan pos dana yang dilarang (business-flow 8.2).
+   */
+  catatPemakaianDana(p: PemakaianDana) {
+    const salah = validasiPemakaian(p.pos, p.nominal);
+    if (salah) throw new Error(salah);
+    pemakaianDana.push(p);
+    emit();
+  },
+
+  /**
+   * Investasi yang dibayar owner langsung menghasilkan DUA catatan: setoran
+   * modal dan investasinya. Satu aksi, bukan dua form — owner yang membayar
+   * renovasi tidak berpikir "saya setor modal lalu usaha membelanjakannya",
+   * dan kalau dipisah, setoran modalnya yang paling sering terlupa. Tanpa
+   * setoran itu, progres balik modal owner tersebut salah.
+   */
+  catatInvestasi(
+    inv: Omit<Investasi, "setoranId">,
+    dibayarOwnerId: string | null,
+  ) {
+    let setoranId: string | null = null;
+    if (dibayarOwnerId) {
+      setoranId = idBaru("STR");
+      setoranOwner.push({
+        id: setoranId,
+        tanggal: inv.tanggal,
+        ownerId: dibayarOwnerId,
+        nominal: inv.nominal,
+        jenis: "modal",
+        tujuan: "investasi",
+        keterangan: inv.keterangan,
+      });
+    }
+    investasi.push({ ...inv, setoranId });
+    emit();
+  },
+
+  tambahPengaturan(p: PengaturanBagiHasil) {
+    const salah = validasiPengaturan(p);
+    if (salah) throw new Error(salah);
+    pengaturanBagiHasil.push(p);
     emit();
   },
 };

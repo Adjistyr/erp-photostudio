@@ -12,6 +12,7 @@ import {
   ArrowRight,
   CalendarDays,
   Clock,
+  Target,
   TriangleAlert,
   Wallet,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { Progress } from "~/components/ui/progress";
 import {
   TableBody,
   TableCell,
@@ -56,6 +58,7 @@ import {
   piutangLewatJatuhTempo,
   ringkasanItem,
   sisaTagihan,
+  titikImpas,
   totalPiutang,
   umurTagihan,
 } from "~/lib/dummy";
@@ -129,6 +132,8 @@ export default function Dashboard() {
             mendesak={lewat.length > 0}
           />
         </div>
+
+        <KartuTitikImpas />
 
         {/*
           Perbandingan yang tidak muncul di kartu mana pun kalau tidak ditulis
@@ -248,6 +253,49 @@ export default function Dashboard() {
         </Seksi>
       </KontenHalaman>
     </>
+  );
+}
+
+/**
+ * Titik impas bulan berjalan — pengganti "HPP per hari" di sheet client.
+ *
+ * Kartu lebar sendiri, bukan KPI kelima: angkanya butuh pembanding (laba
+ * kotor vs biaya tetap), dan bar progres membuat "sudah seberapa dekat"
+ * terbaca tanpa menghitung. Sebagai KPI kelima juga merusak grid 4 kolom.
+ */
+function KartuTitikImpas() {
+  const t = titikImpas(BULAN);
+  const impas = t.kurang === 0;
+
+  return (
+    <Card className="p-5">
+      <CardHeader className="p-0">
+        <CardDescription className="flex items-center gap-1.5 text-xs">
+          <Target className="size-3.5" />
+          Titik impas Agustus
+        </CardDescription>
+        <CardTitle className="font-heading text-base font-semibold">
+          {impas
+            ? "Biaya tetap bulan ini sudah tertutup"
+            : `Kurang ${formatRp(t.kurang)} lagi untuk impas`}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 p-0">
+        <Progress
+          value={Math.min(100, Math.max(0, Math.round(t.rasio * 100)))}
+          aria-label="Laba kotor terhadap biaya tetap"
+        />
+        <p className="font-mono text-xs text-muted-foreground">
+          Laba kotor {formatRp(t.labaKotor)} dari biaya tetap{" "}
+          {formatRp(t.biayaTetap)} · {formatPersen(t.rasio)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Biaya tetap = biaya operasional + dana maintenance. Dibandingkan
+          dengan laba kotor, bukan omzet — omzet event yang habis untuk fee
+          crew tidak ikut menutup sewa.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 

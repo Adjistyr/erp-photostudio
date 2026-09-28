@@ -120,6 +120,19 @@ export function formatTanggal(nilai: string | Date): string {
   return `${d.getDate()} ${bulanPendek(d)} ${d.getFullYear()}`;
 }
 
+/**
+ * "2026-07" → "Juli 2026" · "—" kalau bukan bentuk "YYYY-MM".
+ *
+ * Diikat `^`...`$` dengan alasan yang sama seperti `keDate`: "2026-07-01"
+ * (tanggal, bukan bulan) dan "ORD-2026-07" tidak boleh lolos jadi nama bulan.
+ */
+export function formatBulan(bulan: string): string {
+  const cocok = bulan.match(/^(\d{4})-(\d{2})$/);
+  if (!cocok) return TAK_VALID;
+  const d = new Date(+cocok[1], +cocok[2] - 1, 1);
+  return new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(d);
+}
+
 /** "26 Agu 2026, 14:00" · "—" kalau input bukan tanggal */
 export function formatTanggalJam(nilai: string | Date): string {
   const d = keDate(nilai);

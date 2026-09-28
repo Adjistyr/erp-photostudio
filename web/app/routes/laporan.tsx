@@ -3,7 +3,7 @@
  *
  * Layar yang dibawa ke client untuk mengunci keputusan **basis kas vs akrual**
  * (stitch-prompts.md bagian 7). Karena itu Alert basis kas dipasang di atas,
- * SEBELUM angka apa pun: kalau client melihat "Rugi Rp 2.104.500" lebih dulu,
+ * SEBELUM angka apa pun: kalau client melihat "Rugi Rp 2.894.950" lebih dulu,
  * percakapannya jadi soal kerugian, padahal yang harus diputuskan adalah cara
  * mengakui pendapatan. Angka ruginya justru konsekuensi dari pilihan itu.
  */
@@ -25,12 +25,23 @@ import {
   HARI_INI,
   LABEL_LINI,
   WARNA_LINI,
+  bagiHasilBulan,
+  bulanBerikut,
   labaRugi,
+  namaOwner,
   orderDenganNo,
+  pengaturanUntuk,
   totalDibayar,
+  type BagiHasilBulan,
 } from "~/lib/dummy";
 import { useDataDemo } from "~/lib/store";
-import { formatPersen, formatRp, formatTanggal, kelasRp } from "~/lib/format";
+import {
+  formatBulan,
+  formatPersen,
+  formatRp,
+  formatTanggal,
+  kelasRp,
+} from "~/lib/format";
 
 const BULAN = HARI_INI.slice(0, 7);
 
@@ -39,6 +50,8 @@ export default function Laporan() {
   // biaya, status order, katalog) langsung terlihat di sini.
   useDataDemo();
   const lr = labaRugi(BULAN);
+  const bh = bagiHasilBulan(BULAN);
+  const biayaTetap = lr.totalOperasional + lr.alokasiMaintenance;
   const wedding = orderDenganNo("ORD-0011");
 
   return (
@@ -127,6 +140,18 @@ export default function Laporan() {
                   label="Total Biaya Operasional"
                   nilai={lr.totalOperasional}
                 />
+
+                {/*
+                  Baris sendiri, bukan salah satu rincian Biaya Operasional:
+                  ini dana yang DISISIHKAN, bukan uang yang keluar. Servis alat
+                  nanti dibayar dari saldonya dan tidak muncul lagi di laporan
+                  ini (business-flow 8.2).
+                */}
+                <Judul>Dana Disisihkan</Judul>
+                <Rincian
+                  label="Alokasi dana maintenance"
+                  nilai={lr.alokasiMaintenance}
+                />
               </TableBody>
             </Table>
 
@@ -142,6 +167,8 @@ export default function Laporan() {
                 {formatRp(lr.labaBersih)}
               </span>
             </div>
+
+            {bh && <BlokBagiHasil bh={bh} />}
           </section>
 
           <aside className="flex min-w-0 flex-col gap-4">
@@ -161,12 +188,13 @@ export default function Laporan() {
               </p>
               <p className="text-sm text-muted-foreground">
                 Yang membuat bulan ini rugi adalah biaya tetap{" "}
-                {formatRp(lr.totalOperasional)} yang berjalan penuh, sementara
-                bisnisnya baru mulai. Titik balik ada di omzet sekitar{" "}
+                {formatRp(biayaTetap)} — operasional plus dana maintenance —
+                yang berjalan penuh, sementara bisnisnya baru mulai. Titik
+                balik ada di omzet sekitar{" "}
                 <span className="font-mono text-foreground">
                   {formatRp(
                     Math.ceil(
-                      lr.totalOperasional / Math.max(lr.rasioLabaKotor, 0.01) / 100_000,
+                      biayaTetap / Math.max(lr.rasioLabaKotor, 0.01) / 100_000,
                     ) * 100_000,
                   )}
                 </span>{" "}
@@ -196,6 +224,60 @@ export default function Laporan() {
         </div>
       </KontenHalaman>
     </>
+  );
+}
+
+/**
+ * Blok setelah laba bersih — business-flow 8.5. Di bawah angka laba bersih,
+ * bukan di layar lain saja: pertanyaan pertama owner setelah melihat laba
+ * adalah "jadi masing-masing dapat berapa", dan jawabannya harus ada di tempat
+ * yang sama dengan angka yang membentuknya.
+ */
+function BlokBagiHasil({ bh }: { bh: BagiHasilBulan }) {
+  const persenCadangan = pengaturanUntuk(bh.bulan)?.persenCadangan ?? 0;
+  const adaPotongan = bh.akumulasiRugiAwal > 0 || bh.sisaPinjamanAwal > 0;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Table className="[&_td]:px-0 [&_td]:py-2">
+        <TableBody>
+          <Judul>Bagi Hasil</Judul>
+          {adaPotongan && (
+            <Rincian
+              label="Kompensasi rugi & pinjaman owner"
+              nilai={-bh.potongan}
+            />
+          )}
+          <Total label="Laba yang dibagi" nilai={bh.dibagi} />
+          <Rincian label={`Dana cadangan ${persenCadangan}%`} nilai={bh.cadangan} />
+          {bh.bagian.map((b) => (
+            <Rincian
+              key={b.ownerId}
+              label={`${namaOwner(b.ownerId)} ${b.persen}%`}
+              nilai={b.nominal}
+            />
+          ))}
+        </TableBody>
+      </Table>
+      {bh.labaBersih < 0 && (
+        <p className="text-sm text-muted-foreground">
+          Tidak ada bagi hasil {formatBulan(bh.bulan)}. Rugi{" "}
+          {formatRp(bh.akumulasiRugi)} dibawa ke{" "}
+          {formatBulan(bulanBerikut(bh.bulan))} dan ditutup dulu sebelum laba
+          berikutnya dibagi.
+        </p>
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        nativeButton={false}
+        render={<Link to="/bagi-hasil" />}
+      >
+        Modal & Bagi Hasil
+        <ArrowRight data-icon="inline-end" />
+      </Button>
+    </div>
   );
 }
 
