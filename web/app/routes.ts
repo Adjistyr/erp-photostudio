@@ -22,6 +22,8 @@ export default [
   route("customer", "routes/customer.tsx"),
   route("katalog", "routes/katalog.tsx"),
   route("biaya", "routes/biaya.tsx"),
+  // Aset & maintenance — business-flow 8.9, bonus di luar quotation.
+  route("aset", "routes/aset.tsx"),
 
   route("invoice", "routes/invoice.tsx"),
   route("komunikasi", "routes/komunikasi.tsx"),

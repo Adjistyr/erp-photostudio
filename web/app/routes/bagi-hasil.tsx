@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router";
 import { Plus, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
@@ -81,7 +82,13 @@ import {
   type SetoranOwner,
 } from "~/lib/dummy";
 import { aksi, idBaru, useDataDemo } from "~/lib/store";
-import { formatBulan, formatPersen, formatRp, formatTanggal } from "~/lib/format";
+import {
+  formatBulan,
+  formatPersen,
+  formatRp,
+  formatTanggal,
+  hanyaDigit,
+} from "~/lib/format";
 
 const POS: PosDana[] = ["maintenance", "cadangan"];
 
@@ -464,7 +471,7 @@ function TabInvestasi({ onCatat }: { onCatat: () => void }) {
     <>
       {daftar.length === 0 ? (
         <KosongTabel
-          kalimat="Belum ada investasi. Renovasi dan pembelian alat dicatat di sini, bukan di Biaya."
+          kalimat="Belum ada investasi. Renovasi dicatat di sini, pembelian alat lewat Aset & Maintenance — keduanya bukan di Biaya."
           aksi={{ label: "Catat Investasi", onClick: onCatat }}
         />
       ) : (
@@ -504,7 +511,12 @@ function TabInvestasi({ onCatat }: { onCatat: () => void }) {
       <p className="text-xs text-muted-foreground">
         Investasi tidak masuk Laba Rugi. Kalau renovasi dicatat sebagai biaya,
         bulan itu rugi besar dan bagi hasil kedua owner tertahan berbulan-bulan
-        — modal satu owner ikut dikembalikan dari bagian owner lain.
+        — modal satu owner ikut dikembalikan dari bagian owner lain. Pembelian
+        alat otomatis masuk ke sini saat dicatat di{" "}
+        <Link to="/aset" className="font-medium text-foreground underline underline-offset-2">
+          Aset & Maintenance
+        </Link>
+        .
       </p>
     </>
   );
@@ -526,7 +538,6 @@ function TabRasio() {
               <KepalaUang key={o.id}>{o.nama}</KepalaUang>
             ))}
             <KepalaUang>Dana cadangan</KepalaUang>
-            <KepalaUang>Maintenance / bulan</KepalaUang>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -547,7 +558,6 @@ function TabRasio() {
               <TableCell className="text-right font-mono">
                 {p.persenCadangan}%
               </TableCell>
-              <SelUang nominal={p.alokasiMaintenance} />
               <TableCell>
                 {p === sekarang ? (
                   <Badge variant="secondary">Berlaku</Badge>
@@ -564,7 +574,12 @@ function TabRasio() {
       <p className="text-xs text-muted-foreground">
         Aturan lama tidak bisa diedit. Mengubah rasio menambah baris baru yang
         berlaku mulai bulan tertentu, supaya bagi hasil bulan lalu tidak ikut
-        berubah.
+        berubah. Alokasi dana maintenance tidak diatur di sini — dihitung
+        otomatis dari daftar di{" "}
+        <Link to="/aset" className="font-medium text-foreground underline underline-offset-2">
+          Aset & Maintenance
+        </Link>
+        .
       </p>
     </>
   );
@@ -572,10 +587,6 @@ function TabRasio() {
 
 // ── Dialog ──────────────────────────────────────────────────────────────────
 
-/** Non-digit dibuang — rupiah di app ini selalu integer (R5). */
-function hanyaAngka(v: string): string {
-  return v.replace(/\D/g, "");
-}
 
 const JENIS_SETORAN = ["pinjaman", "modal"] as const;
 const TUJUAN_PINJAMAN = ["kas", "maintenance", "cadangan"] as const;
@@ -714,7 +725,7 @@ function DialogSetoran({ onTutup }: { onTutup: () => void }) {
                 className="font-mono"
                 placeholder="0"
                 value={nominal}
-                onChange={(e) => setNominal(hanyaAngka(e.target.value))}
+                onChange={(e) => setNominal(hanyaDigit(e.target.value))}
               />
             </Field>
           </div>
@@ -796,6 +807,15 @@ function DialogPemakaian({
             <p className="font-mono text-xs text-muted-foreground">
               Saldo {formatRp(saldoPosDana(pos))}
             </p>
+            {pos === "maintenance" && (
+              <p className="text-xs text-muted-foreground">
+                Servis alat? Catat dari halaman{" "}
+                <Link to="/aset" className="font-medium text-foreground underline underline-offset-2">
+                  Aset & Maintenance
+                </Link>{" "}
+                supaya masuk riwayat alatnya dan mereset jadwal perawatan.
+              </p>
+            )}
           </Field>
 
           <Field>
@@ -827,7 +847,7 @@ function DialogPemakaian({
                 placeholder="0"
                 value={nominal}
                 aria-invalid={Boolean(salah)}
-                onChange={(e) => setNominal(hanyaAngka(e.target.value))}
+                onChange={(e) => setNominal(hanyaDigit(e.target.value))}
               />
             </Field>
           </div>
@@ -882,8 +902,8 @@ function DialogInvestasi({ onTutup }: { onTutup: () => void }) {
         <DialogHeader>
           <DialogTitle>Catat Investasi</DialogTitle>
           <DialogDescription>
-            Renovasi atau pembelian alat baru. Servis rutin dicatat sebagai
-            pemakaian dana maintenance, bukan di sini.
+            Renovasi dan investasi lain di luar alat. Beli alat dicatat lewat
+            Aset & Maintenance supaya dana maintenance-nya ikut terhitung.
           </DialogDescription>
         </DialogHeader>
 
@@ -936,7 +956,7 @@ function DialogInvestasi({ onTutup }: { onTutup: () => void }) {
                 className="font-mono"
                 placeholder="0"
                 value={nominal}
-                onChange={(e) => setNominal(hanyaAngka(e.target.value))}
+                onChange={(e) => setNominal(hanyaDigit(e.target.value))}
               />
             </Field>
           </div>
@@ -975,13 +995,9 @@ function DialogRasio({ onTutup }: { onTutup: () => void }) {
     ),
   );
   const [cadangan, setCadangan] = useState(String(acuan?.persenCadangan ?? 10));
-  const [maintenance, setMaintenance] = useState(
-    String(acuan?.alokasiMaintenance ?? 0),
-  );
 
   const calon: PengaturanBagiHasil = {
     berlakuMulai,
-    alokasiMaintenance: Number(maintenance) || 0,
     persenCadangan: Number(cadangan) || 0,
     bagian: owners.map((o) => ({ ownerId: o.id, persen: Number(persen[o.id]) || 0 })),
   };
@@ -1032,7 +1048,7 @@ function DialogRasio({ onTutup }: { onTutup: () => void }) {
                   className="font-mono"
                   value={persen[o.id] ?? ""}
                   onChange={(e) =>
-                    setPersen((p) => ({ ...p, [o.id]: hanyaAngka(e.target.value) }))
+                    setPersen((p) => ({ ...p, [o.id]: hanyaDigit(e.target.value) }))
                   }
                 />
               </Field>
@@ -1047,17 +1063,7 @@ function DialogRasio({ onTutup }: { onTutup: () => void }) {
                 inputMode="numeric"
                 className="font-mono"
                 value={cadangan}
-                onChange={(e) => setCadangan(hanyaAngka(e.target.value))}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="maintenance">Maintenance / bulan</FieldLabel>
-              <Input
-                id="maintenance"
-                inputMode="numeric"
-                className="font-mono"
-                value={maintenance}
-                onChange={(e) => setMaintenance(hanyaAngka(e.target.value))}
+                onChange={(e) => setCadangan(hanyaDigit(e.target.value))}
               />
             </Field>
           </div>

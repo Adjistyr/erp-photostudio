@@ -169,7 +169,7 @@ test("laba rugi memotong alokasi maintenance sebelum laba bersih", () => {
   );
 });
 
-test("bulan sebelum ada aturan — tidak ada alokasi maintenance", () => {
+test("bulan sebelum ada aset — tidak ada alokasi maintenance", () => {
   assert.equal(labaRugi("2026-06").alokasiMaintenance, 0);
 });
 
@@ -261,7 +261,6 @@ test("progres balik modal kosong kalau modal awal belum diisi", () => {
 
 const aturanBaru = (patch: Partial<PengaturanBagiHasil>): PengaturanBagiHasil => ({
   berlakuMulai: "2026-09",
-  alokasiMaintenance: 790_450,
   persenCadangan: 10,
   bagian: [
     { ownerId: "OWN-01", persen: 60 },
@@ -294,7 +293,6 @@ test("rasio harus berjumlah 100%", () => {
 
 test("persen negatif / cadangan di luar 0–100 ditolak", () => {
   assert.ok(validasiPengaturan(aturanBaru({ persenCadangan: 101 })));
-  assert.ok(validasiPengaturan(aturanBaru({ alokasiMaintenance: -1 })));
   assert.ok(
     validasiPengaturan(
       aturanBaru({

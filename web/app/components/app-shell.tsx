@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   Users,
   Wallet,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +76,8 @@ const GRUP_NAV: { label: string; item: ItemNav[] }[] = [
       { label: "Customer", ke: "/customer", ikon: Users },
       { label: "Katalog", ke: "/katalog", ikon: Package },
       { label: "Biaya", ke: "/biaya", ikon: Receipt },
+      // Data master alat — dirujuk setiap ada servis.
+      { label: "Aset & Maintenance", ke: "/aset", ikon: Wrench },
     ],
   },
   {

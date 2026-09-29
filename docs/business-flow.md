@@ -74,7 +74,9 @@ Owner ──< SetoranOwner      (uang masuk dari owner: pinjaman / modal — buk
 
 PosDana ──< MutasiDana      (dana maintenance & cadangan: alokasi masuk, pemakaian keluar)
 
-Investasi                   (renovasi, beli alat — di luar laba rugi, dibiayai SetoranOwner modal)
+Aset ──< ServisAset         (daftar alat → alokasi maintenance otomatis; riwayat perawatan)
+
+Investasi                   (renovasi, beli alat — di luar laba rugi, dibiayai SetoranOwner modal; beli alat juga membuat Aset)
 ```
 
 Entitas di blok bawah dijelaskan di bagian 8.
@@ -249,6 +251,7 @@ Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena pen
 | 5 | **Order & Booking** | Order studio & event, kalender jadwal, status kerja, link hasil foto | 5.2, 5.3 |
 | 6 | **Pembayaran** | Catat DP/termin/pelunasan, daftar piutang, rekap metode bayar | 5.4 |
 | 7 | **Biaya** | Biaya langsung per order + biaya operasional bulanan + pos dana (maintenance, cadangan), setoran owner, pengeluaran investasi | 5.3, 5.7, 8 |
+| — | **Aset & Maintenance** (bonus, di luar quotation) | Daftar alat, alokasi maintenance otomatis, nilai buku, jadwal perawatan, riwayat servis, lepas/jual aset | 8.9 |
 | 8 | **Invoice** | Generate dari order, bagikan link/PDF, riwayat pengiriman | 5.5 |
 | 9 | **Komunikasi** | Thank You mail, blast email, penyiapan blast WA, editor template | 5.5, 5.6 |
 | 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas, bagi hasil owner, progress balik modal | 5.7, 8 |
@@ -303,7 +306,7 @@ BIAYA OPERASIONAL
    Lain-lain
  = Total Biaya Operasional
 
-ALOKASI DANA MAINTENANCE    (nominal tetap per bulan, bagian 8)
+ALOKASI DANA MAINTENANCE    (dihitung dari daftar aset, bagian 8.9)
 
 LABA BERSIH = Laba Kotor − Total Biaya Operasional − Alokasi Dana Maintenance
 
@@ -351,7 +354,7 @@ Laporan laba rugi (bagian 7) berhenti di laba bersih. Bagian ini mengatur apa ya
 |---|---|---|
 | Biaya Bulanan (sewa, listrik, internet, gaji staf, VPS) | Biaya Operasional | Sudah ada di bagian 3 |
 | Tinta & kertas di Biaya Bulanan | Kertas → HPP per unit, tinta → Biaya Operasional sementara | Bagian 7, Soal HPP |
-| Biaya Maintenance (5% harga alat per bulan) | **Pos Dana Maintenance** | 8.2 |
+| Biaya Maintenance (daftar alat, 5% harga per bulan) | **Daftar Aset** + **Pos Dana Maintenance** | 8.9, 8.2 |
 | Dana cadangan 10% | **Pos Dana Cadangan** | 8.2 |
 | Pembagian hasil 70/30 | **Rasio Bagi Hasil** | 8.5, 8.6 |
 | HPP per hari (total ÷ 31) | KPI **titik impas** di Dashboard | Omzet bulan berjalan dibanding total biaya tetap bulanan. Angka harian hanya tampilan — pembaginya jumlah hari bulan itu, bukan 31 tetap |
@@ -379,7 +382,7 @@ Dua dana yang disisihkan dari laba, dengan satu mekanisme yang sama:
 
 | Pos | Alokasi masuk | Dipakai untuk |
 |---|---|---|
-| **Maintenance** | Nominal tetap per bulan (sekarang Rp 790.450), diambil sebelum laba bersih — tetap diambil saat rugi | Servis dan ganti alat |
+| **Maintenance** | Dihitung dari daftar aset (sekarang Rp 790.450), diambil sebelum laba bersih — tetap diambil saat rugi. Ditambah hasil jual aset | Servis dan ganti alat |
 | **Cadangan** | Persentase dari laba yang dibagi (sekarang 10%), hanya kalau laba > 0 | Pembelian mendesak |
 
 **Saldo** = total alokasi − total pemakaian. Setiap pemakaian dicatat sebagai `MutasiDana`: tanggal, pos, nominal, keterangan, pencatat.
@@ -388,7 +391,7 @@ Aturan:
 - **Pemakaian pos dana tidak masuk laba rugi.** Uangnya sudah dikurangi dari laba saat disisihkan. Kalau servis kamera dicatat juga sebagai biaya operasional, laba terpotong dua kali. Ini **blocker** — form pemakaian dana dan form biaya operasional harus terpisah jelas.
 - **Saldo tidak boleh minus.** Kalau pemakaian melebihi saldo, app menolak dan meminta setoran owner dicatat lebih dulu (8.3). Pinjaman ini dikembalikan dari alokasi pos dana yang sama di bulan-bulan berikutnya, sebelum saldo bertambah.
 - Maintenance **tidak berhenti** setelah 20 bulan (5% × 20). Ini dana servis untuk siklus ganti alat, bukan penyusutan akuntansi.
-- Nominal maintenance diubah manual saat alat bertambah atau berkurang, lewat aturan per periode yang sama dengan rasio (8.6) — supaya laba bulan lalu tidak ikut berubah. Tidak ada daftar aset — lihat bagian 9.
+- Nominal maintenance **tidak diketik manual** — dihitung dari daftar aset (8.9). Aset punya tanggal beli dan tanggal lepas, jadi aset baru tidak mengubah laba bulan lalu.
 - Pos dana adalah **peruntukan**, bukan rekening terpisah. Uangnya tetap di rekening usaha yang sama.
 
 ### 8.3 Setoran owner — pinjaman atau modal
@@ -451,7 +454,7 @@ Semua angka di bagian ini **dihitung dari riwayat setiap kali laporan dibuka**, 
 
 Rasio bisa berubah, misalnya setelah modal Agung kembali. Karena itu rasio **tidak** disimpan sebagai satu pengaturan yang diedit langsung — mengubah 70/30 jadi 60/40 akan diam-diam mengubah bagi hasil semua bulan lama.
 
-`RasioBagiHasil`: berlaku mulai (bulan), persen per owner, persen dana cadangan, dan nominal alokasi dana maintenance. Satu baris memuat seluruh aturan satu periode, jadi validasi "total 100%" dicek per baris. Persen disimpan sebagai bilangan bulat — pecahan desimal tidak selalu berjumlah persis 100%.
+`RasioBagiHasil`: berlaku mulai (bulan), persen per owner, dan persen dana cadangan. Alokasi maintenance tidak di sini — dihitung dari daftar aset (8.9). Satu baris memuat seluruh aturan satu periode, jadi validasi "total 100%" dicek per baris. Persen disimpan sebagai bilangan bulat — pecahan desimal tidak selalu berjumlah persis 100%.
 
 - Mengubah rasio = **menambah baris baru** yang berlaku mulai bulan tertentu, bukan mengedit baris lama.
 - Laporan bulan M memakai rasio terakhir yang berlaku mulai ≤ M.
@@ -480,6 +483,37 @@ Yang perlu disiapkan client, sejajar dengan data master di bagian 10:
 
 Di mockup, Juli 2026 memakai contoh omzet Rp 10.000.000 dari sheet client dengan angka yang sudah dikoreksi.
 
+### 8.9 Aset & maintenance
+
+Bonus di luar quotation Paket B. Sheet maintenance client pada dasarnya daftar aset — enam alat, jumlah unit, harga beli, 5% per bulan — dan selisih Rp 97.350 di sheet terjadi persis karena totalnya dihitung manual (unit lupa dikali). Karena itu alokasi dana maintenance **dihitung dari daftar aset**, bukan diketik.
+
+`Aset`: kode, nama, kategori, merek/model, jumlah unit, harga satuan, tanggal beli, % maintenance per bulan, umur ekonomis, interval perawatan, status (aktif / rusak / dilepas), data lepas (tanggal, alasan, harga jual), investasi yang membelinya.
+
+`ServisAset`: aset, tanggal, jenis (perawatan rutin / perbaikan), keterangan, biaya.
+
+Aturan:
+
+- **Alokasi maintenance bulan M** = Σ harga × unit × % untuk aset yang **dimiliki di akhir bulan M**. Aset yang dibeli September tidak mengubah Agustus; aset yang dijual 20 Agustus sudah tidak dihitung di Agustus. Pembulatan per aset, supaya angka per baris berjumlah persis sama dengan Laba Rugi.
+- **Menambah aset selalu lewat investasi.** Satu aksi Tambah Aset mencatat aset, investasinya, dan setoran modal kalau dibayar owner. Pembelian alat tidak dicatat di Biaya maupun Investasi manual — kalau lewat jalur lain, alokasi maintenance-nya tidak ikut terhitung.
+- **Biaya servis diambil dari dana maintenance** dan tunduk pada aturan saldo tidak boleh minus (8.2). Servis Rp 0 (dikerjakan sendiri) sah — tetap masuk riwayat dan mereset jadwal, tapi tidak menggerakkan dana.
+- **Jadwal perawatan berikutnya** = servis terakhir (jenis apa pun) + interval, atau tanggal beli + interval. Yang lewat atau ≤ 14 hari lagi tampil di layar Aset dan Dashboard.
+- **Nilai buku** garis lurus per umur ekonomis — **hanya informasi**, tidak masuk Laba Rugi. Keausan alat sudah dibebankan lewat alokasi maintenance; memasukkan penyusutan juga berarti membebankan hal yang sama dua kali. Ini **blocker**.
+- **Aset dilepas, tidak dihapus.** Menghapus mengubah alokasi bulan-bulan saat aset masih dimiliki dan menghilangkan riwayat servisnya. Hasil jual masuk **dana maintenance** untuk membeli pengganti — bukan omzet, karena bukan penjualan.
+- **Aset rusak tetap dialokasikan** — masih dimiliki, dan justru butuh dana servis.
+- Per aset ditampilkan total biaya servis dibanding dana yang sudah disisihkan untuknya. Alat yang servisnya melebihi dana yang disisihkan adalah kandidat diganti, atau tanda persennya terlalu kecil.
+
+Default per kategori — **praktik umum studio foto UMKM, bukan data client**, dan dikonfirmasi saat demo:
+
+| Kategori | Umur ekonomis | Perawatan berkala |
+|---|---|---|
+| Kamera | 4 tahun | tiap 6 bulan (sensor & body cleaning) |
+| Lensa | 4 tahun | tiap 12 bulan |
+| Lighting | 4 tahun | tiap 12 bulan |
+| Printer | 3 tahun | tiap bulan (head cleaning) |
+| Aksesori (baterai, trigger, memory) | 2 tahun | tanpa jadwal |
+| Komputer | 3 tahun | tiap 12 bulan |
+| Properti & furnitur | 3 tahun | tanpa jadwal |
+
 ### Gaji owner di masa depan
 
 Sekarang owner tidak digaji karena laba masih kecil. Kalau nanti digaji, **tidak perlu fitur baru**: catat sebagai biaya operasional kategori "Gaji Owner", dan bagi hasil otomatis dihitung dari sisa laba. Gaji tetap berjalan saat rugi — kalau kas tidak cukup, ujungnya setoran pinjaman (8.3).
@@ -500,7 +534,8 @@ Bukan karena tidak berguna, tapi karena biayanya melebihi manfaatnya pada skala 
 | Hak akses & peran pengguna | Penggunanya dua owner dengan akses penuh. Tetap ada di kontrak (quotation deliverable 16) — ditunda, bukan dibuang | Saat ada staff yang ikut input |
 | Kunci periode / tutup buku | Tanpa kunci, biaya yang telat diinput ke bulan lalu ikut mengubah bagi hasil bulan itu. Diterima dulu: rasio sudah versi per periode (8.6), jadi satu-satunya sumber perubahan historis adalah input telat | Saat owner mulai mencairkan bagi hasil berdasarkan angka app, lalu angka bulan yang sudah dicairkan berubah |
 | Pencatatan pencairan bagi hasil & pengambilan owner | App menghitung **hak** tiap owner, bukan uang yang benar-benar dicairkan. Pencairan terjadi di luar app | Bersamaan dengan kunci periode |
-| Daftar aset & penyusutan per alat | Dana maintenance cukup satu nominal tetap per bulan yang diubah manual saat alat berubah (8.2) | Kalau alat sering berganti dan nominalnya sering dihitung ulang |
+| Barcode, lokasi aset, dan notifikasi pengingat servis | Enam alat di satu studio. Jadwal perawatan cukup tampil di Dashboard dan layar Aset (8.9) | Kalau alat > 50 atau lebih dari satu lokasi |
+| Penyusutan masuk Laba Rugi | Biaya aus alat sudah diwakili alokasi maintenance. Memasukkan penyusutan juga membebankan keausan yang sama dua kali (8.9) | Kalau client butuh laporan keuangan standar akuntansi (mis. untuk pajak badan atau bank) |
 | Perubahan rasio otomatis setelah balik modal | Kesepakatannya belum ada, dan perubahan rasio jarang — menambah baris manual cukup (8.6) | Tidak perlu ditinjau |
 | Pelacakan stok bahan | HPP manual di katalog sudah cukup untuk laporan. Stok baru penting kalau sering kehabisan bahan | Kalau pernah kehilangan penjualan karena kehabisan stok |
 | WhatsApp Business API | Lihat gotcha di 5.6 | Kalau customer > 1000 |

@@ -370,6 +370,7 @@ DATA
   Customer
   Katalog
   Biaya
+  Aset & Maintenance ← daftar alat, jadwal perawatan, riwayat servis (business-flow 8.9)
 KELUARAN
   Invoice
   Komunikasi        ← Thank You mail, blast, template
@@ -378,6 +379,8 @@ KELUARAN
 ```
 
 Modal & Bagi Hasil jadi menu sendiri, bukan tab di Biaya: Biaya diisi harian, layar ini dibuka owner sebulan sekali. Menggabungkannya menaruh form biaya harian bersebelahan dengan pemakaian dana dan investasi — dua hal yang tidak boleh masuk Laba Rugi, dan tertukarnya memotong laba dua kali.
+
+Aset & Maintenance masuk grup Data, bukan tab di Modal & Bagi Hasil: daftar aset adalah data master yang dirujuk setiap kali ada servis, bukan laporan bulanan. Status aset memakai badge netral — yang menuntut aksi adalah jadwal perawatan yang lewat, dan itu memakai teks `--destructive` yang sama dengan umur piutang lewat jatuh tempo. Aset yang dilepas dipudarkan 60% seperti order Batal.
 
 Ini **blocker** — shell yang berbeda antar layar langsung terasa sebagai app yang tidak selesai.
 
