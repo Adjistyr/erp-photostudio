@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Order\Controllers\OrderController;
 use Modules\Order\Controllers\OrderPaymentController;
+use Modules\Order\Controllers\PosController;
 use Modules\Order\Controllers\ReceivableController;
 
 Route::middleware(['web', 'auth', 'verified'])->group(function () {
@@ -14,6 +15,9 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::patch('orders/{order}/result-link', [OrderController::class, 'updateResultLink'])->name('orders.result-link');
     Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])->name('orders.payments.store');
+
+    Route::get('pos', [PosController::class, 'index'])->name('pos.index');
+    Route::post('pos', [PosController::class, 'store'])->name('pos.store');
 
     Route::get('receivables', [ReceivableController::class, 'index'])->name('receivables.index');
 });
