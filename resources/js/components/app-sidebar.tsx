@@ -5,6 +5,7 @@ import {
     Package,
     Receipt,
     Users,
+    Wallet,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -23,6 +24,7 @@ import { index as catalogIndex } from '@/routes/catalog';
 import { index as customersIndex } from '@/routes/customers';
 import { index as expensesIndex } from '@/routes/expenses';
 import { index as ordersIndex } from '@/routes/orders';
+import { index as receivablesIndex } from '@/routes/receivables';
 import type { NavGroup } from '@/types';
 
 /**
@@ -43,6 +45,11 @@ const navGroups: NavGroup[] = [
                 title: 'Order & Booking',
                 href: ordersIndex(),
                 icon: CalendarDays,
+            },
+            {
+                title: 'Pembayaran',
+                href: receivablesIndex(),
+                icon: Wallet,
             },
         ],
     },

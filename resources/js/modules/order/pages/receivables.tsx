@@ -1,0 +1,231 @@
+/**
+ * Pembayaran — Piutang + dialog Catat Pembayaran (prompt 4.9 & 4.10,
+ * porting web/app/routes/pembayaran.tsx).
+ *
+ * Layar yang paling sering dibuka owner (business-flow 5.4). Tanpa layar ini
+ * tagihan yang belum ditagih terlupakan — kebocoran paling umum di bisnis jasa.
+ * Mencatat pembayaran di sini mengubah status bayar SECARA TURUNAN (bagian 4):
+ * order yang lunas hilang dari daftar karena sisanya nol, bukan karena ada
+ * field status yang diubah.
+ */
+
+import { Head } from '@inertiajs/react';
+import { TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import {
+    KepalaUang,
+    KosongTabel,
+    SelKode,
+    SelUang,
+    TabelData,
+} from '@/components/data-table';
+import { LineMark, PaymentBadge } from '@/components/status-order';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    formatPersen,
+    formatRp,
+    formatTanggal,
+    formatUmurPiutang,
+} from '@/lib/format';
+import { PaymentDialog } from '@/modules/order/components/payment-dialog';
+import { index as receivablesIndex } from '@/routes/receivables';
+import type { BusinessLine, PaymentStatus } from '@/types/domain';
+
+interface ReceivableRow {
+    id: number;
+    number: string;
+    customer_name: string | null;
+    business_line: BusinessLine;
+    service_date: string;
+    /** > 0 belum jatuh tempo, 0 hari ini, < 0 lewat (dihitung server). */
+    days_until_due: number;
+    total: number;
+    paid: number;
+    balance: number;
+    payment_status: PaymentStatus;
+    paid_percent: number;
+}
+
+interface Props {
+    orders: ReceivableRow[];
+    totals: { total: number; overdue: number; overdue_count: number };
+}
+
+export default function Receivables({ orders, totals }: Props) {
+    // Simpan id, bukan objek: setelah mencatat, baris dibaca ulang dari props.
+    const [payingId, setPayingId] = useState<number | null>(null);
+    const paying = orders.find((o) => o.id === payingId) ?? null;
+    const top = orders[0];
+
+    return (
+        <>
+            <Head title="Pembayaran" />
+            <h1 className="sr-only">Pembayaran</h1>
+
+            <div className="flex flex-col gap-6 p-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Summary
+                        label="Total piutang"
+                        value={formatRp(totals.total)}
+                        note={`${orders.length} order belum lunas`}
+                    />
+                    <Summary
+                        label="Lewat jatuh tempo"
+                        value={formatRp(totals.overdue)}
+                        note={`${totals.overdue_count} order`}
+                        urgent={totals.overdue > 0}
+                    />
+                    <Summary
+                        label="Belum jatuh tempo"
+                        value={formatRp(totals.total - totals.overdue)}
+                        note={`${orders.length - totals.overdue_count} order`}
+                    />
+                </div>
+
+                {/*
+                    Piutang yang menumpuk di satu customer adalah risiko yang
+                    tidak kelihatan di tabel — di sana semua tagihan tampil
+                    sebagai baris setara (stitch-prompts.md bagian 3). Daftar
+                    sudah diurut sisa terbesar, jadi baris pertama = terbesar.
+                */}
+                {top && top.balance / totals.total > 0.5 && (
+                    <Alert>
+                        <TriangleAlert />
+                        <AlertTitle>
+                            {formatPersen(top.balance / totals.total)} piutang
+                            menumpuk di satu customer
+                        </AlertTitle>
+                        <AlertDescription>
+                            {top.customer_name ?? 'Walk-in'} — {top.number}.
+                            Kalau tagihan ini tertunda, hampir seluruh piutang
+                            ikut tertunda.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {orders.length === 0 ? (
+                    // Piutang kosong itu KABAR BAIK, bukan kekurangan data (R7).
+                    <KosongTabel
+                        nada="baik"
+                        kalimat="Tidak ada tagihan tertunggak."
+                    />
+                ) : (
+                    <TabelData>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>No</TableHead>
+                                <TableHead>Customer</TableHead>
+                                <TableHead>Lini</TableHead>
+                                <TableHead>Jatuh tempo</TableHead>
+                                <TableHead>Umur</TableHead>
+                                <KepalaUang>Total</KepalaUang>
+                                <KepalaUang>Dibayar</KepalaUang>
+                                <KepalaUang>Sisa</KepalaUang>
+                                <TableHead>Status</TableHead>
+                                <TableHead />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orders.map((o) => (
+                                <TableRow key={o.id}>
+                                    <SelKode>{o.number}</SelKode>
+                                    <TableCell className="font-medium whitespace-nowrap">
+                                        {o.customer_name ?? (
+                                            <span className="text-muted-foreground">
+                                                Walk-in
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <LineMark line={o.business_line} />
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                        {formatTanggal(o.service_date)}
+                                    </TableCell>
+                                    <TableCell
+                                        className={`whitespace-nowrap ${o.days_until_due < 0 ? 'text-destructive' : ''}`}
+                                    >
+                                        {formatUmurPiutang(o.days_until_due)}
+                                    </TableCell>
+                                    <SelUang nominal={o.total} />
+                                    <SelUang nominal={o.paid} />
+                                    <SelUang nominal={o.balance} />
+                                    <TableCell>
+                                        <PaymentBadge
+                                            status={o.payment_status}
+                                            paidPercent={o.paid_percent}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setPayingId(o.id)}
+                                        >
+                                            Catat Bayar
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </TabelData>
+                )}
+            </div>
+
+            {paying && (
+                <PaymentDialog
+                    key={`${paying.id}-${paying.balance}`}
+                    order={paying}
+                    onClose={() => setPayingId(null)}
+                />
+            )}
+        </>
+    );
+}
+
+Receivables.layout = {
+    breadcrumbs: [{ title: 'Pembayaran', href: receivablesIndex() }],
+};
+
+function Summary({
+    label,
+    value,
+    note,
+    urgent,
+}: {
+    label: string;
+    value: string;
+    note: string;
+    urgent?: boolean;
+}) {
+    return (
+        <Card className="p-5">
+            <CardHeader className="p-0">
+                <CardDescription className="text-xs">{label}</CardDescription>
+                <CardTitle
+                    className={`font-mono text-3xl font-semibold ${urgent ? 'text-destructive' : ''}`}
+                >
+                    {value}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+                <p className="text-xs text-muted-foreground">{note}</p>
+            </CardContent>
+        </Card>
+    );
+}

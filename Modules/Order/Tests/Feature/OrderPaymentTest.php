@@ -33,7 +33,8 @@ class OrderPaymentTest extends TestCase
 
     private function pay(string $number, array $data)
     {
-        return $this->post(route('orders.payments.store', $this->order($number)), [
+        // Dari Detail Order — controller kembali ke layar asal (back()).
+        return $this->from(route('orders.index'))->post(route('orders.payments.store', $this->order($number)), [
             'amount' => 0, 'method' => 'transfer', 'paid_on' => '2026-08-26', ...$data,
         ]);
     }

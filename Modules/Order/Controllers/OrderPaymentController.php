@@ -38,6 +38,9 @@ class OrderPaymentController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$note} ".Money::format($amount)." untuk {$order->number} tercatat."]);
 
-        return to_route('orders.index');
+        // Kembali ke layar asal: dialog ini dipakai Detail Order DAN layar
+        // Pembayaran — owner yang menagih dari daftar piutang tidak boleh
+        // dilempar ke daftar order.
+        return back();
     }
 }
