@@ -12,3 +12,12 @@ export type NavItem = {
     icon?: LucideIcon | null;
     isActive?: boolean;
 };
+
+/**
+ * Grup menu sidebar — DESIGN.md R8: Harian / Data / Keluaran. Urutan item
+ * di dalam grup mengikuti frekuensi pakai harian, bukan nomor modul.
+ */
+export type NavGroup = {
+    label: string;
+    items: NavItem[];
+};
