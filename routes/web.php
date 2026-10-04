@@ -2,7 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+// Dashboard internal — "/" tidak punya landing page. Website company profile
+// (Paket A) berjalan di domain/subdomain sendiri. Tamu otomatis diarahkan ke
+// login oleh middleware auth di dashboard.
+Route::get('/', fn () => to_route('dashboard'))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');

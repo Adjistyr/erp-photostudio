@@ -161,7 +161,9 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registrasi publik SENGAJA dimatikan: penggunanya dua owner, dan
+        // siapa pun yang bisa mendaftar bisa melihat seluruh data keuangan.
+        // Akun dibuat lewat `php artisan app:buat-pengguna`.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
