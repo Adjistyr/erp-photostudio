@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\CatalogItemRequest;
+use App\Models\CatalogItem;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+
+/**
+ * Katalog — modul fondasi: POS, form order, dan laporan HPP bergantung ke
+ * sini (business-flow bagian 6).
+ *
+ * Tidak ada destroy: item yang pernah terjual hanya dinonaktifkan. Menghapus
+ * memutus referensi item order lama dan laporan historis kehilangan nama
+ * produknya. Nonaktif menyembunyikannya dari POS & form order.
+ */
+class CatalogItemController extends Controller
+{
+    public function index(): Response
+    {
+        return Inertia::render('catalog/index', [
+            // 'product' < 'service' — produk tampil lebih dulu, lalu urut input.
+            'items' => CatalogItem::query()
+                ->orderBy('type')
+                ->orderBy('id')
+                ->get(['id', 'name', 'type', 'price', 'unit_cost', 'category', 'is_active']),
+        ]);
+    }
+
+    public function store(CatalogItemRequest $request): RedirectResponse
+    {
+        $item = CatalogItem::create($request->catalogData());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$item->name} ditambahkan ke katalog."]);
+
+        return to_route('catalog.index');
+    }
+
+    public function update(CatalogItemRequest $request, CatalogItem $catalogItem): RedirectResponse
+    {
+        $catalogItem->update($request->catalogData());
+
+        // Order lama tidak ikut berubah — item order menyimpan harga saat transaksi.
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$catalogItem->name} diperbarui. Harga baru berlaku untuk transaksi berikutnya."]);
+
+        return to_route('catalog.index');
+    }
+
+    public function toggleActive(CatalogItem $catalogItem): RedirectResponse
+    {
+        $catalogItem->update(['is_active' => ! $catalogItem->is_active]);
+
+        $message = $catalogItem->is_active
+            ? "{$catalogItem->name} bisa dijual lagi."
+            : "{$catalogItem->name} tidak lagi muncul di POS dan form order.";
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return to_route('catalog.index');
+    }
+}

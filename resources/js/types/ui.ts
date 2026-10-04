@@ -4,8 +4,6 @@ import type { BreadcrumbItem } from '@/types/navigation';
 export type AppLayoutProps = {
     children: ReactNode;
     breadcrumbs?: BreadcrumbItem[];
-    /** Aksi utama halaman, di kanan header (DESIGN.md R8). */
-    actions?: ReactNode;
 };
 
 export type AppVariant = 'header' | 'sidebar';

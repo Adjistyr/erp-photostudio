@@ -3,11 +3,10 @@ import type { AppLayoutProps } from '@/types';
 
 export default function AppLayout({
     breadcrumbs = [],
-    actions,
     children,
 }: AppLayoutProps) {
     return (
-        <AppLayoutTemplate breadcrumbs={breadcrumbs} actions={actions}>
+        <AppLayoutTemplate breadcrumbs={breadcrumbs}>
             {children}
         </AppLayoutTemplate>
     );

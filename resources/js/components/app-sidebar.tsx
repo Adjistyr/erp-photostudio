@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Package } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -13,6 +13,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as catalogIndex } from '@/routes/catalog';
 import type { NavGroup } from '@/types';
 
 /**
@@ -30,7 +31,10 @@ const navGroups: NavGroup[] = [
             },
         ],
     },
-    { label: 'Data', items: [] },
+    {
+        label: 'Data',
+        items: [{ title: 'Katalog', href: catalogIndex(), icon: Package }],
+    },
     { label: 'Keluaran', items: [] },
 ];
 
