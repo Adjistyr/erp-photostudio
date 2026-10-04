@@ -1,0 +1,140 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\BusinessLine;
+use App\Enums\CatalogItemType;
+use App\Enums\WorkStatus;
+use App\Models\CatalogItem;
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class CatalogItemTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function item(array $attributes = []): CatalogItem
+    {
+        return CatalogItem::create([
+            'name' => 'Cetak 4R', 'type' => CatalogItemType::Product, 'price' => 5_000,
+            'unit_cost' => 1_500, 'category' => 'Cetak', ...$attributes,
+        ]);
+    }
+
+    private function product(array $overrides = []): array
+    {
+        return ['name' => 'Keychain Foto Akrilik', 'type' => 'product', 'price' => 25_000, 'unit_cost' => 8_000, 'category' => 'Merchandise', ...$overrides];
+    }
+
+    public function test_guest_is_redirected_to_login()
+    {
+        $this->get(route('catalog.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_index_lists_products_before_services()
+    {
+        $this->item(['name' => 'Paket Studio 1 Jam', 'type' => CatalogItemType::Service, 'price' => 350_000, 'unit_cost' => null, 'category' => 'Studio']);
+        $this->item();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('catalog.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('catalog/index')
+                ->has('items', 2)
+                ->where('items.0.name', 'Cetak 4R')
+                ->where('items.0.type', 'product')
+                ->where('items.0.unit_cost', 1_500)
+                ->where('items.1.type', 'service')
+                // Jasa: HPP null, bukan 0 — biayanya dicatat per job.
+                ->where('items.1.unit_cost', null)
+            );
+    }
+
+    public function test_store_product_with_unit_cost()
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.store'), $this->product())
+            ->assertRedirect(route('catalog.index'))
+            ->assertSessionHasNoErrors();
+
+        $item = CatalogItem::sole();
+        $this->assertSame([CatalogItemType::Product, 25_000, 8_000, true], [$item->type, $item->price, $item->unit_cost, $item->is_active]);
+    }
+
+    public function test_store_service_cannot_carry_unit_cost()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'unit_cost' => 1_000_000])
+            ->assertSessionHasErrors('unit_cost');
+
+        $this->actingAs($user)
+            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'unit_cost' => null])
+            ->assertSessionHasNoErrors();
+        $this->assertNull(CatalogItem::sole()->unit_cost);
+    }
+
+    public function test_product_requires_unit_cost()
+    {
+        // Produk tanpa HPP membuat margin retail terlihat 100% — persis
+        // kebocoran yang mau dicegah (business-flow 7, Soal HPP).
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.store'), $this->product(['unit_cost' => null]))
+            ->assertSessionHasErrors('unit_cost');
+    }
+
+    public function test_blank_category_defaults_to_lain_lain()
+    {
+        $this->actingAs(User::factory()->create())->post(route('catalog.store'), $this->product(['category' => '']));
+
+        $this->assertSame('Lain-lain', CatalogItem::sole()->category);
+    }
+
+    public function test_validation_rejects_bad_input()
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.store'), ['name' => ' ', 'type' => 'barang', 'price' => 0, 'unit_cost' => -1])
+            ->assertSessionHasErrors(['name', 'type', 'price', 'unit_cost']);
+
+        $this->assertSame(0, CatalogItem::count());
+    }
+
+    public function test_update_price_does_not_change_past_orders()
+    {
+        $item = $this->item();
+        $order = Order::create(['number' => 'ORD-0001', 'business_line' => BusinessLine::Retail, 'service_date' => '2026-08-20', 'work_status' => WorkStatus::Delivered]);
+        $line = $order->items()->create(['catalog_item_id' => $item->id, 'name' => $item->name, 'quantity' => 2, 'unit_price' => 5_000, 'unit_cost' => 1_500]);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('catalog.update', $item), ['name' => 'Cetak 4R Glossy', 'type' => 'product', 'price' => 6_000, 'unit_cost' => 1_800, 'category' => 'Cetak'])
+            ->assertRedirect(route('catalog.index'));
+
+        $this->assertSame([6_000, 'Cetak 4R Glossy'], [$item->refresh()->price, $item->name]);
+        // Harga & HPP disalin saat transaksi — order lama tidak ikut berubah.
+        $this->assertSame([5_000, 1_500], [$line->refresh()->unit_price, $line->unit_cost]);
+    }
+
+    public function test_toggle_active_flips_status()
+    {
+        $item = $this->item();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->patch(route('catalog.toggle-active', $item))->assertRedirect(route('catalog.index'));
+        $this->assertFalse($item->refresh()->is_active);
+
+        $this->actingAs($user)->patch(route('catalog.toggle-active', $item));
+        $this->assertTrue($item->refresh()->is_active);
+    }
+
+    public function test_catalog_items_cannot_be_deleted()
+    {
+        // Item yang pernah terjual hanya dinonaktifkan — menghapus memutus
+        // referensi item order lama.
+        $this->assertFalse(Route::has('catalog.destroy'));
+    }
+}

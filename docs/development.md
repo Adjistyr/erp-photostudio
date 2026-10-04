@@ -90,6 +90,19 @@ Dihitung di PHP (`app/Services/Finance`), dikirim ke halaman sebagai props Inert
 
 Test keuangan mewarisi `tests/Feature/Finance/DemoDataTestCase` — dataset prototype dengan "hari ini" 26 Agustus 2026.
 
+### Pola modul (contoh: Katalog)
+Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
+
+| Bagian | Letak | Catatan |
+|---|---|---|
+| Route | `routes/web.php`, grup `auth` + `verified` | Resource terbatas (`->only([...])`); tidak ada `destroy` untuk data yang dirujuk riwayat — nonaktifkan |
+| Validasi | `app/Http/Requests/<Model>Request.php` | Aturan bisnis input (mis. HPP wajib produk, dilarang jasa); `attributes()` berbahasa Indonesia |
+| Controller | `app/Http/Controllers/<Model>Controller.php` | Tipis; `Inertia::flash('toast', [...])` lalu `to_route(...)` |
+| Halaman | `resources/js/pages/<modul>/index.tsx` | Props bertipe; form `useForm`; URL dari Wayfinder (`@/actions/...`), bukan string |
+| Aksi header | `<PageActions>` | Portal ke slot kanan header (R8) — tombol tetap bisa memakai state halaman |
+| Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
+| Test | `tests/Feature/<Model>Test.php` | Auth, render Inertia + props, validasi, aturan bisnis |
+
 ### Menu sidebar
 Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sidebar.tsx`. Grup tanpa item otomatis disembunyikan — modul baru cukup menambah item ke grupnya.
 
@@ -103,7 +116,8 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 4. **Tailwind memindai seluruh project.** `web/` dan `docs/` dikecualikan lewat `@source not` di `app.css`, dan dari lint/format di `vite.config.ts`. Folder non-app baru perlu ditambahkan ke keduanya.
 5. **PHPStan butuh memori > 128 MB** — `composer types:check` sudah memakai `--memory-limit=1G`.
 6. **Seed data test di `setUp()`, bukan properti `$seed`.** `RefreshDatabase` hanya migrate + seed sekali per proses, oleh class test pertama yang jalan — kalau class itu tidak men-seed, data tidak pernah masuk untuk class lain. Gejalanya: test lolos saat dijalankan sendiri, gagal di suite penuh.
-7. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
+7. **Test tidak bergantung pada `npm run build`.** `tests/TestCase.php` memanggil `withoutVite()`. Tanpa itu, halaman baru yang belum ada di manifest Vite gagal render (500) dan test Inertia jebol dengan pesan "Not a valid Inertia response" yang tidak menunjuk ke penyebabnya.
+8. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
 
 ---
 

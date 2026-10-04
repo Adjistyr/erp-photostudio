@@ -33,6 +33,11 @@ export default defineConfig({
             ],
         },
     },
+    test: {
+        // Hanya test app Laravel. Test prototype di web/ memakai node:test
+        // dan dijalankan terpisah (cd web && npm test).
+        include: ['resources/js/**/*.test.ts'],
+    },
     lint: {
         ignorePatterns: [
             // Bukan bagian app Laravel: prototype React Router (referensi

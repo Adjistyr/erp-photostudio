@@ -7,6 +7,16 @@ use Laravel\Fortify\Features;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Test tidak boleh bergantung pada hasil `npm run build`: dengan
+        // manifest Vite yang basi, halaman baru gagal render (500) dan test
+        // Inertia jebol dengan pesan yang tidak menunjuk ke penyebabnya.
+        $this->withoutVite();
+    }
+
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
     {
         if (! Features::enabled($feature)) {
