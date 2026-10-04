@@ -30,11 +30,11 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Pemakaian dana | `FundWithdrawal` · `fund_withdrawals` |
 | Aset | `Asset` · `assets` |
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
-| Laba rugi | `App\Services\Finance\ProfitAndLoss` |
-| Piutang | `App\Services\Finance\Receivables` |
-| Bagi hasil | `App\Services\Finance\ProfitSharing` |
-| Mutasi pos dana | `App\Services\Finance\Funds` |
-| Alokasi maintenance, nilai buku, jadwal perawatan | `App\Services\Finance\AssetMaintenance` |
+| Laba rugi | `Modules\Finance\Services\ProfitAndLoss` |
+| Piutang | `Modules\Finance\Services\Receivables` |
+| Bagi hasil | `Modules\Finance\Services\ProfitSharing` |
+| Mutasi pos dana | `Modules\Finance\Services\Funds` |
+| Alokasi maintenance, nilai buku, jadwal perawatan | `Modules\Finance\Services\AssetMaintenance` |
 
 ---
 
@@ -51,7 +51,7 @@ Tanggal transaksi, jadwal, jatuh tempo, pembelian aset adalah tanggal kalender. 
 Kolom tanggal kalender bertipe `timestamp` adalah **blocker** — must fix before merge.
 
 ### Enum sebagai string + cast PHP
-Status dan kategori disimpan sebagai string dengan cast ke enum PHP (`app/Enums`), bukan tipe enum database. Bisnis masih muda; menambah status di enum database butuh migration.
+Status dan kategori disimpan sebagai string dengan cast ke enum PHP (`Modules/<Modul>/Enums`), bukan tipe enum database. Bisnis masih muda; menambah status di enum database butuh migration.
 
 Not a blocker — approve with comment suggesting string + PHP enum cast.
 

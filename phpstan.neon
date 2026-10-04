@@ -5,9 +5,14 @@ includes:
 parameters:
     paths:
         - app/
+        - Modules/
         - bootstrap/app.php
         - config/
         - database/
         - routes/
+
+    # Test modul ikut tidak dianalisis, sama seperti tests/ sebelumnya.
+    excludePaths:
+        - Modules/*/Tests/*
 
     level: 7

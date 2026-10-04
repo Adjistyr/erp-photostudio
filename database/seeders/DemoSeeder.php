@@ -2,27 +2,27 @@
 
 namespace Database\Seeders;
 
-use App\Enums\AssetStatus;
-use App\Enums\BusinessLine;
-use App\Enums\CatalogItemType;
-use App\Enums\ContributionDestination;
-use App\Enums\ContributionKind;
-use App\Enums\MaintenanceType;
-use App\Enums\PaymentMethod;
-use App\Enums\WorkStatus;
-use App\Models\Asset;
-use App\Models\AssetMaintenance;
-use App\Models\CatalogItem;
-use App\Models\Customer;
-use App\Models\Investment;
-use App\Models\OpeningBalance;
-use App\Models\OperatingExpense;
-use App\Models\Order;
-use App\Models\Owner;
-use App\Models\OwnerContribution;
-use App\Models\ProfitShareRule;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Modules\Asset\Enums\AssetStatus;
+use Modules\Asset\Enums\MaintenanceType;
+use Modules\Asset\Models\Asset;
+use Modules\Asset\Models\AssetMaintenance;
+use Modules\Catalog\Enums\CatalogItemType;
+use Modules\Catalog\Models\CatalogItem;
+use Modules\Customer\Models\Customer;
+use Modules\Expense\Models\OperatingExpense;
+use Modules\Finance\Enums\ContributionDestination;
+use Modules\Finance\Enums\ContributionKind;
+use Modules\Finance\Models\Investment;
+use Modules\Finance\Models\OpeningBalance;
+use Modules\Finance\Models\Owner;
+use Modules\Finance\Models\OwnerContribution;
+use Modules\Finance\Models\ProfitShareRule;
+use Modules\Order\Enums\PaymentMethod;
+use Modules\Order\Enums\WorkStatus;
+use Modules\Order\Models\Order;
+use Modules\Shared\Enums\BusinessLine;
 
 /**
  * Dataset prototype (web/app/lib/dummy.ts) — "hari ini" 26 Agustus 2026.
