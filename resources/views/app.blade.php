@@ -36,7 +36,14 @@
 
 
         @viteReactRefresh
-        @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        @php
+            // "order::index" → resources/js/modules/order/pages/index.tsx; tanpa "::" → resources/js/pages/.
+            // Harus sama dengan resolver di resources/js/app.tsx.
+            $pageFile = str_contains($page['component'], '::')
+                ? 'resources/js/modules/'.str_replace('::', '/pages/', $page['component']).'.tsx'
+                : "resources/js/pages/{$page['component']}.tsx";
+        @endphp
+        @vite(['resources/css/app.css', 'resources/js/app.tsx', $pageFile])
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
         </x-inertia::head>

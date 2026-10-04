@@ -1,4 +1,6 @@
 import { createInertiaApp } from '@inertiajs/react';
+import type { ResolvedComponent } from '@inertiajs/react';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -10,6 +12,24 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
+    // Halaman app (auth, settings, dashboard) di ./pages; halaman domain di
+    // ./modules/<modul>/pages dengan nama "<modul>::<halaman>" — sama dengan
+    // Inertia::render() di controller Modules/<Modul>. Ditulis sendiri karena
+    // resolver bawaan plugin @inertiajs/vite hanya memindai satu folder
+    // (plugin otomatis mundur kalau `resolve` sudah ada).
+    resolve: async (name) => {
+        const page = await resolvePageComponent(
+            name.includes('::')
+                ? `./modules/${name.replace('::', '/pages/')}.tsx`
+                : `./pages/${name}.tsx`,
+            import.meta.glob<{ default: ResolvedComponent }>([
+                './pages/**/*.tsx',
+                './modules/*/pages/**/*.tsx',
+            ]),
+        );
+
+        return page.default;
+    },
     layout: (name) => {
         switch (true) {
             case name === 'welcome':

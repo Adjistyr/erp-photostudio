@@ -4,7 +4,8 @@ Dashboard internal Potrait Time (Paket B quotation): **Laravel 13 + Inertia 3 + 
 
 | Folder | Isi |
 |---|---|
-| `app/`, `routes/`, `resources/`, `database/`, `tests/` | App Laravel |
+| `app/`, `routes/`, `resources/`, `database/`, `tests/` | App Laravel (bawaan starter kit + bagian bersama) |
+| `Modules/` | Kode bisnis per domain — lihat [Struktur per domain](#struktur-per-domain) |
 | `web/` | Prototype React Router (data dummy). **Referensi** saat memindah layar — tidak di-deploy, dihapus setelah semua layar pindah |
 | `docs/` | Dokumen bisnis, desain, arsip Stitch |
 | `.migration/` | Laporan migrasi komponen UI Radix → Base UI |
@@ -86,25 +87,46 @@ Timezone app `Asia/Jakarta`. Tanggal transaksi, jadwal, dan jatuh tempo adalah *
 - Font self-hosted lewat `@fontsource-variable` (DM Sans, Outfit, JetBrains Mono), tanpa CDN.
 
 ### Rumus bisnis
-Dihitung di PHP (`app/Services/Finance`), dikirim ke halaman sebagai props Inertia — bukan di TypeScript. Skema, konvensi, glosarium istilah Indonesia ↔ kode, dan letak tiap rumus: [database.md](./database.md).
+Dihitung di PHP (`Modules/Finance/Services`), dikirim ke halaman sebagai props Inertia — bukan di TypeScript. Skema, konvensi, glosarium istilah Indonesia ↔ kode, dan letak tiap rumus: [database.md](./database.md).
 
-Test keuangan mewarisi `tests/Feature/Finance/DemoDataTestCase` — dataset prototype dengan "hari ini" 26 Agustus 2026.
+Test keuangan mewarisi `Modules/Finance/Tests/Feature/DemoDataTestCase` — dataset prototype dengan "hari ini" 26 Agustus 2026.
+
+### Struktur per domain
+Kode bisnis dikelompokkan per domain di `Modules/<Modul>/` (backend) dan `resources/js/modules/<modul>/` (frontend). `app/` hanya berisi bawaan starter kit: User, auth (Fortify), settings, middleware, dan `Controller` dasar.
+
+| Modul | Isi |
+|---|---|
+| `Shared` | `BusinessLine`, `Money`, `ModuleServiceProvider` (dasar provider modul) |
+| `Catalog` | Item katalog (produk/jasa) |
+| `Customer` | Customer |
+| `Order` | Order, item, pembayaran, status kerja/bayar |
+| `Expense` | Biaya job, biaya operasional |
+| `Asset` | Aset, servis/perawatan |
+| `Finance` | Owner, modal, investasi, pos dana, bagi hasil, dan semua rumus laporan (`Services/`) |
+
+Isi satu modul backend (folder dibuat saat dibutuhkan): `Controllers/ Requests/ Models/ Enums/ Services/ Routes/web.php Providers/ Tests/{Feature,Unit}`. Migrasi, factory, dan seeder tetap terpusat di `database/`. Frontend: `pages/`, `components/`, dan `index.ts` sebagai permukaan publik (contoh: `@/modules/order` mengekspor `PaymentDialog` + tipe order).
+
+Aturan yang disepakati:
+- **Batas pragmatis.** Modul boleh membaca model modul lain (mis. `Finance` membaca `Order`, `Payment`, `JobCost`; `Order` punya relasi ke `Customer`). Tidak ada lapisan service antar-modul — dipilih karena laporan keuangan memang lintas domain, dan memaksakan batas ketat berarti menulis ulang semua rumus tanpa manfaat di skala ini. Impor frontend lintas modul tetap lewat `index.ts`, bukan path dalam.
+- **Provider eksplisit.** Modul ber-layar punya `Providers/<Modul>ServiceProvider` (turunan `ModuleServiceProvider`, cukup isi `$module`) dan didaftarkan manual di `bootstrap/providers.php`. Provider memuat `Routes/web.php` dan mendaftarkan namespace halaman Inertia. Modul tanpa layar belum butuh provider.
+- **Nama halaman Inertia `<modul>::<halaman>`** (`Inertia::render('order::index')` → `resources/js/modules/order/pages/index.tsx`). Halaman app tetap tanpa namespace (`dashboard`, `auth/login`, `settings/profile`). Resolver di `resources/js/app.tsx`.
+- **Komponen dipakai 2+ modul** tetap di `resources/js/components/` (mis. `status-order.tsx`, `data-table.tsx`); tipe enum domain bersama di `resources/js/types/domain.ts`.
 
 ### Pola modul (contoh: Katalog)
 Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 
 | Bagian | Letak | Catatan |
 |---|---|---|
-| Route | `routes/web.php`, grup `auth` + `verified` | Resource terbatas (`->only([...])`); tidak ada `destroy` untuk data yang dirujuk riwayat — nonaktifkan |
-| Validasi | `app/Http/Requests/<Model>Request.php` | Aturan bisnis input (mis. HPP wajib produk, dilarang jasa); `attributes()` berbahasa Indonesia |
-| Controller | `app/Http/Controllers/<Model>Controller.php` | Tipis; `Inertia::flash('toast', [...])` lalu `to_route(...)` |
-| Halaman | `resources/js/pages/<modul>/index.tsx` | Props bertipe; form `useForm`; URL dari Wayfinder (`@/actions/...`), bukan string |
+| Route | `Modules/<Modul>/Routes/web.php`, grup `web` + `auth` + `verified` | Resource terbatas (`->only([...])`); tidak ada `destroy` untuk data yang dirujuk riwayat — nonaktifkan |
+| Validasi | `Modules/<Modul>/Requests/<Model>Request.php` | Aturan bisnis input (mis. HPP wajib produk, dilarang jasa); `attributes()` berbahasa Indonesia |
+| Controller | `Modules/<Modul>/Controllers/<Model>Controller.php` (extends `App\Http\Controllers\Controller`) | Tipis; `Inertia::flash('toast', [...])` lalu `to_route(...)` |
+| Halaman | `resources/js/modules/<modul>/pages/index.tsx`, dirender sebagai `<modul>::index` | Props bertipe; form `useForm`; URL dari Wayfinder (`@/actions/Modules/...`), bukan string |
 | Aksi header | `<PageActions>` | Portal ke slot kanan header (R8) — tombol tetap bisa memakai state halaman |
 | Status order | `components/status-order.tsx` | Badge status bayar & progres kerja (R3) — status bayar & persen DP dari server, tidak dihitung ulang di layar |
 | Aksi status | `PATCH <modul>/{id}/<aksi>` (mis. `orders.advance`, `orders.cancel`) | Transisi status = route sendiri, bukan field di form edit. Langkah berikutnya ditentukan server (`WorkStatus::next()`), layar hanya mengirim "lanjut" |
-| Riwayat anak | Route bersarang (`POST orders/{order}/payments`) + controller sendiri | Pembayaran hanya ditambah, tidak diedit/dihapus. Dialog `components/payment-dialog.tsx` dipakai ulang oleh layar Piutang |
+| Riwayat anak | Route bersarang (`POST orders/{order}/payments`) + controller sendiri | Pembayaran hanya ditambah, tidak diedit/dihapus. Dialog `PaymentDialog` (`@/modules/order`) dipakai ulang oleh layar Piutang |
 | Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
-| Test | `tests/Feature/<Model>Test.php` | Auth, render Inertia + props, validasi, aturan bisnis |
+| Test | `Modules/<Modul>/Tests/Feature/<Model>Test.php` (namespace `Modules\<Modul>\Tests\Feature`) | Auth, render Inertia + props, validasi, aturan bisnis |
 
 ### Menu sidebar
 Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sidebar.tsx`. Grup tanpa item otomatis disembunyikan — modul baru cukup menambah item ke grupnya.
@@ -122,7 +144,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 7. **Test tidak bergantung pada `npm run build`.** `tests/TestCase.php` memanggil `withoutVite()`. Tanpa itu, halaman baru yang belum ada di manifest Vite gagal render (500) dan test Inertia jebol dengan pesan "Not a valid Inertia response" yang tidak menunjuk ke penyebabnya.
 8. **Lebar Sheet harus ditulis dengan prefix varian bawaan.** Sheet base-maia memasang `data-[side=right]:sm:max-w-sm`; `sm:max-w-2xl` biasa kalah spesifisitas dan tidak di-merge tailwind-merge — panel tetap sempit, isi terpotong. Pakai `data-[side=right]:sm:max-w-2xl`.
 9. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
-10. **`SelectValue` Base UI menampilkan nilai mentah.** Kalau value-nya id (`"7"`), trigger menampilkan `7`, bukan nama. Berikan `items={[{ value, label }]}` ke `<Select>` supaya trigger menampilkan label (contoh: `pages/orders/create.tsx`). Select yang value-nya sudah berupa teks tampil (sumber customer) tidak perlu.
+10. **`SelectValue` Base UI menampilkan nilai mentah.** Kalau value-nya id (`"7"`), trigger menampilkan `7`, bukan nama. Berikan `items={[{ value, label }]}` ke `<Select>` supaya trigger menampilkan label (contoh: `modules/order/pages/create.tsx`). Select yang value-nya sudah berupa teks tampil (sumber customer) tidak perlu.
 
 ---
 
