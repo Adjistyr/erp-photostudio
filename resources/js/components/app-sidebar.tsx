@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, Package } from 'lucide-react';
+import { LayoutDashboard, Package, Users } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as catalogIndex } from '@/routes/catalog';
+import { index as customersIndex } from '@/routes/customers';
 import type { NavGroup } from '@/types';
 
 /**
@@ -33,7 +34,11 @@ const navGroups: NavGroup[] = [
     },
     {
         label: 'Data',
-        items: [{ title: 'Katalog', href: catalogIndex(), icon: Package }],
+        // Urutan R8: Customer, Katalog, Biaya.
+        items: [
+            { title: 'Customer', href: customersIndex(), icon: Users },
+            { title: 'Katalog', href: catalogIndex(), icon: Package },
+        ],
     },
     { label: 'Keluaran', items: [] },
 ];

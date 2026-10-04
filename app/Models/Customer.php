@@ -22,6 +22,12 @@ use Illuminate\Support\Carbon;
 #[Fillable(['name', 'phone', 'email', 'source', 'notes'])]
 class Customer extends Model
 {
+    /**
+     * Sumber tahu studio — untuk mengukur kanal mana yang benar-benar
+     * mendatangkan customer (business-flow 5.6).
+     */
+    public const SOURCES = ['Instagram', 'Teman', 'Lewat depan studio', 'Google Maps', 'Lainnya'];
+
     /** @return HasMany<Order, $this> */
     public function orders(): HasMany
     {

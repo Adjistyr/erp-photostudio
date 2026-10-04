@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CatalogItemController;
+use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 
 // Dashboard internal — "/" tidak punya landing page. Website company profile
@@ -10,6 +11,8 @@ Route::get('/', fn () => to_route('dashboard'))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update']);
 
     Route::resource('catalog', CatalogItemController::class)
         ->only(['index', 'store', 'update'])
