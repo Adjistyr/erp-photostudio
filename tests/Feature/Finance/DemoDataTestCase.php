@@ -16,14 +16,16 @@ abstract class DemoDataTestCase extends TestCase
 {
     use RefreshDatabase;
 
-    protected bool $seed = true;
-
-    protected string $seeder = DemoSeeder::class;
-
     protected function setUp(): void
     {
         parent::setUp();
 
+        // Seed per test, BUKAN lewat properti $seed: RefreshDatabase hanya
+        // migrate (dan seed) sekali per proses, oleh class test pertama yang
+        // jalan. Di suite penuh test auth jalan duluan tanpa seed, jadi data
+        // demo tidak pernah masuk. Seed di sini ikut di-rollback transaksi
+        // setiap selesai test.
+        $this->seed(DemoSeeder::class);
         $this->travelTo('2026-08-26 09:00:00');
     }
 
