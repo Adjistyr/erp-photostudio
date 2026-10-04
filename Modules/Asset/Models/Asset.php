@@ -40,6 +40,28 @@ use Modules\Finance\Models\Investment;
 ])]
 class Asset extends Model
 {
+    /**
+     * Kategori + default umur ekonomis & interval perawatan (bulan). Owner
+     * jarang tahu angkanya — default terisi saat kategori dipilih, dan tetap
+     * bisa diubah. Interval null = tanpa jadwal berkala.
+     *
+     * @var list<array{name: string, useful_life_months: int, maintenance_interval_months: int|null}>
+     */
+    public const CATEGORIES = [
+        ['name' => 'Kamera', 'useful_life_months' => 48, 'maintenance_interval_months' => 6],
+        ['name' => 'Lensa', 'useful_life_months' => 48, 'maintenance_interval_months' => 12],
+        ['name' => 'Lighting', 'useful_life_months' => 48, 'maintenance_interval_months' => 12],
+        ['name' => 'Printer', 'useful_life_months' => 36, 'maintenance_interval_months' => 1],
+        ['name' => 'Aksesori', 'useful_life_months' => 24, 'maintenance_interval_months' => null],
+        ['name' => 'Komputer', 'useful_life_months' => 36, 'maintenance_interval_months' => 12],
+        ['name' => 'Properti & furnitur', 'useful_life_months' => 36, 'maintenance_interval_months' => null],
+    ];
+
+    /** Alasan aset dilepas. Hanya "Dijual" yang punya hasil jual. */
+    public const DISPOSAL_REASONS = ['Dijual', 'Rusak total', 'Hilang'];
+
+    public const SOLD = 'Dijual';
+
     protected function casts(): array
     {
         return [

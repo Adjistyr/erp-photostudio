@@ -152,7 +152,8 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 
 ## 6. Belum dikerjakan (tahap berikutnya)
 
-- Layar per modul (controller + Form Request + halaman Inertia), dipindah dari `web/`. Termasuk validasi bentuk input (nama aset wajib, unit ≥ 1, …) yang belum diporting dari prototype, dan aksi tulis atomik (tambah aset = aset + investasi + setoran modal dalam satu transaksi).
+- Layar yang belum dipindah dari `web/`: Laporan, Modal & Bagi Hasil, Invoice, Komunikasi.
+- Penguncian periode: transaksi bertanggal mundur (pembayaran, biaya, aset) masih bisa masuk ke bulan yang sudah tutup dan mengubah bagi hasil bulan itu.
 - Terjemahan Indonesia untuk halaman auth & settings bawaan starter kit, dan pesan validasi Laravel (`lang/id`).
 - `isCurrentOrParentUrl` di `resources/js/hooks/use-current-url.ts` memakai `startsWith` biasa (`/order` cocok dengan `/orderan`) — perlu dibandingkan per segmen saat menu bertambah.
 - Logo aplikasi masih logo Laravel (`app-logo-icon.tsx`).
