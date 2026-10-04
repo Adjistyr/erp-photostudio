@@ -134,6 +134,14 @@ class Order extends Model
         return (int) $today->startOfDay()->diffInDays($this->service_date, false);
     }
 
+    /** "Keychain Foto Akrilik ×2, Cetak 4R ×6" — ringkasan untuk kolom tabel. */
+    public function itemsSummary(): string
+    {
+        return $this->items
+            ->map(fn (OrderItem $i) => $i->quantity > 1 ? "{$i->name} ×{$i->quantity}" : $i->name)
+            ->implode(', ');
+    }
+
     public function isCancelled(): bool
     {
         return $this->work_status === WorkStatus::Cancelled;

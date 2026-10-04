@@ -100,6 +100,7 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Controller | `app/Http/Controllers/<Model>Controller.php` | Tipis; `Inertia::flash('toast', [...])` lalu `to_route(...)` |
 | Halaman | `resources/js/pages/<modul>/index.tsx` | Props bertipe; form `useForm`; URL dari Wayfinder (`@/actions/...`), bukan string |
 | Aksi header | `<PageActions>` | Portal ke slot kanan header (R8) — tombol tetap bisa memakai state halaman |
+| Status order | `components/status-order.tsx` | Badge status bayar & progres kerja (R3) — status bayar & persen DP dari server, tidak dihitung ulang di layar |
 | Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
 | Test | `tests/Feature/<Model>Test.php` | Auth, render Inertia + props, validasi, aturan bisnis |
 
@@ -117,7 +118,8 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 5. **PHPStan butuh memori > 128 MB** — `composer types:check` sudah memakai `--memory-limit=1G`.
 6. **Seed data test di `setUp()`, bukan properti `$seed`.** `RefreshDatabase` hanya migrate + seed sekali per proses, oleh class test pertama yang jalan — kalau class itu tidak men-seed, data tidak pernah masuk untuk class lain. Gejalanya: test lolos saat dijalankan sendiri, gagal di suite penuh.
 7. **Test tidak bergantung pada `npm run build`.** `tests/TestCase.php` memanggil `withoutVite()`. Tanpa itu, halaman baru yang belum ada di manifest Vite gagal render (500) dan test Inertia jebol dengan pesan "Not a valid Inertia response" yang tidak menunjuk ke penyebabnya.
-8. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
+8. **Lebar Sheet harus ditulis dengan prefix varian bawaan.** Sheet base-maia memasang `data-[side=right]:sm:max-w-sm`; `sm:max-w-2xl` biasa kalah spesifisitas dan tidak di-merge tailwind-merge — panel tetap sempit, isi terpotong. Pakai `data-[side=right]:sm:max-w-2xl`.
+9. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
 
 ---
 
