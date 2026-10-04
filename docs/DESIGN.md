@@ -429,7 +429,7 @@ Ditulis eksplisit supaya tidak ditambahkan "biar lengkap". Menuliskannya justru 
 
 ## 4. Status Implementasi
 
-Jalur Stitch **ditutup**. Hasilnya tidak bisa dipakai sebagai kode: tiap layar mengarang ulang Tailwind config sendiri (47–61 color key, berbeda-beda antar layar), namespace tokennya Material bukan shadcn, dan tiga aturan blocker di dokumen ini gagal secara merata — R3 badge "Belum Bayar" dirender empat cara di lima layar, R7 empty state ada di 1 dari 21 layar, R8 label grup sidebar nol dari 21. Mockup Stitch di `stitch_design_system_generator/` tetap berguna sebagai **referensi layout**, bukan sumber kode.
+Jalur Stitch **ditutup**. Hasilnya tidak bisa dipakai sebagai kode: tiap layar mengarang ulang Tailwind config sendiri (47–61 color key, berbeda-beda antar layar), namespace tokennya Material bukan shadcn, dan tiga aturan blocker di dokumen ini gagal secara merata — R3 badge "Belum Bayar" dirender empat cara di lima layar, R7 empty state ada di 1 dari 21 layar, R8 label grup sidebar nol dari 21. Mockup Stitch di `docs/stitch_design_system_generator/` tetap berguna sebagai **referensi layout**, bukan sumber kode.
 
 Penggantinya ada di `web/` — React Router 7 (SPA) + shadcn preset `b311momZs0`, yaitu preset yang bagian 2 dokumen ini memang ditulis di atasnya. Tiga delta yang perlu ditambal setelah `init` persis tiga modifikasi yang sudah didokumentasikan di atas:
 
