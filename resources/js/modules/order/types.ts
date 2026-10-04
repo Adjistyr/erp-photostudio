@@ -59,3 +59,13 @@ export function scheduleOf(
         ? `${o.service_date}T${o.service_time}`
         : o.service_date;
 }
+
+/**
+ * Yang dibutuhkan dialog Catat Pembayaran — cukup identitas dan angka tagihan,
+ * supaya layar Pembayaran (baris piutang) tidak harus mengirim seluruh detail
+ * order.
+ */
+export type PayableOrder = Pick<
+    OrderRow,
+    'id' | 'number' | 'customer_name' | 'total' | 'paid' | 'balance'
+>;
