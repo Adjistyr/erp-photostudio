@@ -36,11 +36,11 @@ export default defineConfig({
     lint: {
         ignorePatterns: [
             // Bukan bagian app Laravel: prototype React Router (referensi
-            // sampai semua layar dipindah), dokumen, dan arsip Stitch.
+            // sampai semua layar dipindah), dokumen + arsip Stitch (docs/).
             'web/**',
             'docs/**',
-            'stitch_design_system_generator/**',
-            'stitch_markdown_design_system/**',
+            // Laporan migrasi UI — strukturnya baku dari skill migrasi.
+            '.migration/**',
             '.playwright-mcp/**',
             'vendor/**',
             'node_modules/**',
@@ -66,11 +66,11 @@ export default defineConfig({
         htmlWhitespaceSensitivity: 'css',
         ignorePatterns: [
             // Bukan bagian app Laravel: prototype React Router (referensi
-            // sampai semua layar dipindah), dokumen, dan arsip Stitch.
+            // sampai semua layar dipindah), dokumen + arsip Stitch (docs/).
             'web/**',
             'docs/**',
-            'stitch_design_system_generator/**',
-            'stitch_markdown_design_system/**',
+            // Laporan migrasi UI — strukturnya baku dari skill migrasi.
+            '.migration/**',
             '.playwright-mcp/**',
             '.github/**',
             'composer.json',
