@@ -15,8 +15,9 @@
  */
 
 import { Head, Link } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, List } from 'lucide-react';
+import { List } from 'lucide-react';
 import { useState } from 'react';
+import { MonthNav } from '@/components/month-nav';
 import { PageActions } from '@/components/page-actions';
 import { PaymentBadge, WorkProgress } from '@/components/status-order';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
-import { formatBulan, formatJadwal, formatRp, tambahBulan } from '@/lib/format';
+import { formatJadwal, formatRp } from '@/lib/format';
 import {
     calendar as ordersCalendar,
     index as ordersIndex,
@@ -68,7 +69,6 @@ export default function OrdersCalendar({
     const todayDay = today.startsWith(month)
         ? Number(today.slice(8, 10))
         : null;
-    const shift = (n: number) => tambahBulan(`${month}-01`, n).slice(0, 7);
 
     return (
         <>
@@ -88,43 +88,10 @@ export default function OrdersCalendar({
 
             <div className="flex flex-col gap-4 p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            size="icon"
-                            variant="outline"
-                            aria-label="Bulan sebelumnya"
-                            nativeButton={false}
-                            render={
-                                <Link
-                                    href={ordersCalendar({
-                                        query: { month: shift(-1) },
-                                    })}
-                                    preserveScroll
-                                />
-                            }
-                        >
-                            <ChevronLeft />
-                        </Button>
-                        <Button
-                            size="icon"
-                            variant="outline"
-                            aria-label="Bulan berikutnya"
-                            nativeButton={false}
-                            render={
-                                <Link
-                                    href={ordersCalendar({
-                                        query: { month: shift(1) },
-                                    })}
-                                    preserveScroll
-                                />
-                            }
-                        >
-                            <ChevronRight />
-                        </Button>
-                        <h2 className="font-heading text-base font-semibold">
-                            {formatBulan(month)}
-                        </h2>
-                    </div>
+                    <MonthNav
+                        month={month}
+                        href={(m) => ordersCalendar({ query: { month: m } })}
+                    />
 
                     {/* Legenda warna lini — sama dengan chart di Laporan (R6). */}
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
