@@ -31,6 +31,19 @@ class Periods
         return CarbonImmutable::createFromFormat('!Y-m', $month) ?: throw new \InvalidArgumentException("Bulan tidak valid: {$month}");
     }
 
+    /**
+     * "2026-07" → "Juli 2026" — untuk pesan validasi & laporan. Nama bulan
+     * ditulis sendiri, bukan lewat locale Carbon: hasilnya tidak ikut berubah
+     * kalau locale aplikasi diganti.
+     */
+    public static function label(string $month): string
+    {
+        $names = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        $date = self::start($month);
+
+        return $names[$date->month - 1].' '.$date->year;
+    }
+
     public static function end(string $month): CarbonImmutable
     {
         return self::start($month)->endOfMonth()->startOfDay();
