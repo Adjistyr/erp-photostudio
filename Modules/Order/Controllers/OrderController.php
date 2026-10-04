@@ -3,7 +3,6 @@
 namespace Modules\Order\Controllers;
 
 use App\Http\Controllers\Controller;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +13,7 @@ use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
+use Modules\Finance\Services\Periods;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
@@ -53,11 +53,8 @@ class OrderController extends Controller
      */
     public function calendar(Request $request): Response
     {
-        $month = $request->query('month');
-        if (! is_string($month) || preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) !== 1) {
-            $month = now()->format('Y-m');
-        }
-        $start = CarbonImmutable::createFromFormat('!Y-m', $month) ?: throw new \LogicException('Bulan tidak valid');
+        $month = Periods::orCurrent($request->query('month'));
+        $start = Periods::start($month);
 
         $orders = Order::with(['customer', 'items', 'payments', 'jobCosts'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])

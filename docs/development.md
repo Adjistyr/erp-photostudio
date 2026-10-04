@@ -125,6 +125,7 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Status order | `components/status-order.tsx` | Badge status bayar & progres kerja (R3) — status bayar & persen DP dari server, tidak dihitung ulang di layar |
 | Aksi status | `PATCH <modul>/{id}/<aksi>` (mis. `orders.advance`, `orders.cancel`) | Transisi status = route sendiri, bukan field di form edit. Langkah berikutnya ditentukan server (`WorkStatus::next()`), layar hanya mengirim "lanjut" |
 | Riwayat anak | Route bersarang (`POST orders/{order}/payments`) + controller sendiri | Pembayaran hanya ditambah, tidak diedit/dihapus. Dialog `PaymentDialog` (`@/modules/order`) dipakai ulang oleh layar Piutang |
+| Layar per bulan | `?month=YYYY-MM` + `Periods::orCurrent()` di controller, `<MonthNav>` di halaman | Bulan di URL, difilter server; bulan tidak valid jatuh ke bulan berjalan. Total diambil dari service Finance (mis. `ProfitAndLoss`) supaya sama dengan laporan |
 | Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
 | Test | `Modules/<Modul>/Tests/Feature/<Model>Test.php` (namespace `Modules\<Modul>\Tests\Feature`) | Auth, render Inertia + props, validasi, aturan bisnis |
 

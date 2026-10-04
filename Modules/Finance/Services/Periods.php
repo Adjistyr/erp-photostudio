@@ -16,6 +16,18 @@ class Periods
         return today()->format('Y-m');
     }
 
+    /**
+     * Bulan dari query string (`?month=2026-08`), jatuh ke bulan berjalan kalau
+     * kosong/tidak valid — bukan error: URL bulanan sering diketik/dibagikan
+     * manual. Dipakai semua layar ber-navigasi bulan (Kalender, Biaya).
+     */
+    public static function orCurrent(mixed $month): string
+    {
+        return is_string($month) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1
+            ? $month
+            : today()->format('Y-m');
+    }
+
     public static function next(string $month): string
     {
         return self::start($month)->addMonthNoOverflow()->format('Y-m');
