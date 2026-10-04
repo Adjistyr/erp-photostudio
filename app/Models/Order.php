@@ -54,6 +54,21 @@ class Order extends Model
         ];
     }
 
+    /**
+     * Nomor berikutnya dari order TERAKHIR berdasarkan id, bukan MAX(number):
+     * MAX string salah setelah ORD-9999 ("ORD-10000" < "ORD-9999").
+     *
+     * ponytail: tanpa lock — satu owner yang menginput. Dua simpan bersamaan
+     * ditolak unique index `number`; pakai sequence DB kalau kasir bertambah.
+     */
+    public static function nextNumber(): string
+    {
+        $last = static::query()->orderByDesc('id')->value('number');
+        $n = is_string($last) ? (int) substr($last, 4) : 0;
+
+        return sprintf('ORD-%04d', $n + 1);
+    }
+
     /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {

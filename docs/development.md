@@ -122,6 +122,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 7. **Test tidak bergantung pada `npm run build`.** `tests/TestCase.php` memanggil `withoutVite()`. Tanpa itu, halaman baru yang belum ada di manifest Vite gagal render (500) dan test Inertia jebol dengan pesan "Not a valid Inertia response" yang tidak menunjuk ke penyebabnya.
 8. **Lebar Sheet harus ditulis dengan prefix varian bawaan.** Sheet base-maia memasang `data-[side=right]:sm:max-w-sm`; `sm:max-w-2xl` biasa kalah spesifisitas dan tidak di-merge tailwind-merge — panel tetap sempit, isi terpotong. Pakai `data-[side=right]:sm:max-w-2xl`.
 9. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
+10. **`SelectValue` Base UI menampilkan nilai mentah.** Kalau value-nya id (`"7"`), trigger menampilkan `7`, bukan nama. Berikan `items={[{ value, label }]}` ke `<Select>` supaya trigger menampilkan label (contoh: `pages/orders/create.tsx`). Select yang value-nya sudah berupa teks tampil (sumber customer) tidak perlu.
 
 ---
 
