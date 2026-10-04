@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, Package, Users } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, Package, Users } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -15,6 +15,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as customersIndex } from '@/routes/customers';
+import { index as ordersIndex } from '@/routes/orders';
 import type { NavGroup } from '@/types';
 
 /**
@@ -29,6 +30,12 @@ const navGroups: NavGroup[] = [
                 title: 'Dashboard',
                 href: dashboard(),
                 icon: LayoutDashboard,
+            },
+            // Urutan R8: Dashboard, POS, Order & Booking, Pembayaran.
+            {
+                title: 'Order & Booking',
+                href: ordersIndex(),
+                icon: CalendarDays,
             },
         ],
     },
