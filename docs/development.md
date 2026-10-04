@@ -46,6 +46,7 @@ DB_PASSWORD=
 
 ```bash
 php artisan migrate --seed
+php artisan db:seed --class=DemoSeeder   # opsional: dataset prototype (bukan produksi)
 composer dev        # php serve + queue + log + vite sekaligus
 ```
 
@@ -84,6 +85,11 @@ Timezone app `Asia/Jakarta`. Tanggal transaksi, jadwal, dan jatuh tempo adalah *
 - Token desain di `resources/css/app.css` — ubah bersamaan dengan DESIGN.md bagian 2.
 - Font self-hosted lewat `@fontsource-variable` (DM Sans, Outfit, JetBrains Mono), tanpa CDN.
 
+### Rumus bisnis
+Dihitung di PHP (`app/Services/Finance`), dikirim ke halaman sebagai props Inertia — bukan di TypeScript. Skema, konvensi, glosarium istilah Indonesia ↔ kode, dan letak tiap rumus: [database.md](./database.md).
+
+Test keuangan mewarisi `tests/Feature/Finance/DemoDataTestCase` — dataset prototype dengan "hari ini" 26 Agustus 2026.
+
 ### Menu sidebar
 Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sidebar.tsx`. Grup tanpa item otomatis disembunyikan — modul baru cukup menambah item ke grupnya.
 
@@ -96,13 +102,14 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 3. **`npx shadcn add` mendeteksi pnpm** dari `pnpm-workspace.yaml` bawaan starter kit, lalu membuat `pnpm-lock.yaml` kedua dan menambah paket `cn`. Ambil komponen registry langsung dari `https://ui.shadcn.com/r/styles/base-maia/<nama>.json`, atau hapus `pnpm-lock.yaml` + batalkan perubahan `package.json` setelahnya.
 4. **Tailwind memindai seluruh project.** `web/` dan `docs/` dikecualikan lewat `@source not` di `app.css`, dan dari lint/format di `vite.config.ts`. Folder non-app baru perlu ditambahkan ke keduanya.
 5. **PHPStan butuh memori > 128 MB** — `composer types:check` sudah memakai `--memory-limit=1G`.
-6. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
+6. **Seed data test di `setUp()`, bukan properti `$seed`.** `RefreshDatabase` hanya migrate + seed sekali per proses, oleh class test pertama yang jalan — kalau class itu tidak men-seed, data tidak pernah masuk untuk class lain. Gejalanya: test lolos saat dijalankan sendiri, gagal di suite penuh.
+7. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
 
 ---
 
 ## 6. Belum dikerjakan (tahap berikutnya)
 
-- Struktur tabel bisnis (order, pembayaran, biaya, setoran, aset, …) dan porting rumus dari `web/app/lib/dummy.ts` ke service PHP — test TS di `web/app/lib/*.test.ts` jadi spesifikasi test PHP.
+- Layar per modul (controller + Form Request + halaman Inertia), dipindah dari `web/`. Termasuk validasi bentuk input (nama aset wajib, unit ≥ 1, …) yang belum diporting dari prototype, dan aksi tulis atomik (tambah aset = aset + investasi + setoran modal dalam satu transaksi).
 - Terjemahan Indonesia untuk halaman auth & settings bawaan starter kit, dan pesan validasi Laravel (`lang/id`).
 - `isCurrentOrParentUrl` di `resources/js/hooks/use-current-url.ts` memakai `startsWith` biasa (`/order` cocok dengan `/orderan`) — perlu dibandingkan per segmen saat menu bertambah.
 - Logo aplikasi masih logo Laravel (`app-logo-icon.tsx`).
