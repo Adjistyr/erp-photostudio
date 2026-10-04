@@ -7,8 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Catalog\Enums\CatalogItemType;
-use Modules\Catalog\Models\CatalogItem;
 use Modules\Order\Enums\PaymentMethod;
+use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
 
@@ -21,8 +21,7 @@ use Modules\Shared\Support\Money;
  */
 class StoreOrderRequest extends FormRequest
 {
-    /** @var list<array{item: CatalogItem, quantity: int}>|null */
-    private ?array $lines = null;
+    use ResolvesCatalogLines;
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -64,30 +63,10 @@ class StoreOrderRequest extends FormRequest
         }];
     }
 
-    /**
-     * Baris item dengan model katalognya — dipanggil setelah validasi lolos.
-     *
-     * @return list<array{item: CatalogItem, quantity: int}>
-     */
-    public function lines(): array
-    {
-        if ($this->lines !== null) {
-            return $this->lines;
-        }
-
-        /** @var list<array{catalog_item_id: int|string, quantity: int|string}> $items */
-        $items = $this->input('items', []);
-        $catalog = CatalogItem::findMany(array_column($items, 'catalog_item_id'))->keyBy('id');
-
-        return $this->lines = array_map(fn (array $i) => [
-            'item' => $catalog->get((int) $i['catalog_item_id']) ?? throw new \LogicException('Item katalog hilang'),
-            'quantity' => (int) $i['quantity'],
-        ], $items);
-    }
-
+    /** Order studio/event belum punya diskon — total = subtotal katalog. */
     public function total(): int
     {
-        return array_sum(array_map(fn (array $l) => $l['item']->price * $l['quantity'], $this->lines()));
+        return $this->subtotal();
     }
 
     public function deposit(): int

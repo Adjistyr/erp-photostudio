@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     Package,
     Receipt,
+    ShoppingCart,
     Users,
     Wallet,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import { index as catalogIndex } from '@/routes/catalog';
 import { index as customersIndex } from '@/routes/customers';
 import { index as expensesIndex } from '@/routes/expenses';
 import { index as ordersIndex } from '@/routes/orders';
+import { index as posIndex } from '@/routes/pos';
 import { index as receivablesIndex } from '@/routes/receivables';
 import type { NavGroup } from '@/types';
 
@@ -41,6 +43,11 @@ const navGroups: NavGroup[] = [
                 icon: LayoutDashboard,
             },
             // Urutan R8: Dashboard, POS, Order & Booking, Pembayaran.
+            {
+                title: 'POS',
+                href: posIndex(),
+                icon: ShoppingCart,
+            },
             {
                 title: 'Order & Booking',
                 href: ordersIndex(),
