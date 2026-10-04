@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 // Dashboard internal — "/" tidak punya landing page. Website company profile
@@ -8,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => to_route('dashboard'))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
     // Rute per domain ada di Modules/<Modul>/Routes/web.php, dimuat provider modulnya.
 });
 
