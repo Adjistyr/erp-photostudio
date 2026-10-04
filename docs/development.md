@@ -92,7 +92,7 @@ Dihitung di PHP (`Modules/Finance/Services`), dikirim ke halaman sebagai props I
 Test keuangan mewarisi `Modules/Finance/Tests/Feature/DemoDataTestCase` — dataset prototype dengan "hari ini" 26 Agustus 2026.
 
 ### Struktur per domain
-Kode bisnis dikelompokkan per domain di `Modules/<Modul>/` (backend) dan `resources/js/modules/<modul>/` (frontend). `app/` hanya berisi bawaan starter kit: User, auth (Fortify), settings, middleware, dan `Controller` dasar.
+Kode bisnis dikelompokkan per domain di `Modules/<Modul>/` (backend) dan `resources/js/modules/<modul>/` (frontend). `app/` hanya berisi bawaan starter kit (User, auth/Fortify, settings, middleware, `Controller` dasar) dan layar perangkum lintas modul — saat ini `DashboardController`, yang hanya merangkai service modul tanpa menghitung ulang.
 
 | Modul | Isi |
 |---|---|
