@@ -101,6 +101,8 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Halaman | `resources/js/pages/<modul>/index.tsx` | Props bertipe; form `useForm`; URL dari Wayfinder (`@/actions/...`), bukan string |
 | Aksi header | `<PageActions>` | Portal ke slot kanan header (R8) — tombol tetap bisa memakai state halaman |
 | Status order | `components/status-order.tsx` | Badge status bayar & progres kerja (R3) — status bayar & persen DP dari server, tidak dihitung ulang di layar |
+| Aksi status | `PATCH <modul>/{id}/<aksi>` (mis. `orders.advance`, `orders.cancel`) | Transisi status = route sendiri, bukan field di form edit. Langkah berikutnya ditentukan server (`WorkStatus::next()`), layar hanya mengirim "lanjut" |
+| Riwayat anak | Route bersarang (`POST orders/{order}/payments`) + controller sendiri | Pembayaran hanya ditambah, tidak diedit/dihapus. Dialog `components/payment-dialog.tsx` dipakai ulang oleh layar Piutang |
 | Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
 | Test | `tests/Feature/<Model>Test.php` | Auth, render Inertia + props, validasi, aturan bisnis |
 

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\CatalogItemController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderPaymentController;
 use Illuminate\Support\Facades\Route;
 
 // Dashboard internal — "/" tidak punya landing page. Website company profile
@@ -11,6 +13,12 @@ Route::get('/', fn () => to_route('dashboard'))->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::patch('orders/{order}/advance', [OrderController::class, 'advance'])->name('orders.advance');
+    Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::patch('orders/{order}/result-link', [OrderController::class, 'updateResultLink'])->name('orders.result-link');
+    Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])->name('orders.payments.store');
 
     Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update']);
 
