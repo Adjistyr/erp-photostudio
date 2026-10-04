@@ -8,8 +8,8 @@
  * tutup beberapa order berurutan saat menagih tanpa kehilangan posisi scroll.
  */
 
-import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ArrowRight, CalendarDays, Plus } from 'lucide-react';
 import { useState } from 'react';
 import OrderController from '@/actions/App/Http/Controllers/OrderController';
 import {
@@ -21,6 +21,7 @@ import {
     TabelData,
 } from '@/components/data-table';
 import InputError from '@/components/input-error';
+import { PageActions } from '@/components/page-actions';
 import { PaymentDialog } from '@/components/payment-dialog';
 import {
     LineMark,
@@ -65,7 +66,11 @@ import {
     formatTanggal,
     kelasRp,
 } from '@/lib/format';
-import { index as ordersIndex } from '@/routes/orders';
+import {
+    calendar as ordersCalendar,
+    create as ordersCreate,
+    index as ordersIndex,
+} from '@/routes/orders';
 import { BUSINESS_LINES, LINE_LABEL, WORK_STATUS_LABEL } from '@/types/domain';
 import type { BusinessLine } from '@/types/domain';
 import { PAYMENT_METHOD_LABEL, scheduleOf } from '@/types/orders';
@@ -91,6 +96,24 @@ export default function OrdersIndex({ orders }: { orders: OrderRow[] }) {
             <Head title="Order & Booking" />
             <h1 className="sr-only">Order & Booking</h1>
 
+            <PageActions>
+                <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<Link href={ordersCalendar()} />}
+                >
+                    <CalendarDays data-icon="inline-start" />
+                    Kalender
+                </Button>
+                <Button
+                    nativeButton={false}
+                    render={<Link href={ordersCreate()} />}
+                >
+                    <Plus data-icon="inline-start" />
+                    Buat Order
+                </Button>
+            </PageActions>
+
             <div className="flex flex-col gap-6 p-6">
                 <Tabs
                     value={filter}
@@ -111,8 +134,10 @@ export default function OrdersIndex({ orders }: { orders: OrderRow[] }) {
                 </Tabs>
 
                 {visible.length === 0 ? (
-                    // Tombol "Buat Order" menyusul bersama form order (bagian 2).
-                    <KosongTabel kalimat="Belum ada order. Order studio dan event akan muncul di sini." />
+                    <KosongTabel
+                        kalimat="Belum ada order. Order studio dan event akan muncul di sini."
+                        aksi={{ label: 'Buat Order', ke: ordersCreate() }}
+                    />
                 ) : (
                     <TabelData>
                         <TableHeader>
@@ -157,7 +182,7 @@ export default function OrdersIndex({ orders }: { orders: OrderRow[] }) {
                                         <LineMark line={o.business_line} />
                                     </TableCell>
                                     <TableCell
-                                        className="max-w-40 truncate text-muted-foreground"
+                                        className="max-w-36 truncate text-muted-foreground"
                                         title={o.items_summary}
                                     >
                                         {o.items_summary}
