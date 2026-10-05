@@ -152,7 +152,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 
 ## 6. Belum dikerjakan (tahap berikutnya)
 
-- Layar yang belum dipindah dari `web/`: Laporan, Modal & Bagi Hasil, Invoice, Komunikasi.
+- Layar yang belum dipindah dari `web/`: Modal & Bagi Hasil, Invoice, Komunikasi.
 - Penguncian periode: transaksi bertanggal mundur (pembayaran, biaya, aset) masih bisa masuk ke bulan yang sudah tutup dan mengubah bagi hasil bulan itu.
 - Terjemahan Indonesia untuk halaman auth & settings bawaan starter kit, dan pesan validasi Laravel (`lang/id`).
 - `isCurrentOrParentUrl` di `resources/js/hooks/use-current-url.ts` memakai `startsWith` biasa (`/order` cocok dengan `/orderan`) — perlu dibandingkan per segmen saat menu bertambah.

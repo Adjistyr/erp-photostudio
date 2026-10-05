@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     CalendarDays,
+    ChartColumn,
     LayoutDashboard,
     Package,
     Receipt,
@@ -29,6 +30,7 @@ import { index as expensesIndex } from '@/routes/expenses';
 import { index as ordersIndex } from '@/routes/orders';
 import { index as posIndex } from '@/routes/pos';
 import { index as receivablesIndex } from '@/routes/receivables';
+import { profitLoss as reportsIndex } from '@/routes/reports';
 import type { NavGroup } from '@/types';
 
 /**
@@ -77,7 +79,10 @@ const navGroups: NavGroup[] = [
             },
         ],
     },
-    { label: 'Keluaran', items: [] },
+    {
+        label: 'Keluaran',
+        items: [{ title: 'Laporan', href: reportsIndex(), icon: ChartColumn }],
+    },
 ];
 
 export function AppSidebar() {
