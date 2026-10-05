@@ -7,6 +7,7 @@ import {
     ShoppingCart,
     Users,
     Wallet,
+    Wrench,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -21,6 +22,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as assetsIndex } from '@/routes/assets';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as customersIndex } from '@/routes/customers';
 import { index as expensesIndex } from '@/routes/expenses';
@@ -67,6 +69,12 @@ const navGroups: NavGroup[] = [
             { title: 'Customer', href: customersIndex(), icon: Users },
             { title: 'Katalog', href: catalogIndex(), icon: Package },
             { title: 'Biaya', href: expensesIndex(), icon: Receipt },
+            // Data master alat — dirujuk setiap ada servis.
+            {
+                title: 'Aset & Maintenance',
+                href: assetsIndex(),
+                icon: Wrench,
+            },
         ],
     },
     { label: 'Keluaran', items: [] },

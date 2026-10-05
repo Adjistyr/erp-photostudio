@@ -57,6 +57,7 @@ import {
     formatUmurPiutang,
 } from '@/lib/format';
 import { dashboard } from '@/routes';
+import { index as assetsIndex } from '@/routes/assets';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as ordersIndex } from '@/routes/orders';
 import { index as receivablesIndex } from '@/routes/receivables';
@@ -213,7 +214,13 @@ export default function Dashboard(props: Props) {
                                         `${d.asset_name} — ${formatUmurPiutang(d.days_until)}`,
                                 )
                                 .join(' · ')}
-                            .
+                            .{' '}
+                            <Link
+                                href={assetsIndex()}
+                                className="font-medium text-foreground underline underline-offset-2"
+                            >
+                                Buka Aset & Maintenance
+                            </Link>
                         </AlertDescription>
                     </Alert>
                 )}
