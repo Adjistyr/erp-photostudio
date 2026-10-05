@@ -23,6 +23,7 @@ import {
     kelasRp,
 } from '@/lib/format';
 import { ReportNav } from '@/modules/finance/components/report-nav';
+import { index as capitalIndex } from '@/routes/capital';
 import { index as receivablesIndex } from '@/routes/receivables';
 import { profitLoss } from '@/routes/reports';
 import { LINE_COLOR, LINE_LABEL } from '@/types/domain';
@@ -323,6 +324,16 @@ function ProfitShareBlock({
                     laba berikutnya dibagi.
                 </p>
             )}
+            <Button
+                variant="ghost"
+                size="sm"
+                className="self-start"
+                nativeButton={false}
+                render={<Link href={capitalIndex()} />}
+            >
+                Modal & Bagi Hasil
+                <ArrowRight data-icon="inline-end" />
+            </Button>
         </div>
     );
 }
