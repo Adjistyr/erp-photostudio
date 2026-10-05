@@ -6,6 +6,7 @@ use Modules\Asset\Providers\AssetServiceProvider;
 use Modules\Catalog\Providers\CatalogServiceProvider;
 use Modules\Customer\Providers\CustomerServiceProvider;
 use Modules\Expense\Providers\ExpenseServiceProvider;
+use Modules\Finance\Providers\FinanceServiceProvider;
 use Modules\Order\Providers\OrderServiceProvider;
 
 return [
@@ -16,5 +17,6 @@ return [
     CatalogServiceProvider::class,
     CustomerServiceProvider::class,
     ExpenseServiceProvider::class,
+    FinanceServiceProvider::class,
     OrderServiceProvider::class,
 ];
