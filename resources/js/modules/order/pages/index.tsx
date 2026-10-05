@@ -422,6 +422,21 @@ function OrderDetail({
                     >
                         Catat Pembayaran
                     </Button>
+                    {order.invoice_url && (
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={
+                                <a
+                                    href={order.invoice_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                />
+                            }
+                        >
+                            Lihat Invoice
+                        </Button>
+                    )}
                     {order.work_status !== 'cancelled' && (
                         <CancelOrder order={order} />
                     )}

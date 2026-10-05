@@ -127,6 +127,7 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Riwayat anak | Route bersarang (`POST orders/{order}/payments`) + controller sendiri | Pembayaran hanya ditambah, tidak diedit/dihapus. Dialog `PaymentDialog` (`@/modules/order`) dipakai Detail Order dan layar Pembayaran; controller-nya `back()` supaya owner kembali ke layar asal |
 | Item dari katalog | Request memakai trait `Modules\Order\Requests\Concerns\ResolvesCatalogLines` | Klien hanya mengirim `catalog_item_id` + `quantity`; nama, harga, HPP disalin dari katalog di server saat simpan (Form Order, POS) |
 | Aksi tulis lintas tabel | `Modules/<Modul>/Actions/<Aksi>.php` dengan `execute()` (mis. `Finance\Actions\RecordInvestment`) | Satu tempat untuk pencatatan yang dipakai beberapa layar (Catat Investasi + Tambah Aset), dibungkus transaksi oleh pemanggil |
+| Halaman untuk customer (tanpa login) | Route di luar grup `auth`, middleware `signed`, link dari `URL::signedRoute()` (mis. `Order::invoiceUrl()`); halaman tanpa layout admin (kasus di `layout` `app.tsx`) | Id di URL tidak bisa diganti untuk mengintip data lain; jangan pernah membuka data customer lewat route publik tanpa `signed` |
 | Layar per bulan | `?month=YYYY-MM` + `Periods::orCurrent()` di controller, `<MonthNav>` di halaman | Bulan di URL, difilter server; bulan tidak valid jatuh ke bulan berjalan. Total diambil dari service Finance (mis. `ProfitAndLoss`) supaya sama dengan laporan |
 | Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
 | Test | `Modules/<Modul>/Tests/Feature/<Model>Test.php` (namespace `Modules\<Modul>\Tests\Feature`) | Auth, render Inertia + props, validasi, aturan bisnis |
@@ -153,7 +154,8 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 
 ## 6. Belum dikerjakan (tahap berikutnya)
 
-- Layar yang belum dipindah dari `web/`: Invoice, Komunikasi.
+- Layar yang belum dipindah dari `web/`: Komunikasi.
+- Profil studio di invoice (`config/studio.php`) masih data contoh prototype — isi `STUDIO_NAME`, `STUDIO_ADDRESS`, `STUDIO_PHONE`, `STUDIO_BANK_ACCOUNT` di `.env` sebelum invoice dikirim ke customer.
 - Penguncian periode: transaksi bertanggal mundur (pembayaran, biaya, aset) masih bisa masuk ke bulan yang sudah tutup dan mengubah bagi hasil bulan itu.
 - Terjemahan Indonesia untuk halaman auth & settings bawaan starter kit, dan pesan validasi Laravel (`lang/id`).
 - `isCurrentOrParentUrl` di `resources/js/hooks/use-current-url.ts` memakai `startsWith` biasa (`/order` cocok dengan `/orderan`) — perlu dibandingkan per segmen saat menu bertambah.

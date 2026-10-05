@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Order\Controllers\InvoiceController;
 use Modules\Order\Controllers\OrderController;
 use Modules\Order\Controllers\OrderPaymentController;
 use Modules\Order\Controllers\PosController;
@@ -16,8 +17,15 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::patch('orders/{order}/result-link', [OrderController::class, 'updateResultLink'])->name('orders.result-link');
     Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])->name('orders.payments.store');
 
+    Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+
     Route::get('pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('pos', [PosController::class, 'store'])->name('pos.store');
 
     Route::get('receivables', [ReceivableController::class, 'index'])->name('receivables.index');
 });
+
+// Invoice untuk customer: tanpa login, dilindungi tanda tangan URL (signed).
+Route::get('i/{order}', [InvoiceController::class, 'show'])
+    ->middleware(['web', 'signed'])
+    ->name('invoices.public');
