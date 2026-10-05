@@ -77,6 +77,11 @@ composer dev        # php serve + queue + log + vite sekaligus
 ### Tanggal & zona waktu
 Timezone app `Asia/Jakarta`. Tanggal transaksi, jadwal, dan jatuh tempo adalah **tanggal kalender**, bukan instant — simpan sebagai `date` / string `YYYY-MM-DD`, jangan `timestamp` UTC yang dikonversi. Prototype pernah kena bug tanggal bergeser satu hari karena parsing UTC (`web/app/lib/format.ts`).
 
+### Bahasa
+UI dan pesan server berbahasa Indonesia; kode berbahasa Inggris. Pesan validasi, login, dan reset kata sandi di `lang/id/*.php`; string `__()` lain di `lang/id.json`. Nama field di pesan validasi diambil dari `attributes()` tiap Form Request (field bawaan starter kit di `lang/id/validation.php` → `attributes`).
+
+`.env` **wajib** `APP_LOCALE=id` — nilai `.env` mengalahkan default `config/app.php`, dan `.env` bawaan starter kit berisi `en` (semua pesan jadi bahasa Inggris). `phpunit.xml` mengunci `APP_LOCALE=id` supaya test tidak bergantung pada `.env` lokal.
+
 ### Test di PostgreSQL
 `phpunit.xml` dan CI memakai PostgreSQL, bukan SQLite `:memory:` bawaan starter kit. Laporan bulanan bergantung pada fungsi tanggal dan agregasi yang perilakunya beda antar database — bug semacam itu tidak boleh baru ketahuan di produksi.
 
@@ -158,7 +163,6 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 - Blast email butuh konfigurasi SMTP di `.env` (`MAIL_MAILER`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`) — default `log` hanya menulis email ke log.
 - Profil studio di invoice (`config/studio.php`) masih data contoh prototype — isi `STUDIO_NAME`, `STUDIO_ADDRESS`, `STUDIO_PHONE`, `STUDIO_BANK_ACCOUNT` di `.env` sebelum invoice dikirim ke customer.
 - Penguncian periode: transaksi bertanggal mundur (pembayaran, biaya, aset) masih bisa masuk ke bulan yang sudah tutup dan mengubah bagi hasil bulan itu.
-- Terjemahan Indonesia untuk halaman auth & settings bawaan starter kit, dan pesan validasi Laravel (`lang/id`).
 - `isCurrentOrParentUrl` di `resources/js/hooks/use-current-url.ts` memakai `startsWith` biasa (`/order` cocok dengan `/orderan`) — perlu dibandingkan per segmen saat menu bertambah.
 - Logo aplikasi masih logo Laravel (`app-logo-icon.tsx`).
 - Varian layout header (`app-header.tsx`) tidak dipakai dan masih berisi link starter Laravel.
