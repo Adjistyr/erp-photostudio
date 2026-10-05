@@ -49,7 +49,7 @@ export function UserMenuContent({ user }: Props) {
                     }
                 >
                     <Settings className="mr-2" />
-                    Settings
+                    Pengaturan
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -69,7 +69,7 @@ export function UserMenuContent({ user }: Props) {
                 }
             >
                 <LogOut className="mr-2" />
-                Log out
+                Keluar
             </DropdownMenuItem>
         </>
     );

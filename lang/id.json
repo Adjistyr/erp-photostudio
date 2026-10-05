@@ -1,0 +1,18 @@
+{
+    "Profile updated.": "Profil diperbarui.",
+    "Password updated.": "Kata sandi diperbarui.",
+    "The provided password was incorrect.": "Kata sandi salah.",
+    "The provided two factor authentication code was invalid.": "Kode autentikasi dua langkah tidak valid.",
+    "The provided two factor recovery code was invalid.": "Kode pemulihan tidak valid.",
+    "Invalid credential format.": "Format kredensial tidak valid.",
+    "Passkey registration session expired. Please try again.": "Sesi pendaftaran passkey kedaluwarsa. Coba lagi.",
+    "Passkey verification session expired. Please try again.": "Sesi verifikasi passkey kedaluwarsa. Coba lagi.",
+    "The :attribute must be at least :length characters.": ":Attribute minimal :length karakter.",
+    "The :attribute must be at least :length characters and contain at least one number.": ":Attribute minimal :length karakter dan berisi minimal satu angka.",
+    "The :attribute must be at least :length characters and contain at least one special character.": ":Attribute minimal :length karakter dan berisi minimal satu karakter khusus.",
+    "The :attribute must be at least :length characters and contain at least one special character and one number.": ":Attribute minimal :length karakter dan berisi minimal satu karakter khusus dan satu angka.",
+    "The :attribute must be at least :length characters and contain at least one uppercase character.": ":Attribute minimal :length karakter dan berisi minimal satu huruf besar.",
+    "The :attribute must be at least :length characters and contain at least one uppercase character and one number.": ":Attribute minimal :length karakter dan berisi minimal satu huruf besar dan satu angka.",
+    "The :attribute must be at least :length characters and contain at least one uppercase character and one special character.": ":Attribute minimal :length karakter dan berisi minimal satu huruf besar dan satu karakter khusus.",
+    "The :attribute must be at least :length characters and contain at least one uppercase character, one number, and one special character.": ":Attribute minimal :length karakter dan berisi minimal satu huruf besar, satu angka, dan satu karakter khusus."
+}
