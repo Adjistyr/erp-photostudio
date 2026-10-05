@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     CalendarDays,
     ChartColumn,
+    FileText,
     HandCoins,
     LayoutDashboard,
     Package,
@@ -29,6 +30,7 @@ import { index as capitalIndex } from '@/routes/capital';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as customersIndex } from '@/routes/customers';
 import { index as expensesIndex } from '@/routes/expenses';
+import { index as invoicesIndex } from '@/routes/invoices';
 import { index as ordersIndex } from '@/routes/orders';
 import { index as posIndex } from '@/routes/pos';
 import { index as receivablesIndex } from '@/routes/receivables';
@@ -84,6 +86,8 @@ const navGroups: NavGroup[] = [
     {
         label: 'Keluaran',
         items: [
+            // Urutan R8: Invoice, Komunikasi, Laporan, Modal & Bagi Hasil.
+            { title: 'Invoice', href: invoicesIndex(), icon: FileText },
             { title: 'Laporan', href: reportsIndex(), icon: ChartColumn },
             // Setelah Laporan: dibuka sebulan sekali, setelah laba rugi dibaca.
             {

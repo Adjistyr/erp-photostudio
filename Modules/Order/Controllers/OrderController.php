@@ -206,6 +206,8 @@ class OrderController extends Controller
             'location' => $o->location,
             'notes' => $o->notes,
             'result_link' => $o->result_link,
+            // Order batal tidak punya invoice — tidak ditagih lagi.
+            'invoice_url' => $o->isCancelled() ? null : $o->invoiceUrl(),
             'total' => $total,
             'paid' => $o->totalPaid(),
             'balance' => $o->balance(),

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
 use Modules\Order\Enums\PaymentStatus;
@@ -69,6 +70,22 @@ class Order extends Model
         $n = is_string($last) ? (int) substr($last, 4) : 0;
 
         return sprintf('ORD-%04d', $n + 1);
+    }
+
+    /** "ORD-0012" → "INV-0012": satu order = satu invoice, nomornya ikut. */
+    public function invoiceNumber(): string
+    {
+        return 'INV-'.substr($this->number, 4);
+    }
+
+    /**
+     * Link invoice untuk customer — signed URL tanpa kedaluwarsa: bisa dibuka
+     * tanpa login, tapi id di dalamnya tidak bisa diganti untuk mengintip
+     * invoice orang lain. Isinya selalu kondisi terkini (DP → pelunasan).
+     */
+    public function invoiceUrl(): string
+    {
+        return URL::signedRoute('invoices.public', ['order' => $this->id]);
     }
 
     /** @return BelongsTo<Customer, $this> */

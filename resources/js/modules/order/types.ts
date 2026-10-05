@@ -24,6 +24,8 @@ export interface OrderRow {
     location: string | null;
     notes: string | null;
     result_link: string | null;
+    /** Link invoice untuk customer (signed); null = order batal, tidak ditagih. */
+    invoice_url: string | null;
     total: number;
     paid: number;
     balance: number;
