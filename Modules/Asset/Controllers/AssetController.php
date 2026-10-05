@@ -14,12 +14,9 @@ use Modules\Asset\Requests\DisposeAssetRequest;
 use Modules\Asset\Requests\StoreAssetMaintenanceRequest;
 use Modules\Asset\Requests\StoreAssetRequest;
 use Modules\Asset\Requests\UpdateAssetStatusRequest;
-use Modules\Finance\Enums\ContributionDestination;
-use Modules\Finance\Enums\ContributionKind;
+use Modules\Finance\Actions\RecordInvestment;
 use Modules\Finance\Enums\Fund;
-use Modules\Finance\Models\Investment;
 use Modules\Finance\Models\Owner;
-use Modules\Finance\Models\OwnerContribution;
 use Modules\Finance\Services\AssetMaintenance;
 use Modules\Finance\Services\DueMaintenance;
 use Modules\Finance\Services\Funds;
@@ -115,7 +112,7 @@ class AssetController extends Controller
      * transaksi — aset tanpa investasi membuat modal di Bagi Hasil tidak
      * cocok dengan daftar alat, dan sebaliknya.
      */
-    public function store(StoreAssetRequest $request): RedirectResponse
+    public function store(StoreAssetRequest $request, RecordInvestment $recordInvestment): RedirectResponse
     {
         $data = $request->validated();
         $amount = $data['unit_price'] * $data['units'];
@@ -123,23 +120,8 @@ class AssetController extends Controller
         $description = $data['units'] > 1 ? "{$name} × {$data['units']}" : $name;
         $owner = isset($data['paid_by']) ? Owner::findOrFail($request->integer('paid_by')) : null;
 
-        DB::transaction(function () use ($data, $amount, $name, $description, $owner) {
-            $contribution = $owner === null ? null : OwnerContribution::create([
-                'owner_id' => $owner->id,
-                'contributed_on' => $data['purchased_on'],
-                'amount' => $amount,
-                // Aset yang dibayar owner = modal (bukan pinjaman), sama
-                // dengan modal awal alat studio di DemoSeeder.
-                'kind' => ContributionKind::Equity,
-                'destination' => ContributionDestination::Investment,
-                'note' => $description,
-            ]);
-            $investment = Investment::create([
-                'invested_on' => $data['purchased_on'],
-                'description' => $description,
-                'amount' => $amount,
-                'owner_contribution_id' => $contribution?->id,
-            ]);
+        DB::transaction(function () use ($recordInvestment, $data, $amount, $name, $description, $owner) {
+            $investment = $recordInvestment->execute($description, $amount, $data['purchased_on'], $owner);
             Asset::create([
                 'name' => $name,
                 'category' => $data['category'],
