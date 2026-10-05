@@ -163,6 +163,5 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 - Blast email butuh konfigurasi SMTP di `.env` (`MAIL_MAILER`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`) — default `log` hanya menulis email ke log.
 - Profil studio di invoice (`config/studio.php`) masih data contoh prototype — isi `STUDIO_NAME`, `STUDIO_ADDRESS`, `STUDIO_PHONE`, `STUDIO_BANK_ACCOUNT` di `.env` sebelum invoice dikirim ke customer.
 - Penguncian periode: transaksi bertanggal mundur (pembayaran, biaya, aset) masih bisa masuk ke bulan yang sudah tutup dan mengubah bagi hasil bulan itu.
-- `isCurrentOrParentUrl` di `resources/js/hooks/use-current-url.ts` memakai `startsWith` biasa (`/order` cocok dengan `/orderan`) — perlu dibandingkan per segmen saat menu bertambah.
 - Logo aplikasi masih logo Laravel (`app-logo-icon.tsx`).
 - Varian layout header (`app-header.tsx`) tidak dipakai dan masih berisi link starter Laravel.

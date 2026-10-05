@@ -16,7 +16,7 @@ import type { NavGroup } from '@/types';
  * modul yang belum dibangun tidak tampil sebagai label kosong.
  */
 export function NavMain({ groups }: { groups: NavGroup[] }) {
-    const { isCurrentUrl } = useCurrentUrl();
+    const { isCurrentOrParentUrl } = useCurrentUrl();
     const terisi = groups.filter((group) => group.items.length > 0);
 
     return (
@@ -32,7 +32,11 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                             {group.items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
-                                        isActive={isCurrentUrl(item.href)}
+                                        // Sub-halaman (/orders/calendar, /reports/margin) ikut
+                                        // menyalakan menu induknya.
+                                        isActive={isCurrentOrParentUrl(
+                                            item.href,
+                                        )}
                                         tooltip={{ children: item.title }}
                                         render={
                                             <Link href={item.href} prefetch />

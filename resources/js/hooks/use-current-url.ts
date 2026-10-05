@@ -1,5 +1,6 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { usePage } from '@inertiajs/react';
+import { isWithinPath, pathOf } from '@/lib/url';
 import { toUrl } from '@/lib/utils';
 
 export type IsCurrentUrlFn = (
@@ -43,17 +44,12 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
         const urlToCompare = currentUrl ?? currentUrlPath;
         const urlString = toUrl(urlToCheck);
 
-        const comparePath = (path: string): boolean =>
-            startsWith ? urlToCompare.startsWith(path) : path === urlToCompare;
-
-        if (!urlString.startsWith('http')) {
-            return comparePath(urlString);
-        }
-
         try {
-            const absoluteUrl = new URL(urlString);
-
-            return comparePath(absoluteUrl.pathname);
+            // Per segmen (lib/url) — startsWith mentah membuat /order menyala
+            // di /orderan. Query & garis miring di akhir diabaikan.
+            return startsWith
+                ? isWithinPath(urlString, urlToCompare)
+                : pathOf(urlString) === pathOf(urlToCompare);
         } catch {
             return false;
         }
