@@ -5,6 +5,7 @@ import {
     FileText,
     HandCoins,
     LayoutDashboard,
+    MessageSquare,
     Package,
     Receipt,
     ShoppingCart,
@@ -27,6 +28,7 @@ import {
 import { dashboard } from '@/routes';
 import { index as assetsIndex } from '@/routes/assets';
 import { index as capitalIndex } from '@/routes/capital';
+import { index as communicationIndex } from '@/routes/communication';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as customersIndex } from '@/routes/customers';
 import { index as expensesIndex } from '@/routes/expenses';
@@ -88,6 +90,11 @@ const navGroups: NavGroup[] = [
         items: [
             // Urutan R8: Invoice, Komunikasi, Laporan, Modal & Bagi Hasil.
             { title: 'Invoice', href: invoicesIndex(), icon: FileText },
+            {
+                title: 'Komunikasi',
+                href: communicationIndex(),
+                icon: MessageSquare,
+            },
             { title: 'Laporan', href: reportsIndex(), icon: ChartColumn },
             // Setelah Laporan: dibuka sebulan sekali, setelah laba rugi dibaca.
             {
