@@ -102,6 +102,7 @@ interface OrderOption {
     customer_name: string | null;
     service_date: string;
     job_cost: number;
+    cancelled: boolean;
 }
 
 interface Props {
@@ -453,7 +454,7 @@ function ExpenseDialog({
                             <Select
                                 items={orders.map((o) => ({
                                     value: String(o.id),
-                                    label: `${o.number} · ${o.customer_name ?? 'Walk-in'}`,
+                                    label: `${o.number} · ${o.customer_name ?? 'Walk-in'}${o.cancelled ? ' · Batal' : ''}`,
                                 }))}
                                 value={data.order_id}
                                 onValueChange={(v) =>
@@ -477,6 +478,7 @@ function ExpenseDialog({
                                                 {o.number} ·{' '}
                                                 {o.customer_name ?? 'Walk-in'} ·{' '}
                                                 {formatTanggal(o.service_date)}
+                                                {o.cancelled && ' · Batal'}
                                             </SelectItem>
                                         ))}
                                     </SelectGroup>
