@@ -168,3 +168,4 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 - Blast email butuh konfigurasi SMTP di `.env` (`MAIL_MAILER`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`) — default `log` hanya menulis email ke log.
 - Profil studio di invoice (`config/studio.php`) masih data contoh prototype — isi `STUDIO_NAME`, `STUDIO_ADDRESS`, `STUDIO_PHONE`, `STUDIO_BANK_ACCOUNT` di `.env` sebelum invoice dikirim ke customer.
 - Logo aplikasi masih SEMENTARA (ikon kamera di `app-logo-icon.tsx`) — ganti isi komponen itu saat file logo Potrait Time tersedia. Nama di sidebar & judul tab = `APP_NAME` di `.env`.
+- Gap modul operasional (POS, Order, Pembayaran, Katalog, Aset) dari sudut pandang admin & owner dan perbandingan dengan POS lain: `docs/research/analisis-modul-operasional.md` — belum ada yang diimplementasikan; urutan usulan di bagian 7 dokumen itu.
