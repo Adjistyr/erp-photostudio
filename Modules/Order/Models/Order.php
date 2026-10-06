@@ -162,6 +162,17 @@ class Order extends Model
         return $this->materialCost() + (int) $this->jobCosts->sum('amount');
     }
 
+    /**
+     * Margin per order. Order BATAL dihitung dari uang yang sudah diterima
+     * (DP hangus), bukan total order — sisanya tidak akan pernah ditagih,
+     * sama dengan basis kas di Laba Rugi. Diputuskan owner 2026-10-06; tanpa
+     * ini, order batal yang biaya job-nya melebihi DP tampil untung.
+     */
+    public function margin(): int
+    {
+        return ($this->isCancelled() ? $this->totalPaid() : $this->total()) - $this->directCost();
+    }
+
     /** Hari menuju jatuh tempo. Positif = belum jatuh tempo, 0 = hari ini. */
     public function daysUntilDue(CarbonInterface $today): int
     {
