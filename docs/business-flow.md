@@ -44,7 +44,7 @@ Bagian ini yang paling perlu dibawa ke client. Selama belum terjawab, dokumen in
 | 3 | Aturan DP: persentase tetap (mis. 30%) atau nego per deal? | Nego per deal, nominal bebas |
 | 4 | Harga paket jasa: fixed dari katalog atau custom per deal? | Fixed untuk studio, custom untuk event |
 | 5 | Crew (fotografer, videografer, MUA): karyawan tetap atau freelance per job? | **Terjawab:** belum ada crew tetap. Freelance, transport, dan sewa lokasi/alat dicatat per job sebagai biaya langsung — ini inti yang client mau lihat, jadi Biaya Job diprioritaskan |
-| 6 | Kebijakan pembatalan & refund DP? | Belum ada. Order bisa dibatalkan, DP dicatat sebagai hangus |
+| 6 | Kebijakan pembatalan & refund DP? | Belum ada. Order bisa dibatalkan, DP dicatat sebagai hangus. Diputuskan 2026-10-06: margin order batal = uang yang diterima − biaya job (bukan total order), dan biaya job yang sudah keluar boleh dicatat ke order batal |
 | 7 | Laporan pakai basis kas atau akrual? | Basis kas (lihat bagian 7) |
 | 8 | Perlu nomor invoice resmi berurutan untuk pajak? | Belum. Nomor internal saja |
 | 9 | Sesi studio bisa walk-in (customer datang langsung tanpa booking, kalau slot kosong) atau wajib booking dulu? | Bisa walk-in. Ditangani sebagai Order `studio` yang langsung berstatus **Dikerjakan** tanpa melewati **Booking** — tidak butuh flow baru |

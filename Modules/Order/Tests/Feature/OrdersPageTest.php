@@ -99,6 +99,29 @@ class OrdersPageTest extends TestCase
         $this->assertStringContainsString('Batal nikah', $notes);
     }
 
+    public function test_cancelled_order_margin_counts_only_money_received()
+    {
+        // ORD-0008: total 2,5 jt, DP 1 jt, biaya job 1,2 jt. Setelah batal, sisa
+        // 1,5 jt tidak akan pernah ditagih — margin dari DP, bukan dari total.
+        $this->patch(route('orders.cancel', $this->order('ORD-0008')));
+
+        $this->get(route('orders.index'))
+            ->assertInertia(function (Assert $page) {
+                $row = collect($page->toArray()['props']['orders'])->firstWhere('number', 'ORD-0008');
+                $this->assertSame(-200_000, $row['margin']);
+                $this->assertSame(1_200_000, $row['direct_cost']);
+            });
+    }
+
+    public function test_active_order_margin_still_from_order_total()
+    {
+        $this->get(route('orders.index'))
+            ->assertInertia(function (Assert $page) {
+                $row = collect($page->toArray()['props']['orders'])->firstWhere('number', 'ORD-0008');
+                $this->assertSame(2_500_000 - 1_200_000, $row['margin']);
+            });
+    }
+
     public function test_cannot_cancel_twice()
     {
         $this->patch(route('orders.cancel', $this->order('ORD-0004')))->assertSessionHasErrors('work_status');

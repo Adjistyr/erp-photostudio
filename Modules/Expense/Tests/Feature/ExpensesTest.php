@@ -79,8 +79,9 @@ class ExpensesTest extends TestCase
                 ->has('operating_expenses', 3)
                 ->where('totals.job', 3_000_000)
                 ->where('totals.operating', 4_800_000)
-                // Pilihan order: studio & event yang tidak batal.
-                ->has('orders', 7)
+                // Pilihan order: studio & event, termasuk yang batal (ORD-0004) —
+                // biaya yang sudah keluar sebelum batal tetap harus tercatat.
+                ->has('orders', 8)
             );
     }
 
@@ -122,13 +123,22 @@ class ExpensesTest extends TestCase
             ->assertRedirect(route('expenses.index', ['month' => '2026-07']));
     }
 
-    public function test_job_cost_rejected_for_retail_and_cancelled_orders()
+    public function test_job_cost_rejected_for_retail_order()
     {
         // Retail sudah punya HPP bahan dari katalog — biaya job menghitung dua kali.
         $this->storeJob(['order_id' => $this->order('ORD-0010')->id])->assertSessionHasErrors('order_id');
-        $this->storeJob(['order_id' => $this->order('ORD-0004')->id])->assertSessionHasErrors('order_id');
 
         $this->assertSame(6, JobCost::count());
+    }
+
+    public function test_job_cost_allowed_for_cancelled_order()
+    {
+        // Mis. DP sewa lokasi yang sudah dibayar sebelum customer membatalkan:
+        // uangnya keluar, jadi harus tercatat ke order itu.
+        $this->storeJob(['order_id' => $this->order('ORD-0004')->id, 'category' => 'Sewa lokasi'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(150_000, $this->order('ORD-0004')->jobCosts->sum('amount'));
     }
 
     public function test_job_cost_validation()
