@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Finance\Enums\Fund;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Finance\Services\Funds;
 
 /** Pemakaian pos dana — tidak masuk Laba Rugi; saldo tidak boleh minus (Funds). */
@@ -20,7 +21,7 @@ class StoreWithdrawalRequest extends FormRequest
         return [
             'fund' => ['required', Rule::enum(Fund::class)],
             'amount' => ['required', 'integer', 'min:1'],
-            'withdrawn_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'withdrawn_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
             'note' => ['required', 'string', 'max:255'],
         ];
     }

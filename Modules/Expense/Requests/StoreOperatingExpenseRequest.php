@@ -4,6 +4,7 @@ namespace Modules\Expense\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\Finance\Rules\OpenPeriod;
 
 /** Biaya operasional — bulanan, tidak dinisbatkan ke order; masuk setelah laba kotor. */
 class StoreOperatingExpenseRequest extends FormRequest
@@ -17,7 +18,7 @@ class StoreOperatingExpenseRequest extends FormRequest
             'category' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'integer', 'min:1'],
-            'spent_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'spent_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
         ];
     }
 

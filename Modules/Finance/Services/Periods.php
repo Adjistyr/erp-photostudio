@@ -3,6 +3,7 @@
 namespace Modules\Finance\Services;
 
 use Carbon\CarbonImmutable;
+use Modules\Finance\Models\PeriodClosing;
 use Modules\Finance\Models\ProfitShareRule;
 
 /**
@@ -86,15 +87,55 @@ class Periods
     }
 
     /**
-     * Bulan yang sudah TUTUP: dari aturan pertama sampai bulan lalu. Bulan
-     * berjalan belum final — labanya masih berubah tiap ada transaksi.
+     * Bulan yang sudah TUTUP BUKU: dari aturan pertama sampai bulan terakhir
+     * yang ditutup owner. Tutup buku berurutan (lihat nextToClose), jadi
+     * hasilnya selalu rentang tanpa celah. Bulan yang sudah lewat tapi belum
+     * ditutup BELUM final — transaksi telat masih bisa masuk.
      *
      * @return list<string>
      */
     public function closedMonths(): array
     {
         $first = $this->firstMonth();
+        $last = self::lastClosedMonth();
 
-        return $first === null ? [] : self::range($first, self::previous($this->current()));
+        return $first === null || $last === null ? [] : self::range($first, $last);
+    }
+
+    /** Bulan terakhir yang ditutup (dan belum dibuka kembali), null = belum pernah. */
+    public static function lastClosedMonth(): ?string
+    {
+        $last = PeriodClosing::query()->active()->max('month');
+
+        return is_string($last) ? $last : null;
+    }
+
+    /**
+     * Bulan yang boleh ditutup berikutnya: tepat sesudah bulan terakhir yang
+     * ditutup (atau bulan pertama), dan sudah lewat — bulan berjalan belum
+     * selesai. Null = tidak ada yang bisa ditutup sekarang.
+     */
+    public function nextToClose(): ?string
+    {
+        $first = $this->firstMonth();
+        if ($first === null) {
+            return null;
+        }
+        $last = self::lastClosedMonth();
+        $next = $last === null ? $first : self::next($last);
+
+        return $next < $this->current() ? $next : null;
+    }
+
+    /**
+     * Tanggal di bulan yang sudah tutup buku. Termasuk bulan sebelum app
+     * dipakai (sebelum bulan pertama) kalau sudah ada yang ditutup — angka
+     * bulan-bulan itu dari sheet, bukan dari transaksi.
+     */
+    public static function isClosed(string $month): bool
+    {
+        $last = self::lastClosedMonth();
+
+        return $last !== null && $month <= $last;
     }
 }

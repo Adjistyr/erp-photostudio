@@ -4,6 +4,7 @@ namespace Modules\Finance\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\Finance\Rules\OpenPeriod;
 
 /** Investasi di luar alat (renovasi dsb.) — bukan Biaya, tidak masuk Laba Rugi. */
 class StoreInvestmentRequest extends FormRequest
@@ -16,7 +17,7 @@ class StoreInvestmentRequest extends FormRequest
         return [
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'integer', 'min:1'],
-            'invested_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'invested_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
             // null = kas usaha; id owner = setoran modal owner itu.
             'paid_by' => ['nullable', 'integer', 'exists:owners,id'],
         ];

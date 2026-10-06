@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Modules\Finance\Enums\ContributionDestination;
 use Modules\Finance\Enums\ContributionKind;
+use Modules\Finance\Rules\OpenPeriod;
 
 /**
  * Setoran owner — bukan omzet, tidak memengaruhi laba (8.3). Pinjaman bisa
@@ -29,7 +30,7 @@ class StoreContributionRequest extends FormRequest
                 Rule::in(array_map(fn (ContributionDestination $d) => $d->value, self::loanDestinations())),
             ],
             'amount' => ['required', 'integer', 'min:1'],
-            'contributed_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'contributed_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
             'note' => ['nullable', 'string', 'max:255'],
         ];
     }

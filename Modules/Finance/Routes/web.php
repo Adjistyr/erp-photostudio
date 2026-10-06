@@ -15,4 +15,8 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::post('capital/withdrawals', [CapitalController::class, 'storeWithdrawal'])->name('capital.withdrawals.store');
     Route::post('capital/investments', [CapitalController::class, 'storeInvestment'])->name('capital.investments.store');
     Route::post('capital/rules', [CapitalController::class, 'storeRule'])->name('capital.rules.store');
+    Route::post('capital/closings', [CapitalController::class, 'closeMonth'])->name('capital.closings.store');
+    Route::post('capital/closings/{month}/reopen', [CapitalController::class, 'reopenMonth'])
+        ->where('month', '\\d{4}-\\d{2}')
+        ->name('capital.closings.reopen');
 });

@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Modules\Asset\Models\Asset;
+use Modules\Finance\Rules\OpenPeriod;
 
 /**
  * Tambah aset — bentuk input yang di prototype baru dicek di klien
@@ -26,7 +27,7 @@ class StoreAssetRequest extends FormRequest
             'units' => ['required', 'integer', 'min:1', 'max:999'],
             'unit_price' => ['required', 'integer', 'min:1'],
             // Basis kas: pembelian masa depan belum terjadi.
-            'purchased_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'purchased_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
             'maintenance_percent' => ['required', 'integer', 'min:0', 'max:100'],
             'useful_life_months' => ['required', 'integer', 'min:1', 'max:600'],
             'maintenance_interval_months' => ['nullable', 'integer', 'min:1', 'max:120'],

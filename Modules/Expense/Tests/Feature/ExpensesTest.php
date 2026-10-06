@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Expense\Models\JobCost;
 use Modules\Expense\Models\OperatingExpense;
+use Modules\Finance\Models\PeriodClosing;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Order\Models\Order;
 use Tests\TestCase;
@@ -114,6 +115,9 @@ class ExpensesTest extends TestCase
 
     public function test_redirects_to_month_of_the_entry()
     {
+        // Juli dibuka dulu — bulan yang sudah tutup buku menolak transaksi baru.
+        PeriodClosing::query()->delete();
+
         $this->storeJob(['incurred_on' => '2026-07-30'])
             ->assertRedirect(route('expenses.index', ['month' => '2026-07']));
     }

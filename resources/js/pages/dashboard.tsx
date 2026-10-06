@@ -11,6 +11,7 @@ import { Head, Link } from '@inertiajs/react';
 import type { InertiaLinkProps } from '@inertiajs/react';
 import {
     ArrowRight,
+    BookCheck,
     CalendarDays,
     Clock,
     Target,
@@ -58,6 +59,7 @@ import {
 } from '@/lib/format';
 import { dashboard } from '@/routes';
 import { index as assetsIndex } from '@/routes/assets';
+import { index as capitalIndex } from '@/routes/capital';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as ordersIndex } from '@/routes/orders';
 import { index as receivablesIndex } from '@/routes/receivables';
@@ -88,6 +90,8 @@ interface ReceivableRow {
 
 interface Props {
     has_catalog: boolean;
+    /** Bulan lalu yang belum tutup buku → bagi hasilnya belum final. */
+    unclosed_month: string | null;
     today: string;
     month: string;
     bookings_today: BookingRow[];
@@ -169,6 +173,29 @@ export default function Dashboard(props: Props) {
                 </div>
 
                 <BreakEvenCard month={month} {...props.break_even} />
+
+                {/*
+                    Pengingat tutup buku: tanpa ini bagi hasil bulan lalu tidak
+                    pernah final, dan transaksi bulan itu masih bisa berubah.
+                */}
+                {props.unclosed_month && (
+                    <Alert>
+                        <BookCheck />
+                        <AlertTitle>
+                            {formatBulan(props.unclosed_month)} belum tutup buku
+                        </AlertTitle>
+                        <AlertDescription>
+                            Pastikan semua transaksi bulan itu sudah tercatat,
+                            lalu tutup buku supaya bagi hasilnya final.{' '}
+                            <Link
+                                href={capitalIndex()}
+                                className="font-medium text-foreground underline underline-offset-2"
+                            >
+                                Buka Modal & Bagi Hasil
+                            </Link>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {/*
                     Perbandingan yang tidak muncul di kartu mana pun kalau tidak

@@ -20,6 +20,17 @@ import {
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -173,6 +184,11 @@ interface Props {
     }[];
     rules: Rule[];
     next_rule_month: string;
+    /** Bulan yang bisa ditutup berikutnya (berurutan, sudah lewat). */
+    next_to_close: string | null;
+    /** Bulan terakhir yang ditutup — satu-satunya yang bisa dibuka kembali. */
+    last_closed: string | null;
+    closings: Record<string, { closed_at: string; closed_by: string | null }>;
     owners: Owner[];
 }
 
@@ -249,6 +265,10 @@ export default function Capital(props: Props) {
                             <HistoryTab
                                 history={props.history}
                                 owners={props.owners}
+                                currentMonth={props.month}
+                                nextToClose={props.next_to_close}
+                                lastClosed={props.last_closed}
+                                closings={props.closings}
                             />
                         )}
                         {carry &&
@@ -376,9 +396,17 @@ Capital.layout = {
 function HistoryTab({
     history,
     owners,
+    currentMonth,
+    nextToClose,
+    lastClosed,
+    closings,
 }: {
     history: Props['history'];
     owners: Owner[];
+    currentMonth: string;
+    nextToClose: string | null;
+    lastClosed: string | null;
+    closings: Props['closings'];
 }) {
     return (
         <div className="flex flex-col gap-3">
@@ -434,22 +462,157 @@ function HistoryTab({
                                 );
                             })}
                             <TableCell>
-                                {m.final ? (
-                                    <Badge variant="outline">Final</Badge>
-                                ) : (
-                                    <Badge variant="secondary">Berjalan</Badge>
-                                )}
+                                <ClosingStatus
+                                    month={m.month}
+                                    currentMonth={currentMonth}
+                                    final={m.final}
+                                    nextToClose={nextToClose}
+                                    lastClosed={lastClosed}
+                                    closing={closings[m.month]}
+                                />
                             </TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
             </TabelData>
             <p className="text-xs text-muted-foreground">
-                Bulan berjalan masih berubah setiap ada transaksi. Angka jadi
-                final setelah bulan tutup. Yang dihitung di sini adalah hak tiap
-                owner — pencairannya terjadi di luar app.
+                Angka bulan yang belum tutup buku masih berubah setiap ada
+                transaksi. Tutup buku setelah semua transaksi bulan itu tercatat
+                — setelahnya bagi hasil final dan transaksi bertanggal bulan itu
+                ditolak. Yang dihitung di sini adalah hak tiap owner —
+                pencairannya terjadi di luar app.
             </p>
         </div>
+    );
+}
+
+/**
+ * Status tutup buku per bulan. Tutup/buka lewat AlertDialog (R9): yang
+ * dikonfirmasi adalah KONSEKUENSINYA — bagi hasil jadi final, transaksi
+ * bertanggal bulan itu ditolak.
+ */
+function ClosingStatus({
+    month,
+    currentMonth,
+    final,
+    nextToClose,
+    lastClosed,
+    closing,
+}: {
+    month: string;
+    currentMonth: string;
+    final: boolean;
+    nextToClose: string | null;
+    lastClosed: string | null;
+    closing: { closed_at: string; closed_by: string | null } | undefined;
+}) {
+    if (final) {
+        return (
+            <div className="flex items-center gap-2">
+                <Badge
+                    variant="outline"
+                    title={
+                        closing
+                            ? `Ditutup ${formatTanggal(closing.closed_at)}${closing.closed_by ? ` oleh ${closing.closed_by}` : ''}`
+                            : undefined
+                    }
+                >
+                    Tutup buku
+                </Badge>
+                {month === lastClosed && (
+                    <ConfirmClosing
+                        month={month}
+                        action="reopen"
+                        title={`Buka kembali ${formatBulan(month)}?`}
+                        description="Hanya untuk koreksi. Selama terbuka, transaksi bertanggal bulan ini bisa dicatat atau dihapus, dan bagi hasil bulan ini serta sesudahnya bisa berubah. Tutup lagi setelah koreksi selesai."
+                        label="Buka kembali"
+                    />
+                )}
+            </div>
+        );
+    }
+    if (month === nextToClose) {
+        return (
+            <ConfirmClosing
+                month={month}
+                action="close"
+                title={`Tutup buku ${formatBulan(month)}?`}
+                description={`Pastikan semua transaksi ${formatBulan(month)} sudah tercatat. Setelah ditutup, bagi hasil bulan ini final, alokasi dana masuk ke pos dana, dan transaksi bertanggal ${formatBulan(month)} ditolak.`}
+                label="Tutup Buku"
+            />
+        );
+    }
+    // Sudah lewat tapi bukan giliran ditutup (bulan sebelumnya belum ditutup).
+    if (month < currentMonth) {
+        return <Badge variant="outline">Belum tutup buku</Badge>;
+    }
+    return <Badge variant="secondary">Berjalan</Badge>;
+}
+
+function ConfirmClosing({
+    month,
+    action,
+    title,
+    description,
+    label,
+}: {
+    month: string;
+    action: 'close' | 'reopen';
+    title: string;
+    description: string;
+    label: string;
+}) {
+    const form = useForm({ month });
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger
+                render={
+                    <Button
+                        size="sm"
+                        variant={action === 'close' ? 'default' : 'ghost'}
+                    />
+                }
+            >
+                {label}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {description}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <InputError message={form.errors.month} />
+                <AlertDialogFooter>
+                    <AlertDialogCancel render={<Button variant="outline" />}>
+                        Batal
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                        render={
+                            <Button
+                                variant={
+                                    action === 'close'
+                                        ? 'default'
+                                        : 'destructive'
+                                }
+                            />
+                        }
+                        disabled={form.processing}
+                        onClick={() =>
+                            form.post(
+                                action === 'close'
+                                    ? CapitalController.closeMonth().url
+                                    : CapitalController.reopenMonth(month).url,
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        {label}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
 

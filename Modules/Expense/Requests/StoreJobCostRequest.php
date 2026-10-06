@@ -5,6 +5,7 @@ namespace Modules\Expense\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Shared\Enums\BusinessLine;
 
@@ -32,7 +33,7 @@ class StoreJobCostRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'integer', 'min:1'],
             // Basis kas: biaya masa depan belum keluar.
-            'incurred_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'incurred_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
         ];
     }
 

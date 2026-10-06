@@ -18,6 +18,7 @@ use Modules\Finance\Models\Investment;
 use Modules\Finance\Models\OpeningBalance;
 use Modules\Finance\Models\Owner;
 use Modules\Finance\Models\OwnerContribution;
+use Modules\Finance\Models\PeriodClosing;
 use Modules\Finance\Models\ProfitShareRule;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Enums\WorkStatus;
@@ -198,6 +199,10 @@ class DemoSeeder extends Seeder
             'month' => '2026-07', 'revenue' => 10_000_000, 'net_profit' => 1_412_701,
             'source' => 'Sheet HPP & pembagian hasil',
         ]);
+
+        // Juli sudah tutup buku (angkanya dari sheet). Agustus belum — demo
+        // berjalan 26 Agustus, bulan berjalan tidak bisa ditutup.
+        PeriodClosing::create(['month' => '2026-07', 'closed_at' => '2026-08-01 09:00:00']);
 
         // Pinjaman Agung untuk menutup kas Agustus — dilunasi dari laba
         // berikutnya sebelum dibagi (8.5).
