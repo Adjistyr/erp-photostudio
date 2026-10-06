@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Finance\Actions\RecordInvestment;
+use Modules\Finance\Enums\ContributionDestination;
 use Modules\Finance\Enums\ContributionKind;
 use Modules\Finance\Enums\Fund;
 use Modules\Finance\Models\FundWithdrawal;
@@ -22,6 +23,7 @@ use Modules\Finance\Requests\StoreContributionRequest;
 use Modules\Finance\Requests\StoreInvestmentRequest;
 use Modules\Finance\Requests\StoreProfitShareRuleRequest;
 use Modules\Finance\Requests\StoreWithdrawalRequest;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Finance\Services\CapitalRecovery;
 use Modules\Finance\Services\FundEntry;
 use Modules\Finance\Services\Funds;
@@ -35,7 +37,8 @@ use Modules\Shared\Support\Money;
  * Modal & Bagi Hasil (business-flow bagian 8). Semua angka DITURUNKAN dari
  * riwayat (setoran, pemakaian, investasi, aturan) setiap kali dibuka — tidak
  * ada saldo tersimpan yang bisa basi saat biaya bulan lalu diinput telat.
- * Riwayat tidak diedit: koreksi = baris baru.
+ * Riwayat tidak diedit: koreksi = hapus lalu catat ulang (hanya bulan yang
+ * belum tutup buku), atau baris baru untuk aturan rasio.
  */
 class CapitalController extends Controller
 {
@@ -234,10 +237,11 @@ class CapitalController extends Controller
         return to_route('capital.index');
     }
 
-    /** @return list<array{date: string, type: string, description: string, in: int, out: int, balance: int}> */
+    /** @return list<array{withdrawal_id: int|null, date: string, type: string, description: string, in: int, out: int, balance: int}> */
     private function ledger(Funds $funds, Fund $fund): array
     {
         return array_map(fn (FundEntry $e) => [
+            'withdrawal_id' => $e->withdrawalId,
             'date' => $e->date->toDateString(),
             'type' => $e->type->label(),
             'description' => $e->description,
@@ -245,5 +249,51 @@ class CapitalController extends Controller
             'out' => $e->out,
             'balance' => $e->balance,
         ], $funds->ledger($fund));
+    }
+
+    /** Hapus pemakaian dana salah catat — saldo pos dana kembali. */
+    public function destroyWithdrawal(FundWithdrawal $withdrawal): RedirectResponse
+    {
+        OpenPeriod::ensureOpen($withdrawal->withdrawn_on);
+        $withdrawal->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Pemakaian '.mb_strtolower($withdrawal->fund->label()).' '.Money::format($withdrawal->amount).' dihapus.']);
+
+        return back();
+    }
+
+    /**
+     * Hapus setoran salah catat. Ditolak kalau sudah terpakai:
+     * - modal yang membiayai investasi/aset → hapus bersama investasinya;
+     * - pinjaman yang sudah mulai dilunasi → angka pelunasan ikut berubah;
+     * - pinjaman ke pos dana yang uangnya sudah dipakai → saldo dana minus.
+     *
+     * ponytail: cek saldo dana memakai saldo SAAT INI, bukan titik terendah
+     * sejak tanggal pinjaman — sama dengan aturan pemakaian dana.
+     */
+    public function destroyContribution(OwnerContribution $contribution, Funds $funds): RedirectResponse
+    {
+        OpenPeriod::ensureOpen($contribution->contributed_on);
+        if (Investment::where('owner_contribution_id', $contribution->id)->exists()) {
+            throw ValidationException::withMessages(['delete' => 'Setoran ini membiayai investasi/aset — tidak bisa dihapus terpisah dari investasinya.']);
+        }
+        if ($contribution->kind === ContributionKind::Loan) {
+            $remaining = $funds->outstandingLoans()[$contribution->id] ?? 0;
+            if ($remaining < $contribution->amount) {
+                throw ValidationException::withMessages(['delete' => 'Pinjaman ini sudah mulai dilunasi — tidak bisa dihapus.']);
+            }
+            $fund = match ($contribution->destination) {
+                ContributionDestination::MaintenanceFund => Fund::Maintenance,
+                ContributionDestination::ReserveFund => Fund::Reserve,
+                default => null,
+            };
+            if ($fund !== null && $funds->balance($fund) < $contribution->amount) {
+                throw ValidationException::withMessages(['delete' => 'Uang pinjaman ini sudah terpakai dari '.mb_strtolower($fund->label()).' — menghapusnya membuat saldo minus.']);
+            }
+        }
+
+        $contribution->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Setoran '.Money::format($contribution->amount).' dihapus.']);
+
+        return back();
     }
 }

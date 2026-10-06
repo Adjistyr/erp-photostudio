@@ -11,6 +11,7 @@ use Modules\Expense\Models\JobCost;
 use Modules\Expense\Models\OperatingExpense;
 use Modules\Expense\Requests\StoreJobCostRequest;
 use Modules\Expense\Requests\StoreOperatingExpenseRequest;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Finance\Services\Periods;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Order\Models\Order;
@@ -25,7 +26,8 @@ use Modules\Shared\Support\Money;
  * (Prototype menampilkan biaya job semua waktu tapi operasional bulan ini,
  * sehingga "Total keluar" menjumlahkan dua periode berbeda.)
  *
- * Tidak ada edit/hapus: riwayat keuangan tidak diubah (docs/database.md).
+ * Tidak ada edit: salah catat dihapus lalu dicatat ulang, hanya di bulan
+ * yang belum tutup buku (docs/database.md).
  */
 class ExpenseController extends Controller
 {
@@ -122,5 +124,24 @@ class ExpenseController extends Controller
     private function backToMonth(string $date): RedirectResponse
     {
         return to_route('expenses.index', ['month' => substr($date, 0, 7)]);
+    }
+
+    /** Hapus salah catat — hanya di bulan yang belum tutup buku. */
+    public function destroyJobCost(JobCost $jobCost): RedirectResponse
+    {
+        OpenPeriod::ensureOpen($jobCost->incurred_on);
+        $jobCost->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Biaya job '.Money::format($jobCost->amount).' dihapus.']);
+
+        return back();
+    }
+
+    public function destroyOperatingExpense(OperatingExpense $operatingExpense): RedirectResponse
+    {
+        OpenPeriod::ensureOpen($operatingExpense->spent_on);
+        $operatingExpense->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Biaya operasional '.Money::format($operatingExpense->amount).' dihapus.']);
+
+        return back();
     }
 }

@@ -16,6 +16,9 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::patch('orders/{order}/result-link', [OrderController::class, 'updateResultLink'])->name('orders.result-link');
     Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])->name('orders.payments.store');
+    Route::delete('orders/{order}/payments/{payment}', [OrderPaymentController::class, 'destroy'])
+        ->scopeBindings()
+        ->name('orders.payments.destroy');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
 

@@ -74,8 +74,9 @@ Menyimpan nilai turunan sebagai kolom adalah **blocker** — must fix before mer
 - Aturan bagi hasil: perubahan rasio = **baris baru** dengan `effective_month` ≥ bulan berjalan. Validasi di `ProfitSharing::validateRule()`.
 - Aset dilepas (`disposed_on`), **tidak dihapus** — menghapus mengubah alokasi bulan-bulan saat aset masih dimiliki.
 - Harga dan HPP item order **disalin saat transaksi** — perubahan katalog tidak mengubah order lama.
+- Catatan uang (pembayaran, biaya job/operasional, servis aset, pemakaian dana, setoran owner) **tidak diedit**. Koreksi salah catat = **hapus lalu catat ulang** (keputusan 2026-10-06), dan hanya untuk tanggal di bulan yang **belum tutup buku** (`OpenPeriod::ensureOpen()`). Setoran yang sudah terpakai (membiayai investasi, pinjaman mulai dilunasi, uang pos dana sudah dipakai) tidak bisa dihapus.
 
-Mengedit aturan bagi hasil yang sudah dipakai, atau menghapus aset, adalah **blocker** — must fix before merge.
+Mengedit aturan bagi hasil yang sudah dipakai, menghapus aset, atau menghapus/mengubah catatan uang di bulan yang sudah tutup buku adalah **blocker** — must fix before merge.
 
 ### Walk-in tanpa customer
 Order walk-in yang customernya tidak dicatat memakai `customer_id = null`, bukan baris customer "Umum" seperti di prototype. Baris palsu ikut terhitung jumlah customer dan masuk daftar blast.

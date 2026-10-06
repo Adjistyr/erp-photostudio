@@ -17,6 +17,7 @@ use Modules\Asset\Requests\UpdateAssetStatusRequest;
 use Modules\Finance\Actions\RecordInvestment;
 use Modules\Finance\Enums\Fund;
 use Modules\Finance\Models\Owner;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Finance\Services\AssetMaintenance;
 use Modules\Finance\Services\DueMaintenance;
 use Modules\Finance\Services\Funds;
@@ -190,5 +191,15 @@ class AssetController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('assets.index');
+    }
+
+    /** Hapus servis salah catat — biayanya kembali ke dana maintenance, jadwal dihitung ulang. */
+    public function destroyMaintenance(Asset $asset, MaintenanceRecord $maintenance): RedirectResponse
+    {
+        OpenPeriod::ensureOpen($maintenance->performed_on);
+        $maintenance->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Servis {$asset->name} dihapus."]);
+
+        return back();
     }
 }

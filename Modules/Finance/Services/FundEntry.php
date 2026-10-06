@@ -14,5 +14,7 @@ final readonly class FundEntry
         public int $in,
         public int $out,
         public int $balance,
+        /** Id pemakaian dana manual — supaya barisnya bisa dihapus dari layar. */
+        public ?int $withdrawalId = null,
     ) {}
 }

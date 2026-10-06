@@ -13,6 +13,8 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('capital', [CapitalController::class, 'index'])->name('capital.index');
     Route::post('capital/contributions', [CapitalController::class, 'storeContribution'])->name('capital.contributions.store');
     Route::post('capital/withdrawals', [CapitalController::class, 'storeWithdrawal'])->name('capital.withdrawals.store');
+    Route::delete('capital/withdrawals/{withdrawal}', [CapitalController::class, 'destroyWithdrawal'])->name('capital.withdrawals.destroy');
+    Route::delete('capital/contributions/{contribution}', [CapitalController::class, 'destroyContribution'])->name('capital.contributions.destroy');
     Route::post('capital/investments', [CapitalController::class, 'storeInvestment'])->name('capital.investments.store');
     Route::post('capital/rules', [CapitalController::class, 'storeRule'])->name('capital.rules.store');
     Route::post('capital/closings', [CapitalController::class, 'closeMonth'])->name('capital.closings.store');

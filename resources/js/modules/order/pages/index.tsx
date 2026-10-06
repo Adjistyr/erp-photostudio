@@ -12,6 +12,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, Plus } from 'lucide-react';
 import { useState } from 'react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
+import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
 import {
     KELAS_DENSITY,
     KepalaUang,
@@ -20,6 +21,7 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
@@ -328,6 +330,21 @@ function OrderDetail({
                                         </TableCell>
                                         <TableCell className="text-right font-mono">
                                             {formatRp(p.amount)}
+                                        </TableCell>
+                                        <TableCell className="w-10">
+                                            <ConfirmDelete
+                                                url={
+                                                    OrderPaymentController.destroy(
+                                                        {
+                                                            order: order.id,
+                                                            payment: p.id,
+                                                        },
+                                                    ).url
+                                                }
+                                                label={`pembayaran ${p.note}`}
+                                                title={`Hapus ${p.note} ${formatRp(p.amount)}?`}
+                                                description="Status bayar dan sisa tagihan order ini dihitung ulang."
+                                            />
                                         </TableCell>
                                     </TableRow>
                                 ))}
