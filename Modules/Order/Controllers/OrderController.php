@@ -212,7 +212,7 @@ class OrderController extends Controller
             'paid' => $o->totalPaid(),
             'balance' => $o->balance(),
             'direct_cost' => $direct,
-            'margin' => $total - $direct,
+            'margin' => $o->margin(),
             'work_status' => $o->work_status->value,
             'next_status' => $o->work_status->next()?->value,
             'payment_status' => $o->paymentStatus()->value,

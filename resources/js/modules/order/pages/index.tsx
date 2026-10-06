@@ -397,13 +397,24 @@ function OrderDetail({
                         <span>Margin job</span>
                         <span className={`font-mono ${kelasRp(order.margin)}`}>
                             {formatRp(order.margin)}
-                            {order.total > 0 && (
-                                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                    {formatPersen(order.margin / order.total)}
-                                </span>
-                            )}
+                            {order.total > 0 &&
+                                order.work_status !== 'cancelled' && (
+                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                        {formatPersen(
+                                            order.margin / order.total,
+                                        )}
+                                    </span>
+                                )}
                         </span>
                     </div>
+                    {/* Order batal: sisa tagihan tidak akan pernah masuk, jadi
+                        margin dari uang yang diterima — sama dengan Laba Rugi. */}
+                    {order.work_status === 'cancelled' && (
+                        <p className="px-3 pb-1 text-xs text-muted-foreground">
+                            Order batal — dihitung dari uang yang diterima (
+                            {formatRp(order.paid)}), bukan total order.
+                        </p>
+                    )}
                 </Section>
 
                 <ResultLink
