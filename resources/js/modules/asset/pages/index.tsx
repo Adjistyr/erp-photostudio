@@ -23,6 +23,7 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -472,6 +473,7 @@ function AssetSheet({
                                             <TableHead>Jenis</TableHead>
                                             <TableHead>Keterangan</TableHead>
                                             <KepalaUang>Biaya</KepalaUang>
+                                            {!a.disposed_on && <TableHead />}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -489,6 +491,28 @@ function AssetSheet({
                                                     {m.description}
                                                 </TableCell>
                                                 <SelUang nominal={m.cost} />
+                                                {!a.disposed_on && (
+                                                    <TableCell className="w-10">
+                                                        <ConfirmDelete
+                                                            url={
+                                                                AssetController.destroyMaintenance(
+                                                                    {
+                                                                        asset: a.id,
+                                                                        maintenance:
+                                                                            m.id,
+                                                                    },
+                                                                ).url
+                                                            }
+                                                            label={`servis ${m.description}`}
+                                                            title={`Hapus servis ${m.description}?`}
+                                                            description={
+                                                                m.cost > 0
+                                                                    ? `Biaya ${formatRp(m.cost)} kembali ke dana maintenance dan jadwal perawatan dihitung ulang.`
+                                                                    : 'Jadwal perawatan dihitung ulang.'
+                                                            }
+                                                        />
+                                                    </TableCell>
+                                                )}
                                             </TableRow>
                                         ))}
                                     </TableBody>

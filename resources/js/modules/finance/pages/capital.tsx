@@ -17,6 +17,7 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -122,6 +123,8 @@ interface Owner {
 }
 
 interface LedgerEntry {
+    /** Id pemakaian dana manual — hanya baris ini yang bisa dihapus di sini. */
+    withdrawal_id: number | null;
     date: string;
     type: string;
     description: string;
@@ -685,6 +688,7 @@ function ContributionsTab({
                             <TableHead>Keterangan</TableHead>
                             <KepalaUang>Nominal</KepalaUang>
                             <KepalaUang>Sisa pinjaman</KepalaUang>
+                            <TableHead />
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -724,6 +728,18 @@ function ContributionsTab({
                                 ) : (
                                     <SelUang nominal={c.remaining} />
                                 )}
+                                <TableCell className="w-10">
+                                    <ConfirmDelete
+                                        url={
+                                            CapitalController.destroyContribution(
+                                                c.id,
+                                            ).url
+                                        }
+                                        label={`setoran ${c.note}`}
+                                        title={`Hapus setoran ${c.owner_name} ${formatRp(c.amount)}?`}
+                                        description="Hanya bisa kalau belum terpakai: pinjaman belum mulai dilunasi, dan modal tidak membiayai investasi/aset."
+                                    />
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -769,6 +785,7 @@ function LedgerSection({
                             <KepalaUang>Masuk</KepalaUang>
                             <KepalaUang>Keluar</KepalaUang>
                             <KepalaUang>Saldo</KepalaUang>
+                            <TableHead />
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -786,6 +803,22 @@ function LedgerSection({
                                 <SelUang nominal={e.in} />
                                 <SelUang nominal={e.out === 0 ? 0 : -e.out} />
                                 <SelUang nominal={e.balance} />
+                                <TableCell className="w-10">
+                                    {/* Hanya pemakaian manual; alokasi, pinjaman, dan
+                                        servis aset dihapus dari sumbernya masing-masing. */}
+                                    {e.withdrawal_id !== null && (
+                                        <ConfirmDelete
+                                            url={
+                                                CapitalController.destroyWithdrawal(
+                                                    e.withdrawal_id,
+                                                ).url
+                                            }
+                                            label={`pemakaian ${e.description}`}
+                                            title={`Hapus pemakaian ${formatRp(e.out)}?`}
+                                            description={`${e.description}. Saldo ${FUND_LABEL[fund].toLowerCase()} kembali.`}
+                                        />
+                                    )}
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

@@ -5,7 +5,9 @@ namespace Modules\Order\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\Payment;
 use Modules\Order\Requests\StorePaymentRequest;
 use Modules\Shared\Support\Money;
 
@@ -41,6 +43,20 @@ class OrderPaymentController extends Controller
         // Kembali ke layar asal: dialog ini dipakai Detail Order DAN layar
         // Pembayaran — owner yang menagih dari daftar piutang tidak boleh
         // dilempar ke daftar order.
+        return back();
+    }
+
+    /**
+     * Hapus pembayaran salah catat (keputusan owner 2026-10-06): hapus lalu
+     * catat ulang, bukan edit. Status bayar ikut turun sendiri — turunan.
+     */
+    public function destroy(Order $order, Payment $payment): RedirectResponse
+    {
+        OpenPeriod::ensureOpen($payment->paid_on);
+        $payment->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Pembayaran {$payment->note} ".Money::format($payment->amount)." untuk {$order->number} dihapus."]);
+
         return back();
     }
 }

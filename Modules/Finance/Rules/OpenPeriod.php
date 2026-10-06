@@ -2,8 +2,10 @@
 
 namespace Modules\Finance\Rules;
 
+use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Validation\ValidationException;
 use Modules\Finance\Services\Periods;
 
 /**
@@ -22,7 +24,24 @@ class OpenPeriod implements ValidationRule
         }
         $month = substr($value, 0, 7);
         if (Periods::isClosed($month)) {
-            $fail(Periods::label($month).' sudah tutup buku — buka kembali di Modal & Bagi Hasil kalau perlu koreksi.');
+            $fail(self::message($month));
+        }
+    }
+
+    public static function message(string $month): string
+    {
+        return Periods::label($month).' sudah tutup buku — buka kembali di Modal & Bagi Hasil kalau perlu koreksi.';
+    }
+
+    /**
+     * Untuk aksi HAPUS: catatan bertanggal di bulan tertutup tidak boleh
+     * dihapus — sama dengan aturan saat mencatat. Error di kunci `delete`.
+     */
+    public static function ensureOpen(CarbonInterface $date): void
+    {
+        $month = $date->format('Y-m');
+        if (Periods::isClosed($month)) {
+            throw ValidationException::withMessages(['delete' => self::message($month)]);
         }
     }
 }

@@ -31,6 +31,7 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { MonthNav } from '@/components/month-nav';
 import { PageActions } from '@/components/page-actions';
@@ -196,6 +197,7 @@ export default function ExpensesIndex(props: Props) {
                                         <TableHead>Kategori</TableHead>
                                         <TableHead>Keterangan</TableHead>
                                         <KepalaUang>Nominal</KepalaUang>
+                                        <TableHead />
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -218,6 +220,18 @@ export default function ExpensesIndex(props: Props) {
                                                 {j.description}
                                             </TableCell>
                                             <SelUang nominal={j.amount} />
+                                            <TableCell className="w-10">
+                                                <ConfirmDelete
+                                                    url={
+                                                        ExpenseController.destroyJobCost(
+                                                            j.id,
+                                                        ).url
+                                                    }
+                                                    label={`biaya ${j.description}`}
+                                                    title={`Hapus biaya job ${formatRp(j.amount)}?`}
+                                                    description={`${j.order_number} · ${j.description}. Margin order dan lini dihitung ulang.`}
+                                                />
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -232,6 +246,7 @@ export default function ExpensesIndex(props: Props) {
                                         <TableCell className="text-right font-mono font-semibold">
                                             {formatRp(totals.job)}
                                         </TableCell>
+                                        <TableCell />
                                     </TableRow>
                                 </TableFooter>
                             </TabelData>
@@ -263,6 +278,7 @@ export default function ExpensesIndex(props: Props) {
                                         <TableHead>Kategori</TableHead>
                                         <TableHead>Keterangan</TableHead>
                                         <KepalaUang>Nominal</KepalaUang>
+                                        <TableHead />
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -278,6 +294,18 @@ export default function ExpensesIndex(props: Props) {
                                                 {e.description}
                                             </TableCell>
                                             <SelUang nominal={e.amount} />
+                                            <TableCell className="w-10">
+                                                <ConfirmDelete
+                                                    url={
+                                                        ExpenseController.destroyOperatingExpense(
+                                                            e.id,
+                                                        ).url
+                                                    }
+                                                    label={`biaya ${e.description}`}
+                                                    title={`Hapus biaya operasional ${formatRp(e.amount)}?`}
+                                                    description={`${e.category} · ${e.description}. Laba bersih bulan ini dihitung ulang.`}
+                                                />
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -292,6 +320,7 @@ export default function ExpensesIndex(props: Props) {
                                         <TableCell className="text-right font-mono font-semibold">
                                             {formatRp(totals.operating)}
                                         </TableCell>
+                                        <TableCell />
                                     </TableRow>
                                 </TableFooter>
                             </TabelData>

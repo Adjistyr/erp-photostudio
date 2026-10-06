@@ -133,7 +133,7 @@ class Funds
         }
 
         foreach (FundWithdrawal::where('fund', $fund)->orderBy('id')->get() as $w) {
-            $events[] = ['date' => $w->withdrawn_on, 'order' => self::ORDER_MOVEMENT, 'movement' => [FundEntryType::Withdrawal, $w->note, 0, $w->amount]];
+            $events[] = ['date' => $w->withdrawn_on, 'order' => self::ORDER_MOVEMENT, 'movement' => [FundEntryType::Withdrawal, $w->note, 0, $w->amount, $w->id]];
         }
 
         foreach ($this->sharing->history($this->periods->current()) as $month) {
@@ -154,9 +154,9 @@ class Funds
         /** @var list<OpenLoan> $debts */
         $debts = [];
         $balance = 0;
-        $add = function (CarbonImmutable $date, FundEntryType $type, string $desc, int $in, int $out) use (&$entries, &$balance) {
+        $add = function (CarbonImmutable $date, FundEntryType $type, string $desc, int $in, int $out, ?int $withdrawalId = null) use (&$entries, &$balance) {
             $balance += $in - $out;
-            $entries[] = new FundEntry($date, $type, $desc, $in, $out, $balance);
+            $entries[] = new FundEntry($date, $type, $desc, $in, $out, $balance, $withdrawalId);
         };
 
         foreach ($events as $e) {
@@ -167,7 +167,7 @@ class Funds
                 $add($e['date'], FundEntryType::OwnerLoan, $c->owner->name.' — '.$c->note, $c->amount, 0);
             } elseif (isset($e['movement'])) {
                 [$type, $desc, $in, $out] = $e['movement'];
-                $add($e['date'], $type, $desc, $in, $out);
+                $add($e['date'], $type, $desc, $in, $out, $e['movement'][4] ?? null);
             } else {
                 [$month, $amount] = $e['allocation'];
                 // Bulan rugi tidak punya alokasi cadangan — baris Rp 0 cuma noise.
