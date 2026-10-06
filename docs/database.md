@@ -30,6 +30,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Pemakaian dana | `FundWithdrawal` · `fund_withdrawals` |
 | Aset | `Asset` · `assets` |
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
+| Tutup buku (bulan final) | `PeriodClosing` · `period_closings` (`month`, `closed_at/by`, `reopened_at/by`; aktif = belum dibuka kembali) |
 | Template pesan (promo, terima kasih, reminder H-1) | `MessageTemplate` · `message_templates` (`key` primary; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`) |
 | Laba rugi | `Modules\Finance\Services\ProfitAndLoss` |
 | Piutang | `Modules\Finance\Services\Receivables` |

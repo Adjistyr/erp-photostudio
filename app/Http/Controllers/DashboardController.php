@@ -42,6 +42,8 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'has_catalog' => CatalogItem::query()->exists(),
+            // Bulan lalu yang belum tutup buku → bagi hasilnya belum final.
+            'unclosed_month' => $periods->nextToClose(),
             'today' => $today->toDateString(),
             'month' => $month,
             'bookings_today' => $bookings->map(fn (Order $o) => [

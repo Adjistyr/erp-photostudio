@@ -77,6 +77,11 @@ composer dev        # php serve + queue + log + vite sekaligus
 ### Tanggal & zona waktu
 Timezone app `Asia/Jakarta`. Tanggal transaksi, jadwal, dan jatuh tempo adalah **tanggal kalender**, bukan instant — simpan sebagai `date` / string `YYYY-MM-DD`, jangan `timestamp` UTC yang dikonversi. Prototype pernah kena bug tanggal bergeser satu hari karena parsing UTC (`web/app/lib/format.ts`).
 
+### Tutup buku
+Bulan "final" = sudah **ditutup owner** di Modal & Bagi Hasil, bukan sekadar lewat kalender (keputusan 2026-10-06). Tutup buku berurutan (bulan paling awal yang belum ditutup, hanya bulan yang sudah lewat); hanya bulan terakhir yang ditutup yang bisa dibuka kembali — riwayat buka/tutup di `period_closings`, tidak dihapus. `Periods::closedMonths()` dan `ProfitShareMonth::final` membaca tabel itu, jadi dana, balik modal, dan pelunasan pinjaman mengikuti.
+
+**Setiap tanggal baru yang memengaruhi uang wajib memakai aturan `Modules\Finance\Rules\OpenPeriod`** — tanpa itu transaksi bisa masuk ke bulan yang bagi hasilnya sudah final. Tanggal yang selalu hari ini (DP di Buat Order, POS) tidak perlu: bulan berjalan tidak bisa ditutup.
+
 ### Bahasa
 UI dan pesan server berbahasa Indonesia; kode berbahasa Inggris. Pesan validasi, login, dan reset kata sandi di `lang/id/*.php`; string `__()` lain di `lang/id.json`. Nama field di pesan validasi diambil dari `attributes()` tiap Form Request (field bawaan starter kit di `lang/id/validation.php` → `attributes`).
 
@@ -162,5 +167,4 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 - Semua layar prototype `web/` sudah dipindah — folder `web/` bisa dihapus setelah client menyetujui.
 - Blast email butuh konfigurasi SMTP di `.env` (`MAIL_MAILER`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`) — default `log` hanya menulis email ke log.
 - Profil studio di invoice (`config/studio.php`) masih data contoh prototype — isi `STUDIO_NAME`, `STUDIO_ADDRESS`, `STUDIO_PHONE`, `STUDIO_BANK_ACCOUNT` di `.env` sebelum invoice dikirim ke customer.
-- Penguncian periode: transaksi bertanggal mundur (pembayaran, biaya, aset) masih bisa masuk ke bulan yang sudah tutup dan mengubah bagi hasil bulan itu.
 - Logo aplikasi masih SEMENTARA (ikon kamera di `app-logo-icon.tsx`) — ganti isi komponen itu saat file logo Potrait Time tersedia. Nama di sidebar & judul tab = `APP_NAME` di `.env`.

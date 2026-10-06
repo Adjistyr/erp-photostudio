@@ -4,7 +4,9 @@ namespace Modules\Finance\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Finance\Actions\RecordInvestment;
@@ -14,6 +16,7 @@ use Modules\Finance\Models\FundWithdrawal;
 use Modules\Finance\Models\Investment;
 use Modules\Finance\Models\Owner;
 use Modules\Finance\Models\OwnerContribution;
+use Modules\Finance\Models\PeriodClosing;
 use Modules\Finance\Models\ProfitShareRule;
 use Modules\Finance\Requests\StoreContributionRequest;
 use Modules\Finance\Requests\StoreInvestmentRequest;
@@ -117,6 +120,14 @@ class CapitalController extends Controller
             // Default dialog Ubah Rasio: bulan sesudah aturan terakhir/bulan
             // berjalan — rasio biasanya disepakati untuk periode berikutnya.
             'next_rule_month' => Periods::next($base),
+            // Tutup buku: bulan yang bisa ditutup berikutnya & yang bisa dibuka kembali.
+            'next_to_close' => $periods->nextToClose(),
+            'last_closed' => Periods::lastClosedMonth(),
+            'closings' => PeriodClosing::active()->with('closer')->get()
+                ->mapWithKeys(fn (PeriodClosing $c) => [$c->month => [
+                    'closed_at' => $c->closed_at->toDateString(),
+                    'closed_by' => $c->closer?->name,
+                ]])->all(),
             'owners' => Owner::orderBy('id')->get(['id', 'name']),
         ]);
     }
@@ -182,6 +193,43 @@ class CapitalController extends Controller
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Rasio baru berlaku mulai '.Periods::label($month).'. Bulan sebelumnya tetap memakai rasio lama.']);
+
+        return to_route('capital.index');
+    }
+
+    /**
+     * Tutup buku satu bulan — hanya bulan yang memang giliran ditutup
+     * (berurutan, sudah lewat). Bulan dikirim eksplisit, bukan "tutup yang
+     * berikutnya", supaya klik ganda tidak menutup dua bulan sekaligus.
+     */
+    public function closeMonth(Request $request, Periods $periods): RedirectResponse
+    {
+        $month = $request->string('month')->value();
+        if ($month !== $periods->nextToClose()) {
+            throw ValidationException::withMessages(['month' => $periods->nextToClose() === null
+                ? 'Belum ada bulan yang bisa ditutup — bulan berjalan baru bisa ditutup setelah selesai.'
+                : 'Tutup buku berurutan: tutup '.Periods::label((string) $periods->nextToClose()).' dulu.']);
+        }
+
+        PeriodClosing::create(['month' => $month, 'closed_at' => now(), 'closed_by' => $request->user()?->id]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => Periods::label($month).' ditutup — bagi hasilnya sekarang final.']);
+
+        return to_route('capital.index');
+    }
+
+    /**
+     * Buka kembali — hanya bulan terakhir yang ditutup, supaya bulan-bulan
+     * tutup tetap berurutan tanpa celah. Baris tidak dihapus: siapa & kapan
+     * membuka tercatat.
+     */
+    public function reopenMonth(Request $request, string $month): RedirectResponse
+    {
+        if ($month !== Periods::lastClosedMonth()) {
+            throw ValidationException::withMessages(['month' => 'Hanya bulan terakhir yang ditutup yang bisa dibuka kembali.']);
+        }
+
+        PeriodClosing::active()->where('month', $month)->update(['reopened_at' => now(), 'reopened_by' => $request->user()?->id]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => Periods::label($month).' dibuka kembali — tutup lagi setelah koreksi selesai.']);
 
         return to_route('capital.index');
     }

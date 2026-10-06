@@ -126,7 +126,7 @@ class ProfitSharing
             ->orderBy('id')
             ->get();
         $openings = OpeningBalance::pluck('net_profit', 'month');
-        $current = $this->periods->current();
+        $closed = $this->periods->closedMonths();
 
         $history = [];
         $loss = 0;
@@ -158,7 +158,8 @@ class ProfitSharing
                 month: $month,
                 netProfit: $net,
                 fromOpeningBalance: $fromOpening,
-                final: $month < $current,
+                // Final = sudah tutup buku, bukan sekadar lewat kalender.
+                final: in_array($month, $closed, true),
                 accumulatedLossBefore: $lossBefore,
                 outstandingLoansBefore: $loansBefore,
                 outstandingLoans: $this->sumLoans($loans),

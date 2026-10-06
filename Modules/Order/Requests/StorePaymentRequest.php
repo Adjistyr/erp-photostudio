@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Models\Order;
 use Modules\Shared\Support\Money;
@@ -26,7 +27,7 @@ class StorePaymentRequest extends FormRequest
             'amount' => ['required', 'integer', 'min:1'],
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             // Pembayaran masa depan bukan uang diterima — basis kas.
-            'paid_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'paid_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
         ];
     }
 

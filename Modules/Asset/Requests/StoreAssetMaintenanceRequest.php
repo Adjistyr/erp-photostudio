@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Asset\Enums\MaintenanceType;
 use Modules\Asset\Requests\Concerns\ResolvesRouteAsset;
+use Modules\Finance\Rules\OpenPeriod;
 use Modules\Finance\Services\Funds;
 
 /**
@@ -26,7 +27,7 @@ class StoreAssetMaintenanceRequest extends FormRequest
         return [
             'type' => ['required', Rule::enum(MaintenanceType::class)],
             'description' => ['required', 'string', 'max:255'],
-            'performed_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$this->asset()->purchased_on->toDateString()],
+            'performed_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$this->asset()->purchased_on->toDateString(), new OpenPeriod],
             // 0 sah — perawatan yang dikerjakan sendiri.
             'cost' => ['required', 'integer', 'min:0'],
         ];

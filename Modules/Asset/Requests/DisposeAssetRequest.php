@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Asset\Models\Asset;
 use Modules\Asset\Requests\Concerns\ResolvesRouteAsset;
+use Modules\Finance\Rules\OpenPeriod;
 
 /**
  * Lepas aset (dijual / rusak total / hilang) — aset TIDAK dihapus: alokasi
@@ -24,7 +25,7 @@ class DisposeAssetRequest extends FormRequest
     {
         return [
             'reason' => ['required', Rule::in(Asset::DISPOSAL_REASONS)],
-            'disposed_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$this->asset()->purchased_on->toDateString()],
+            'disposed_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$this->asset()->purchased_on->toDateString(), new OpenPeriod],
             'sale_price' => ['nullable', 'integer', 'min:0'],
         ];
     }
