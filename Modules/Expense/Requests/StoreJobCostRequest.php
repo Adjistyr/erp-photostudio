@@ -5,7 +5,6 @@ namespace Modules\Expense\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Modules\Order\Enums\WorkStatus;
 use Modules\Shared\Enums\BusinessLine;
 
 /**
@@ -13,7 +12,9 @@ use Modules\Shared\Enums\BusinessLine;
  *
  * Retail ditolak: biaya bahannya sudah tercatat sebagai HPP dari katalog,
  * membebaninya biaya job lagi menghitung biaya yang sama dua kali. Order
- * batal ditolak mengikuti prototype (web/app/routes/biaya.tsx).
+ * batal BOLEH (diputuskan owner 2026-10-06, beda dari prototype): biaya
+ * yang sudah keluar sebelum customer membatalkan — mis. DP sewa lokasi —
+ * tetap uang keluar dan harus tercatat ke order itu.
  */
 class StoreJobCostRequest extends FormRequest
 {
@@ -24,8 +25,7 @@ class StoreJobCostRequest extends FormRequest
     {
         return [
             'order_id' => ['required', 'integer', Rule::exists('orders', 'id')
-                ->whereIn('business_line', [BusinessLine::Studio->value, BusinessLine::Event->value])
-                ->whereNot('work_status', WorkStatus::Cancelled->value)],
+                ->whereIn('business_line', [BusinessLine::Studio->value, BusinessLine::Event->value])],
             // Kategori = saran di layar, bukan daftar tertutup: bisnis baru
             // jalan sebulan dan kategorinya masih akan berubah.
             'category' => ['required', 'string', 'max:100'],

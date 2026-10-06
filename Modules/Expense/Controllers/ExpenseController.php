@@ -13,7 +13,6 @@ use Modules\Expense\Requests\StoreJobCostRequest;
 use Modules\Expense\Requests\StoreOperatingExpenseRequest;
 use Modules\Finance\Services\Periods;
 use Modules\Finance\Services\ProfitAndLoss;
-use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
@@ -43,10 +42,10 @@ class ExpenseController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        // Pilihan order di dialog: studio & event yang belum batal.
+        // Pilihan order di dialog: studio & event, termasuk yang batal —
+        // biaya yang sudah keluar sebelum batal tetap dicatat ke ordernya.
         $orders = Order::with(['customer', 'items', 'jobCosts'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
-            ->where('work_status', '!=', WorkStatus::Cancelled)
             ->orderByDesc('number')
             ->get();
 
@@ -82,6 +81,7 @@ class ExpenseController extends Controller
                 'customer_name' => $o->customer?->name,
                 'service_date' => $o->service_date->toDateString(),
                 'job_cost' => (int) $o->jobCosts->sum('amount'),
+                'cancelled' => $o->isCancelled(),
             ])->values()->all(),
         ]);
     }
