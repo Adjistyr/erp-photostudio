@@ -1,3 +1,5 @@
+import { formatRp, formatTanggal } from '@/lib/format';
+import { WORK_STATUS_LABEL } from '@/types/domain';
 import type { BusinessLine, PaymentStatus, WorkStatus } from '@/types/domain';
 
 export type PaymentMethod = 'cash' | 'transfer' | 'qris';
@@ -55,6 +57,8 @@ export interface OrderRow {
         amount: number;
         created_by_name: string | null;
     }[];
+    /** Riwayat perubahan, terbaru dulu. */
+    events: OrderEvent[];
 }
 
 /** "26 Agu 2026, 14:00" — jam hanya kalau order punya jam (retail tidak). */
@@ -75,3 +79,125 @@ export type PayableOrder = Pick<
     OrderRow,
     'id' | 'number' | 'customer_name' | 'total' | 'paid' | 'balance'
 >;
+
+// ---------------------------------------------------------------------------
+// Riwayat perubahan order (order_events) — label & kalimat untuk Sheet detail.
+// ---------------------------------------------------------------------------
+
+export type OrderEventType =
+    | 'created'
+    | 'updated'
+    | 'advanced'
+    | 'reverted'
+    | 'cancelled'
+    | 'payment_recorded'
+    | 'payment_deleted'
+    | 'result_link'
+    | 'refunded';
+
+export interface OrderEvent {
+    id: number;
+    type: OrderEventType;
+    /** Hanya field yang berubah; null untuk tipe tanpa rincian. */
+    changes: Record<string, { from: unknown; to: unknown }> | null;
+    /** null = sistem/seeder atau user sudah dihapus. */
+    user_name: string | null;
+    /** ISO 8601. */
+    at: string;
+}
+
+export const ORDER_EVENT_LABEL: Record<OrderEventType, string> = {
+    created: 'Dibuat',
+    updated: 'Diubah',
+    advanced: 'Status maju',
+    reverted: 'Status dikembalikan',
+    cancelled: 'Dibatalkan',
+    payment_recorded: 'Pembayaran dicatat',
+    payment_deleted: 'Pembayaran dihapus',
+    result_link: 'Link hasil',
+    refunded: 'Pengembalian',
+};
+
+export const ORDER_FIELD_LABEL: Record<string, string> = {
+    service_date: 'Tanggal',
+    service_time: 'Jam',
+    location: 'Lokasi',
+    notes: 'Catatan',
+    customer_id: 'Customer',
+    work_status: 'Status',
+    result_link: 'Link hasil',
+    amount: 'Jumlah',
+    method: 'Metode',
+    paid_on: 'Tanggal bayar',
+    total: 'Total',
+    reason: 'Alasan',
+};
+
+/** `changes` berisi unknown — objek tak terduga jadi JSON, bukan "[object Object]". */
+function keTeks(v: unknown): string {
+    return typeof v === 'string' ||
+        typeof v === 'number' ||
+        typeof v === 'boolean'
+        ? String(v)
+        : JSON.stringify(v);
+}
+
+/** Nilai `changes` menurut field-nya; null → "—", yang tak dikenal apa adanya. */
+function nilaiField(field: string, v: unknown): string {
+    if (v === null || v === undefined || v === '') return '—';
+    switch (field) {
+        case 'amount':
+        case 'total':
+            return formatRp(Number(v));
+        case 'service_date':
+        case 'paid_on':
+            return formatTanggal(keTeks(v));
+        case 'work_status':
+            return WORK_STATUS_LABEL[v as WorkStatus] ?? keTeks(v);
+        case 'method':
+            return PAYMENT_METHOD_LABEL[v as PaymentMethod] ?? keTeks(v);
+        default:
+            return keTeks(v);
+    }
+}
+
+/**
+ * Satu kalimat per event: "Status Booking → Dijadwalkan", "Pembayaran
+ * Rp 500.000 (Transfer) dicatat". Field yang tidak dikenal (tipe baru dari
+ * refund, dsb.) tetap tampil sebagai `key: from → to` — jangan pernah crash
+ * karena bentuk data lama/baru.
+ */
+export function describeEvent(e: OrderEvent): string {
+    const c = e.changes ?? {};
+    const ada = (k: string) => k in c;
+    const dari = (k: string) => nilaiField(k, c[k]?.from);
+    const ke = (k: string) => nilaiField(k, c[k]?.to);
+
+    switch (e.type) {
+        case 'created':
+            return `Dibuat · ${ke('work_status')}${ada('total') ? ` · Total ${ke('total')}` : ''}`;
+        case 'advanced':
+        case 'reverted':
+            return `Status ${dari('work_status')} → ${ke('work_status')}`;
+        case 'cancelled':
+            return `Dibatalkan${ada('reason') && c.reason?.to ? ` — ${ke('reason')}` : ''}`;
+        case 'payment_recorded':
+            return `Pembayaran ${ke('amount')} (${ke('method')}) dicatat`;
+        case 'payment_deleted':
+            return `Pembayaran ${dari('amount')} (${dari('method')}) dihapus`;
+        case 'result_link':
+            return c.result_link?.from
+                ? 'Link hasil diubah'
+                : 'Link hasil ditambahkan';
+        default: {
+            const frasa = Object.keys(c).map((k) =>
+                k in ORDER_FIELD_LABEL
+                    ? `${ORDER_FIELD_LABEL[k]} ${dari(k)} → ${ke(k)}`
+                    : `${k}: ${dari(k)} → ${ke(k)}`,
+            );
+            return frasa.length > 0
+                ? frasa.join(' · ')
+                : ORDER_EVENT_LABEL[e.type];
+        }
+    }
+}

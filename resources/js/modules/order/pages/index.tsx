@@ -67,6 +67,7 @@ import {
     formatPersen,
     formatRp,
     formatTanggal,
+    formatTanggalJam,
     kelasRp,
 } from '@/lib/format';
 import {
@@ -76,7 +77,11 @@ import {
 } from '@/routes/orders';
 import { BUSINESS_LINES, LINE_LABEL, WORK_STATUS_LABEL } from '@/types/domain';
 import type { BusinessLine } from '@/types/domain';
-import { PAYMENT_METHOD_LABEL, scheduleOf } from '@/modules/order/types';
+import {
+    PAYMENT_METHOD_LABEL,
+    describeEvent,
+    scheduleOf,
+} from '@/modules/order/types';
 import type { OrderRow } from '@/modules/order/types';
 
 type Filter = 'all' | BusinessLine;
@@ -439,6 +444,26 @@ function OrderDetail({
                             Order batal — dihitung dari uang yang diterima (
                             {formatRp(order.paid)}), bukan total order.
                         </p>
+                    )}
+                </Section>
+
+                {/* Riwayat dari order_events — siapa mengubah apa, kapan. Paling
+                    bawah: dibaca saat ada yang janggal, bukan tiap buka. */}
+                <Section title="Riwayat">
+                    {order.events.length === 0 ? (
+                        <p className="px-3 py-1 text-xs text-muted-foreground">
+                            Belum ada riwayat.
+                        </p>
+                    ) : (
+                        <ul className="flex flex-col gap-1 px-3 py-1 text-xs text-muted-foreground">
+                            {order.events.map((e) => (
+                                <li key={e.id}>
+                                    {formatTanggalJam(new Date(e.at))} ·{' '}
+                                    {e.user_name ?? 'Sistem'} ·{' '}
+                                    {describeEvent(e)}
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </Section>
 

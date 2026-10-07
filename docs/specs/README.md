@@ -28,7 +28,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 
 | Item | File | Est. | Prasyarat | Status |
 |---|---|---|---|---|
-| 0.1 `created_by` | `0.1-created-by.md` | S | — | ⬜ |
+| 0.1 `created_by` | `0.1-created-by.md` | S | — | ✅ #30 |
 | 0.2 Riwayat perubahan order | `0.2-order-events.md` | M | — | ⬜ |
 | 1.1 Kategori jasa terstruktur | `1.1-kategori-jasa.md` | S | — | ⬜ |
 | 1.2 Edit order | `1.2-edit-order.md` | L | 0.1, 0.2 | ⬜ |

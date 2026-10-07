@@ -26,6 +26,19 @@ class Payment extends Model
 {
     use RecordsCreator;
 
+    /**
+     * Isi `changes` event riwayat untuk pembayaran dicatat/dihapus — bentuk
+     * yang sama dari tiga pemanggil (Buat Order, POS, Catat Bayar).
+     *
+     * @return array<string, array{from: mixed, to: mixed}>
+     */
+    public static function eventChanges(self $payment, bool $recorded): array
+    {
+        $values = ['amount' => $payment->amount, 'method' => $payment->method->value, 'paid_on' => $payment->paid_on->toDateString()];
+
+        return array_map(fn ($v) => $recorded ? ['from' => null, 'to' => $v] : ['from' => $v, 'to' => null], $values);
+    }
+
     protected function casts(): array
     {
         return [
