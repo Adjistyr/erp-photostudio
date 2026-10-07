@@ -158,7 +158,7 @@ Transaksi paling sederhana dan paling sering. Target: selesai di bawah 30 detik.
 1. Customer datang dan pilih barang.
 2. Owner buka layar POS, pilih item dari katalog, isi qty.
 3. Total dihitung otomatis. Owner bisa isi diskon kalau ada.
-4. **Customer bersifat opsional.** Kalau customer mau nomornya dicatat (misal untuk dikirimi file foto), isi nama + HP. Kalau tidak, transaksi tetap bisa disimpan atas nama "Umum".
+4. **Customer bersifat opsional.** Kalau customer mau nomornya dicatat (misal untuk dikirimi file foto), isi nama + HP (HP hanya tersimpan bersama nama; nama yang sudah ada dicocokkan lewat HP dulu, lalu nama). Kalau tidak, transaksi tetap bisa disimpan sebagai walk-in tanpa customer.
 5. Pilih metode bayar → simpan.
 6. Nota bisa dicetak atau dikirim via WA (opsional).
 
