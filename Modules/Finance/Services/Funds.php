@@ -132,8 +132,8 @@ class Funds
             }
         }
 
-        foreach (FundWithdrawal::where('fund', $fund)->orderBy('id')->get() as $w) {
-            $events[] = ['date' => $w->withdrawn_on, 'order' => self::ORDER_MOVEMENT, 'movement' => [FundEntryType::Withdrawal, $w->note, 0, $w->amount, $w->id]];
+        foreach (FundWithdrawal::with('creator')->where('fund', $fund)->orderBy('id')->get() as $w) {
+            $events[] = ['date' => $w->withdrawn_on, 'order' => self::ORDER_MOVEMENT, 'movement' => [FundEntryType::Withdrawal, $w->note, 0, $w->amount, $w->id, $w->creator?->name]];
         }
 
         foreach ($this->sharing->history($this->periods->current()) as $month) {
@@ -154,9 +154,9 @@ class Funds
         /** @var list<OpenLoan> $debts */
         $debts = [];
         $balance = 0;
-        $add = function (CarbonImmutable $date, FundEntryType $type, string $desc, int $in, int $out, ?int $withdrawalId = null) use (&$entries, &$balance) {
+        $add = function (CarbonImmutable $date, FundEntryType $type, string $desc, int $in, int $out, ?int $withdrawalId = null, ?string $createdByName = null) use (&$entries, &$balance) {
             $balance += $in - $out;
-            $entries[] = new FundEntry($date, $type, $desc, $in, $out, $balance, $withdrawalId);
+            $entries[] = new FundEntry($date, $type, $desc, $in, $out, $balance, $withdrawalId, $createdByName);
         };
 
         foreach ($events as $e) {
@@ -167,7 +167,7 @@ class Funds
                 $add($e['date'], FundEntryType::OwnerLoan, $c->owner->name.' — '.$c->note, $c->amount, 0);
             } elseif (isset($e['movement'])) {
                 [$type, $desc, $in, $out] = $e['movement'];
-                $add($e['date'], $type, $desc, $in, $out, $e['movement'][4] ?? null);
+                $add($e['date'], $type, $desc, $in, $out, $e['movement'][4] ?? null, $e['movement'][5] ?? null);
             } else {
                 [$month, $amount] = $e['allocation'];
                 // Bulan rugi tidak punya alokasi cadangan — baris Rp 0 cuma noise.

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Modules\Order\Enums\PaymentMethod;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * @property int $id
@@ -20,9 +21,11 @@ use Modules\Order\Enums\PaymentMethod;
  * @property Carbon|null $updated_at
  * @property-read Order $order
  */
-#[Fillable(['order_id', 'paid_on', 'amount', 'method', 'note'])]
+#[Fillable(['order_id', 'paid_on', 'amount', 'method', 'note', 'created_by'])]
 class Payment extends Model
 {
+    use RecordsCreator;
+
     protected function casts(): array
     {
         return [

@@ -20,6 +20,7 @@ import {
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
+import { RecordedBy } from '@/components/recorded-by';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
     AlertDialog,
@@ -125,6 +126,8 @@ interface Owner {
 interface LedgerEntry {
     /** Id pemakaian dana manual — hanya baris ini yang bisa dihapus di sini. */
     withdrawal_id: number | null;
+    /** Hanya pemakaian manual; null untuk baris yang dihitung. */
+    created_by_name: string | null;
     date: string;
     type: string;
     description: string;
@@ -176,6 +179,7 @@ interface Props {
         note: string;
         amount: number;
         remaining: number | null;
+        created_by_name: string | null;
     }[];
     ledgers: Record<FundKey, LedgerEntry[]>;
     investments: {
@@ -184,6 +188,7 @@ interface Props {
         description: string;
         amount: number;
         funded_by: string;
+        created_by_name: string | null;
     }[];
     rules: Rule[];
     next_rule_month: string;
@@ -719,6 +724,7 @@ function ContributionsTab({
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">
                                     {c.note}
+                                    <RecordedBy name={c.created_by_name} />
                                 </TableCell>
                                 <SelUang nominal={c.amount} />
                                 {c.remaining === null ? (
@@ -799,6 +805,7 @@ function LedgerSection({
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">
                                     {e.description}
+                                    <RecordedBy name={e.created_by_name} />
                                 </TableCell>
                                 <SelUang nominal={e.in} />
                                 <SelUang nominal={e.out === 0 ? 0 : -e.out} />
@@ -862,6 +869,7 @@ function InvestmentsTab({
                                 </TableCell>
                                 <TableCell className="font-medium">
                                     {i.description}
+                                    <RecordedBy name={i.created_by_name} />
                                 </TableCell>
                                 <TableCell>{i.funded_by}</TableCell>
                                 <SelUang nominal={i.amount} />

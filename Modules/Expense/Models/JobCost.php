@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Modules\Order\Models\Order;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * Biaya langsung satu order — fee crew, transport, sewa (business-flow 3).
@@ -22,9 +23,11 @@ use Modules\Order\Models\Order;
  * @property Carbon|null $updated_at
  * @property-read Order $order
  */
-#[Fillable(['order_id', 'incurred_on', 'category', 'description', 'amount'])]
+#[Fillable(['order_id', 'incurred_on', 'category', 'description', 'amount', 'created_by'])]
 class JobCost extends Model
 {
+    use RecordsCreator;
+
     protected function casts(): array
     {
         return [

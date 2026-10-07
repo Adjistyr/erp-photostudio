@@ -43,7 +43,7 @@ class AssetController extends Controller
     {
         $month = $this->periods->current();
         $today = today()->toImmutable();
-        $assets = Asset::with(['investment.contribution.owner', 'maintenances'])
+        $assets = Asset::with(['investment.contribution.owner', 'maintenances.creator'])
             ->orderByRaw('disposed_on IS NOT NULL') // dilepas di bawah — tetap tampil sebagai riwayat
             ->orderBy('id')
             ->get();
@@ -98,6 +98,7 @@ class AssetController extends Controller
                         'type' => $m->type->value,
                         'description' => $m->description,
                         'cost' => $m->cost,
+                        'created_by_name' => $m->creator?->name,
                     ])->values()->all(),
                 ];
             })->values()->all(),

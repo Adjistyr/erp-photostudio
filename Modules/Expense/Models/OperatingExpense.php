@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * Biaya operasional bulanan — tidak dinisbatkan ke order mana pun.
@@ -18,9 +19,11 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['spent_on', 'category', 'description', 'amount'])]
+#[Fillable(['spent_on', 'category', 'description', 'amount', 'created_by'])]
 class OperatingExpense extends Model
 {
+    use RecordsCreator;
+
     protected function casts(): array
     {
         return [

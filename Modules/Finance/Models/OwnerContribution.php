@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Modules\Finance\Enums\ContributionDestination;
 use Modules\Finance\Enums\ContributionKind;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * Uang dari owner ke usaha — bukan omzet, tidak memengaruhi laba (8.3).
@@ -24,9 +25,11 @@ use Modules\Finance\Enums\ContributionKind;
  * @property Carbon|null $updated_at
  * @property-read Owner $owner
  */
-#[Fillable(['owner_id', 'contributed_on', 'amount', 'kind', 'destination', 'note'])]
+#[Fillable(['owner_id', 'contributed_on', 'amount', 'kind', 'destination', 'note', 'created_by'])]
 class OwnerContribution extends Model
 {
+    use RecordsCreator;
+
     protected function casts(): array
     {
         return [

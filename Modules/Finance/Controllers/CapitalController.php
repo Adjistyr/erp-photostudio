@@ -84,7 +84,7 @@ class CapitalController extends Controller
                 'entitled' => $c->entitled,
                 'ratio' => $c->ratio,
             ], $sharing->capitalRecovery()),
-            'contributions' => OwnerContribution::with('owner')
+            'contributions' => OwnerContribution::with(['owner', 'creator'])
                 ->orderByDesc('contributed_on')->orderByDesc('id')->get()
                 ->map(fn (OwnerContribution $c) => [
                     'id' => $c->id,
@@ -95,12 +95,13 @@ class CapitalController extends Controller
                     'note' => $c->note,
                     'amount' => $c->amount,
                     'remaining' => $c->kind === ContributionKind::Loan ? ($loans[$c->id] ?? 0) : null,
+                    'created_by_name' => $c->creator?->name,
                 ])->values()->all(),
             'ledgers' => [
                 'maintenance' => $this->ledger($funds, Fund::Maintenance),
                 'reserve' => $this->ledger($funds, Fund::Reserve),
             ],
-            'investments' => Investment::with('contribution.owner')
+            'investments' => Investment::with(['contribution.owner', 'creator'])
                 ->orderByDesc('invested_on')->orderByDesc('id')->get()
                 ->map(fn (Investment $i) => [
                     'id' => $i->id,
@@ -108,6 +109,7 @@ class CapitalController extends Controller
                     'description' => $i->description,
                     'amount' => $i->amount,
                     'funded_by' => $i->contribution !== null ? "Modal {$i->contribution->owner->name}" : 'Kas usaha',
+                    'created_by_name' => $i->creator?->name,
                 ])->values()->all(),
             'rules' => ProfitShareRule::with('owners')->orderByDesc('effective_month')->get()
                 ->map(fn (ProfitShareRule $r) => [
@@ -237,11 +239,13 @@ class CapitalController extends Controller
         return to_route('capital.index');
     }
 
-    /** @return list<array{withdrawal_id: int|null, date: string, type: string, description: string, in: int, out: int, balance: int}> */
+    /** @return list<array{withdrawal_id: int|null, created_by_name: string|null, date: string, type: string, description: string, in: int, out: int, balance: int}> */
     private function ledger(Funds $funds, Fund $fund): array
     {
         return array_map(fn (FundEntry $e) => [
             'withdrawal_id' => $e->withdrawalId,
+            // Hanya pemakaian manual yang punya pencatat; alokasi & pelunasan dihitung.
+            'created_by_name' => $e->createdByName,
             'date' => $e->date->toDateString(),
             'type' => $e->type->label(),
             'description' => $e->description,

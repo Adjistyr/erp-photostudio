@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Modules\Asset\Enums\MaintenanceType;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * Riwayat perawatan/perbaikan. Biaya > 0 diambil dari dana maintenance.
@@ -22,9 +23,11 @@ use Modules\Asset\Enums\MaintenanceType;
  * @property Carbon|null $updated_at
  * @property-read Asset $asset
  */
-#[Fillable(['asset_id', 'performed_on', 'type', 'description', 'cost'])]
+#[Fillable(['asset_id', 'performed_on', 'type', 'description', 'cost', 'created_by'])]
 class AssetMaintenance extends Model
 {
+    use RecordsCreator;
+
     protected function casts(): array
     {
         return [
