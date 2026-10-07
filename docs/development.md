@@ -161,6 +161,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 8. **Lebar Sheet harus ditulis dengan prefix varian bawaan.** Sheet base-maia memasang `data-[side=right]:sm:max-w-sm`; `sm:max-w-2xl` biasa kalah spesifisitas dan tidak di-merge tailwind-merge — panel tetap sempit, isi terpotong. Pakai `data-[side=right]:sm:max-w-2xl`.
 9. **`.env` dibaca setelah env proses.** Variabel yang sudah ada di environment (mis. di CI) mengalahkan `.env` — dipakai CI untuk kredensial PostgreSQL.
 10. **`SelectValue` Base UI menampilkan nilai mentah.** Kalau value-nya id (`"7"`), trigger menampilkan `7`, bukan nama. Berikan `items={[{ value, label }]}` ke `<Select>` supaya trigger menampilkan label (contoh: `modules/order/pages/create.tsx`). Select yang value-nya sudah berupa teks tampil (sumber customer) tidak perlu.
+11. **Kategori jasa adalah enum `ServiceCategory`** (`Studio` / `Event` / `Add-on`), divalidasi di `CatalogItemRequest` dan disaring server di `OrderController@create`. Jangan membandingkan string literal di klien — impor tipe/konstanta dari `@/types/domain` (`categoryMatches()` di `modules/order/lib/category.ts`). Jasa data lama dengan kategori lain ditandai di Katalog, bukan dipetakan otomatis (K2).
 
 ---
 

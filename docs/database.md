@@ -8,7 +8,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 
 | Istilah bisnis (dokumen/UI) | Kode (model · tabel) |
 |---|---|
-| Katalog (produk / jasa) | `CatalogItem` · `catalog_items` (`type`: product / service) |
+| Katalog (produk / jasa) | `CatalogItem` · `catalog_items` (`type`: product / service; `category` produk teks bebas, jasa wajib `ServiceCategory` Studio/Event/Add-on) |
 | HPP bahan per unit | `unit_cost` (null untuk jasa) |
 | Customer | `Customer` · `customers` |
 | Order | `Order` · `orders` |

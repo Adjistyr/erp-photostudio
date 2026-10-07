@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Modules\Catalog\Enums\CatalogItemType;
+use Modules\Catalog\Enums\ServiceCategory;
 
 /** Tambah & edit item katalog — aturannya sama untuk keduanya. */
 class CatalogItemRequest extends FormRequest
@@ -26,7 +27,11 @@ class CatalogItemRequest extends FormRequest
             // tidak tetap, dicatat per job. Ditolak, bukan diam-diam dibuang,
             // supaya isian yang salah kelihatan.
             'unit_cost' => [Rule::requiredIf($isProduct), Rule::prohibitedIf(! $isProduct), 'nullable', 'integer', 'min:0'],
-            'category' => ['nullable', 'string', 'max:100'],
+            // Kategori JASA menentukan di form order mana paket muncul — dikunci ke
+            // enum; kategori produk tetap bebas (tidak ada layar yang membacanya).
+            'category' => $isProduct
+                ? ['nullable', 'string', 'max:100']
+                : ['required', Rule::in(ServiceCategory::values())],
         ];
     }
 
@@ -42,6 +47,16 @@ class CatalogItemRequest extends FormRequest
             'unit_cost' => 'HPP bahan',
             'category' => 'kategori',
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        $pesan = 'Kategori jasa harus Studio, Event, atau Add-on — menentukan di mana paket muncul saat Buat Order.';
+
+        return ['category.in' => $pesan, 'category.required' => $pesan];
     }
 
     /**

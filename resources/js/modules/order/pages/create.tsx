@@ -31,10 +31,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
 import { create as ordersCreate, index as ordersIndex } from '@/routes/orders';
+import { categoryMatches } from '@/modules/order/lib/category';
+import type { OrderType } from '@/modules/order/lib/category';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod } from '@/modules/order/types';
-
-type OrderType = 'studio' | 'event';
+import type { ServiceCategory } from '@/types/domain';
 
 const METHODS: PaymentMethod[] = ['cash', 'transfer', 'qris'];
 
@@ -48,7 +49,7 @@ interface CatalogOption {
     id: number;
     name: string;
     price: number;
-    category: string;
+    category: ServiceCategory;
 }
 
 interface ItemRow {
@@ -67,16 +68,6 @@ interface OrderForm {
     items: ItemRow[];
     dp: string;
     dp_method: PaymentMethod;
-}
-
-/**
- * Paket studio dan paket event dipisah berdasarkan kategori katalog, bukan
- * daftar id keras: paket baru di Katalog ikut muncul tanpa mengubah kode.
- * Add-on tersedia di keduanya.
- */
-function categoryMatches(c: CatalogOption, type: OrderType): boolean {
-    if (c.category === 'Add-on') return true;
-    return type === 'studio' ? c.category === 'Studio' : c.category === 'Event';
 }
 
 export default function OrdersCreate({
@@ -103,7 +94,7 @@ export default function OrdersCreate({
     const rowErrors: Record<string, string | undefined> = errors;
 
     const services = catalog.filter((c) =>
-        categoryMatches(c, data.business_line),
+        categoryMatches(c.category, data.business_line),
     );
     const itemOf = (id: string) => catalog.find((c) => String(c.id) === id);
 

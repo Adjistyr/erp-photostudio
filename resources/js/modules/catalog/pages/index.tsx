@@ -20,6 +20,7 @@ import {
 } from '@/components/data-table';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,8 +39,21 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     TableBody,
     TableCell,
@@ -51,6 +65,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
 import { index as catalogIndex } from '@/routes/catalog';
+import type { ServiceCategory } from '@/types/domain';
 
 type CatalogItemType = 'product' | 'service';
 
@@ -64,18 +79,32 @@ export interface CatalogItem {
     unit_cost: number | null;
     category: string;
     is_active: boolean;
+    /** Jasa berkategori di luar ServiceCategory — tidak muncul di Buat Order. */
+    unknown_category: boolean;
+}
+
+interface ServiceCategoryOption {
+    value: ServiceCategory;
+    label: string;
 }
 
 const FILTER = ['all', 'product', 'service'] as const;
 type Filter = (typeof FILTER)[number];
 
-export default function CatalogIndex({ items }: { items: CatalogItem[] }) {
+export default function CatalogIndex({
+    items,
+    service_categories,
+}: {
+    items: CatalogItem[];
+    service_categories: ServiceCategoryOption[];
+}) {
     const [filter, setFilter] = useState<Filter>('all');
     /** null = dialog tertutup · 'new' = tambah · CatalogItem = edit item itu. */
     const [editing, setEditing] = useState<CatalogItem | 'new' | null>(null);
 
     const visible =
         filter === 'all' ? items : items.filter((i) => i.type === filter);
+    const tersesat = items.filter((i) => i.unknown_category).length;
 
     const toggleActive = (item: CatalogItem) => {
         router.patch(
@@ -110,6 +139,18 @@ export default function CatalogIndex({ items }: { items: CatalogItem[] }) {
                         <TabsTrigger value="service">Jasa</TabsTrigger>
                     </TabsList>
                 </Tabs>
+
+                {tersesat > 0 && (
+                    <Alert variant="destructive">
+                        <AlertTitle>
+                            {tersesat} jasa tidak muncul di Buat Order
+                        </AlertTitle>
+                        <AlertDescription>
+                            Kategorinya tidak dikenal. Buka Edit dan pilih
+                            Studio, Event, atau Add-on.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {visible.length === 0 ? (
                     <KosongTabel
@@ -159,7 +200,16 @@ export default function CatalogIndex({ items }: { items: CatalogItem[] }) {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {item.category}
+                                        {item.unknown_category ? (
+                                            <Badge
+                                                variant="destructive"
+                                                title="Tidak muncul di Buat Order — ubah kategorinya"
+                                            >
+                                                {item.category} · tidak dikenal
+                                            </Badge>
+                                        ) : (
+                                            item.category
+                                        )}
                                     </TableCell>
                                     <SelUang nominal={item.price} />
                                     {/*
@@ -266,6 +316,7 @@ export default function CatalogIndex({ items }: { items: CatalogItem[] }) {
                 <ItemDialog
                     key={editing === 'new' ? 'new' : editing.id}
                     item={editing === 'new' ? null : editing}
+                    serviceCategories={service_categories}
                     onClose={() => setEditing(null)}
                 />
             )}
@@ -299,9 +350,11 @@ interface ItemForm {
 /** Satu dialog untuk tambah DAN edit (R9: tambah/edit item katalog → Dialog). */
 function ItemDialog({
     item,
+    serviceCategories,
     onClose,
 }: {
     item: CatalogItem | null;
+    serviceCategories: ServiceCategoryOption[];
     onClose: () => void;
 }) {
     const form = useForm<ItemForm>({
@@ -319,7 +372,9 @@ function ItemDialog({
     const complete =
         data.name.trim() !== '' &&
         price > 0 &&
-        (data.type === 'service' || data.unit_cost !== '');
+        (data.type === 'service'
+            ? data.category !== ''
+            : data.unit_cost !== '');
 
     const submit = () => {
         // Jasa tidak membawa HPP sama sekali — server menolaknya.
@@ -357,10 +412,13 @@ function ItemDialog({
                             onValueChange={(v) => {
                                 const t = TYPES.find((x) => x === v[0]);
                                 if (!t) return;
+                                // Kategori ikut direset: teks bebas produk
+                                // tidak boleh terbawa jadi kategori jasa.
                                 setData((d) => ({
                                     ...d,
                                     type: t,
                                     unit_cost: '',
+                                    category: '',
                                 }));
                             }}
                         >
@@ -390,25 +448,60 @@ function ItemDialog({
                         <InputError message={errors.name} />
                     </Field>
 
-                    <Field>
-                        <FieldLabel htmlFor="category">
-                            Kategori{' '}
-                            <span className="text-muted-foreground">
-                                — opsional
-                            </span>
-                        </FieldLabel>
-                        <Input
-                            id="category"
-                            placeholder={
-                                data.type === 'product' ? 'Cetak' : 'Studio'
-                            }
-                            value={data.category}
-                            onChange={(e) =>
-                                setData('category', e.target.value)
-                            }
-                        />
-                        <InputError message={errors.category} />
-                    </Field>
+                    {data.type === 'service' ? (
+                        <Field>
+                            <FieldLabel htmlFor="category">Kategori</FieldLabel>
+                            {/* `items` supaya trigger menampilkan label (gotcha #10). */}
+                            <Select
+                                items={serviceCategories}
+                                value={data.category}
+                                onValueChange={(v) =>
+                                    setData('category', v ?? '')
+                                }
+                            >
+                                <SelectTrigger
+                                    id="category"
+                                    aria-invalid={Boolean(errors.category)}
+                                >
+                                    <SelectValue placeholder="Pilih kategori" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {serviceCategories.map((c) => (
+                                            <SelectItem
+                                                key={c.value}
+                                                value={c.value}
+                                            >
+                                                {c.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <FieldDescription>
+                                Menentukan di mana paket muncul saat Buat Order.
+                            </FieldDescription>
+                            <InputError message={errors.category} />
+                        </Field>
+                    ) : (
+                        <Field>
+                            <FieldLabel htmlFor="category">
+                                Kategori{' '}
+                                <span className="text-muted-foreground">
+                                    — opsional
+                                </span>
+                            </FieldLabel>
+                            <Input
+                                id="category"
+                                placeholder="Cetak"
+                                value={data.category}
+                                onChange={(e) =>
+                                    setData('category', e.target.value)
+                                }
+                            />
+                            <InputError message={errors.category} />
+                        </Field>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <Field>

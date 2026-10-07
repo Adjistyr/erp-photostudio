@@ -52,3 +52,17 @@ export const WORK_STATUS_LABEL: Record<WorkStatus, string> = {
 
 /** Diturunkan server dari pembayaran — tidak pernah diinput (bagian 4). */
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
+
+/**
+ * Kategori JASA katalog — menentukan di form order mana paket muncul
+ * (Studio → sesi studio, Event → event, Add-on → keduanya). Enum di server:
+ * `Modules\Catalog\Enums\ServiceCategory`. Jangan bandingkan string literal
+ * di komponen — impor dari sini.
+ */
+export type ServiceCategory = 'Studio' | 'Event' | 'Add-on';
+
+export const SERVICE_CATEGORIES: ServiceCategory[] = [
+    'Studio',
+    'Event',
+    'Add-on',
+];

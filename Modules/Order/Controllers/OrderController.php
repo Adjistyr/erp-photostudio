@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Catalog\Enums\CatalogItemType;
+use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
@@ -83,6 +84,8 @@ class OrderController extends Controller
             'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
             'catalog' => CatalogItem::where('is_active', true)
                 ->where('type', CatalogItemType::Service)
+                // Aturan "paket muncul di form mana" ada di server, bukan tersembunyi di klien.
+                ->whereIn('category', ServiceCategory::values())
                 ->orderBy('name')
                 ->get(['id', 'name', 'price', 'category']),
         ]);

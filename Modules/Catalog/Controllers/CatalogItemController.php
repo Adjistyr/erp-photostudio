@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Catalog\Requests\CatalogItemRequest;
 
@@ -26,7 +27,14 @@ class CatalogItemController extends Controller
             'items' => CatalogItem::query()
                 ->orderBy('type')
                 ->orderBy('id')
-                ->get(['id', 'name', 'type', 'price', 'unit_cost', 'category', 'is_active']),
+                ->get()
+                ->map(fn (CatalogItem $i) => [
+                    'id' => $i->id, 'name' => $i->name, 'type' => $i->type->value, 'price' => $i->price,
+                    'unit_cost' => $i->unit_cost, 'category' => $i->category, 'is_active' => $i->is_active,
+                    // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
+                    'unknown_category' => ! $i->hasKnownServiceCategory(),
+                ])->values()->all(),
+            'service_categories' => array_map(fn (ServiceCategory $c) => ['value' => $c->value, 'label' => $c->label()], ServiceCategory::cases()),
         ]);
     }
 

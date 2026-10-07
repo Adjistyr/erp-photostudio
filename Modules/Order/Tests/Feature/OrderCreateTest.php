@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\PaymentStatus;
@@ -67,6 +68,16 @@ class OrderCreateTest extends TestCase
                 ->has('catalog', 4)
                 ->where('catalog.0.name', 'Add-on Editing Lanjutan')
             );
+    }
+
+    public function test_create_page_excludes_services_with_unknown_category()
+    {
+        // Data lama yang lolos sebelum kategori jasa dikunci (spek 1.1, K2).
+        CatalogItem::create(['name' => 'Paket Wedding Lama', 'type' => CatalogItemType::Service, 'price' => 1, 'unit_cost' => null, 'category' => 'Wedding']);
+
+        $this->get(route('orders.create'))
+            ->assertInertia(fn (Assert $page) => $page->has('catalog', 5)->missing('catalog.5'));
+        $this->assertNotContains('Paket Wedding Lama', array_column($this->get(route('orders.create'))->inertiaPage()['props']['catalog'], 'name'));
     }
 
     public function test_store_with_deposit_is_scheduled_and_snapshots_catalog_price()
