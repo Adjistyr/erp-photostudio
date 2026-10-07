@@ -77,6 +77,38 @@ class InvoicesTest extends TestCase
         $this->get($tampered)->assertForbidden();
     }
 
+    public function test_print_url_is_a_separately_signed_variant()
+    {
+        $order = $this->order('ORD-0012');
+
+        $this->assertStringNotContainsString('print=', $order->invoiceUrl());
+        $this->assertStringContainsString('print=1', $order->invoiceUrl(print: true));
+
+        $this->get($order->invoiceUrl(print: true))
+            ->assertInertia(fn (Assert $page) => $page->where('auto_print', true));
+        $this->get($order->invoiceUrl())
+            ->assertInertia(fn (Assert $page) => $page->where('auto_print', false));
+    }
+
+    public function test_tampering_print_query_onto_plain_signed_url_is_forbidden()
+    {
+        // Signature mencakup seluruh query — klien tidak boleh menempel print=1.
+        $this->get($this->order('ORD-0012')->invoiceUrl().'&print=1')->assertForbidden();
+    }
+
+    public function test_public_page_carries_business_line_and_print_url()
+    {
+        $retail = Order::where('business_line', 'retail')->orderBy('id')->firstOrFail();
+
+        $this->get($retail->invoiceUrl())
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('order::invoice-public')
+                // Judul "Struk" untuk retail ditentukan klien dari field ini.
+                ->where('invoice.business_line', 'retail')
+                ->where('invoice.print_url', $retail->invoiceUrl(print: true))
+            );
+    }
+
     public function test_cancelled_order_has_no_invoice()
     {
         $cancelled = $this->order('ORD-0004');

@@ -34,7 +34,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 1.2 Edit order | `1.2-edit-order.md` | L | 0.1, 0.2 | ⬜ |
 | 1.3 Item custom | `1.3-item-custom.md` | M | 1.2 (form bersama) | ⬜ |
 | 1.4 Status mundur | `1.4-status-mundur.md` | S | 0.2 | ⬜ |
-| 2.1 Nomor HP di POS | `2.1-hp-di-pos.md` | S | — | ⬜ |
+| 2.1 Nomor HP di POS | `2.1-hp-di-pos.md` | S | — | ✅ #33 |
 | 2.2 Struk setelah POS | `2.2-struk-pos.md` | M | 2.1 | ⬜ |
 | 2.3 Bukti bayar setelah catat bayar | `2.3-bukti-bayar.md` | S | 2.2 (pola flash `receipt`) | ⬜ |
 | 2.4 Tagih via WA | `2.4-tagih-via-wa.md` | S | 2.3 (props) | ⬜ |

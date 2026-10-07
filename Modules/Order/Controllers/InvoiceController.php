@@ -3,6 +3,7 @@
 namespace Modules\Order\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Order\Enums\WorkStatus;
@@ -34,13 +35,15 @@ class InvoiceController extends Controller
      * Halaman yang dibuka customer (route `signed`, tanpa login). Order batal
      * tidak punya invoice — link lama yang terlanjur dikirim berhenti berlaku.
      */
-    public function show(Order $order): Response
+    public function show(Request $request, Order $order): Response
     {
         abort_if($order->isCancelled(), 404);
 
         return Inertia::render('order::invoice-public', [
             'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments'])),
             'studio' => config('studio'),
+            // Hanya dari `print_url` (ditandatangani dengan print=1) — lihat Order::invoiceUrl().
+            'auto_print' => $request->boolean('print'),
         ]);
     }
 
@@ -72,6 +75,7 @@ class InvoiceController extends Controller
             'payment_status' => $o->paymentStatus()->value,
             'paid_percent' => (int) round($o->paidRatio() * 100),
             'public_url' => $o->invoiceUrl(),
+            'print_url' => $o->invoiceUrl(print: true),
         ];
     }
 }

@@ -12,6 +12,7 @@ use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Actions\RecordOrderEvent;
 use Modules\Order\Enums\OrderEventType;
+use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\Payment;
@@ -34,6 +35,8 @@ class PosController extends Controller
                 ->where('type', CatalogItemType::Product)
                 ->orderBy('name')
                 ->get(['id', 'name', 'price', 'unit_cost']),
+            // Nama studio untuk pesan WA struk.
+            'studio' => config('studio'),
         ]);
     }
 
@@ -85,6 +88,19 @@ class PosController extends Controller
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number} tersimpan · ".Money::format($total).' — masuk omzet hari ini.']);
+        // Struk sekali tampil (flash, bukan props): refresh tidak memunculkannya
+        // lagi. Struk = invoice retail yang lunas — link publik yang sama.
+        Inertia::flash('receipt', [
+            'order_id' => $order->id,
+            'number' => $order->number,
+            'total' => $total,
+            'balance' => 0,
+            'payment_status' => PaymentStatus::Paid->value,
+            'invoice_url' => $order->invoiceUrl(),
+            'print_url' => $order->invoiceUrl(print: true),
+            'customer_phone' => $order->customer?->phone,
+            'business_line' => BusinessLine::Retail->value,
+        ]);
 
         return to_route('pos.index');
     }

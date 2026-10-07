@@ -14,9 +14,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { KELAS_DENSITY } from '@/components/data-table';
-import { formatJadwal, formatRp, formatTanggal } from '@/lib/format';
+import { formatJadwal, formatRp, formatTanggal, keNomorWa } from '@/lib/format';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
-import type { PaymentMethod } from '@/modules/order/types';
+import type { PaymentMethod, Receipt } from '@/modules/order/types';
 import type { BusinessLine, PaymentStatus } from '@/types/domain';
 
 export interface Studio {
@@ -52,6 +52,8 @@ export interface Invoice {
     payment_status: PaymentStatus;
     paid_percent: number;
     public_url: string;
+    /** Varian cetak (`?print=1`), ditandatangani terpisah. */
+    print_url: string;
 }
 
 /** Pesan WhatsApp ke customer — disiapkan app, dikirim manual oleh owner. */
@@ -69,6 +71,31 @@ export function whatsappMessage(invoice: Invoice, studio: Studio): string {
     );
 }
 
+/**
+ * Pesan WA struk retail. Teks tetap, bukan template: keputusan K5 (template
+ * `billing`) hanya untuk pesan TAGIHAN.
+ */
+export function receiptMessage(
+    receipt: Pick<Receipt, 'number' | 'total' | 'invoice_url'>,
+    studio: Pick<Studio, 'name'>,
+): string {
+    return (
+        `Terima kasih sudah berbelanja di ${studio.name}! ` +
+        `Struk ${receipt.number} · total ${formatRp(receipt.total)}. ` +
+        `Lihat/unduh: ${receipt.invoice_url}`
+    );
+}
+
+/** Tautan chat WhatsApp berisi pesan — nomor lewat keNomorWa (data lama `08…`). */
+export function waLink(phone: string, text: string): string {
+    return `https://wa.me/${keNomorWa(phone)}?text=${encodeURIComponent(text)}`;
+}
+
+/** Retail = struk (lunas di tempat); studio/event = invoice. Satu penomoran INV-. */
+export function documentTitle(line: BusinessLine): string {
+    return line === 'retail' ? 'Struk' : 'Invoice';
+}
+
 export function InvoiceDocument({
     invoice,
     studio,
@@ -80,12 +107,18 @@ export function InvoiceDocument({
         (s, i) => s + i.quantity * i.unit_price,
         0,
     );
+    // Struk retail dicetak di kertas thermal 80 mm: kolom Harga disembunyikan
+    // saat cetak (Qty × Jumlah cukup), bingkai dihilangkan supaya muat.
+    const retail = invoice.business_line === 'retail';
+    const hideOnSlip = retail ? 'print:hidden' : '';
     const schedule = invoice.service_time
         ? `${invoice.service_date}T${invoice.service_time}`
         : invoice.service_date;
 
     return (
-        <div className="flex flex-col gap-5 rounded-lg border bg-background p-5">
+        <div
+            className={`flex flex-col gap-5 rounded-lg border bg-background p-5 ${retail ? 'print:gap-3 print:border-0 print:p-0' : ''}`}
+        >
             <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col">
                     <span className="font-heading text-base font-semibold">
@@ -99,7 +132,10 @@ export function InvoiceDocument({
                     </span>
                 </div>
                 <div className="flex flex-col items-end">
-                    <span className="font-mono text-sm font-medium">
+                    <span className="text-xs tracking-wide text-muted-foreground uppercase">
+                        {documentTitle(invoice.business_line)}
+                    </span>
+                    <span className="font-mono text-sm font-medium whitespace-nowrap">
                         {invoice.number}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -135,7 +171,9 @@ export function InvoiceDocument({
                         <TableRow>
                             <TableHead>Item</TableHead>
                             <TableHead className="text-right">Qty</TableHead>
-                            <TableHead className="text-right">Harga</TableHead>
+                            <TableHead className={`text-right ${hideOnSlip}`}>
+                                Harga
+                            </TableHead>
                             <TableHead className="text-right">Jumlah</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -148,7 +186,9 @@ export function InvoiceDocument({
                                 <TableCell className="text-right font-mono">
                                     {i.quantity}
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell
+                                    className={`text-right font-mono ${hideOnSlip}`}
+                                >
                                     {formatRp(i.unit_price)}
                                 </TableCell>
                                 <TableCell className="text-right font-mono">
@@ -185,7 +225,9 @@ export function InvoiceDocument({
                             {p.note} · {formatTanggal(p.paid_on)} ·{' '}
                             {PAYMENT_METHOD_LABEL[p.method]}
                         </span>
-                        <span className="font-mono">−{formatRp(p.amount)}</span>
+                        <span className="font-mono whitespace-nowrap">
+                            −{formatRp(p.amount)}
+                        </span>
                     </div>
                 ))}
                 <Separator />
@@ -217,7 +259,7 @@ function Line({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex justify-between">
             <span>{label}</span>
-            <span className="font-mono">{value}</span>
+            <span className="font-mono whitespace-nowrap">{value}</span>
         </div>
     );
 }
