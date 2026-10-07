@@ -85,7 +85,7 @@ Entitas di blok bawah dijelaskan di bagian 8.
 
 **Katalog** — dua jenis dalam satu daftar:
 - *Produk* (keychain, cetak 4R, bingkai): punya HPP bahan per unit yang diisi manual.
-- *Jasa* (paket studio 1 jam, paket prewed, paket wedding): punya harga jual, tapi HPP-nya tidak tetap — dicatat per job lewat BiayaJob.
+- *Jasa* (paket studio 1 jam, paket prewed, paket wedding): punya harga jual, tapi HPP-nya tidak tetap — dicatat per job lewat BiayaJob. Kategorinya **tiga nilai tetap** — Studio (muncul di order sesi studio), Event (order event), Add-on (keduanya) — karena kategori inilah yang menentukan paket mana yang ditawarkan form Buat Order. Kategori produk tetap bebas.
 
 **Order** — satu tabel untuk semua jenis transaksi, dibedakan oleh field `tipe`: `retail` / `studio` / `event`. Menyimpan customer, tanggal transaksi, jadwal (kalau ada), lokasi, total, diskon, link hasil foto, catatan.
 

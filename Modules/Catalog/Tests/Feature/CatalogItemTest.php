@@ -70,11 +70,11 @@ class CatalogItemTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'unit_cost' => 1_000_000])
+            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'category' => 'Event', 'unit_cost' => 1_000_000])
             ->assertSessionHasErrors('unit_cost');
 
         $this->actingAs($user)
-            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'unit_cost' => null])
+            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'category' => 'Event', 'unit_cost' => null])
             ->assertSessionHasNoErrors();
         $this->assertNull(CatalogItem::sole()->unit_cost);
     }
@@ -93,6 +93,65 @@ class CatalogItemTest extends TestCase
         $this->actingAs(User::factory()->create())->post(route('catalog.store'), $this->product(['category' => '']));
 
         $this->assertSame('Lain-lain', CatalogItem::sole()->category);
+    }
+
+    public function test_service_category_must_be_one_of_three()
+    {
+        $user = User::factory()->create();
+        $service = fn (string $category) => ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'category' => $category];
+
+        $this->actingAs($user)->post(route('catalog.store'), $service('studio'))->assertSessionHasErrors('category');
+        $this->actingAs($user)->post(route('catalog.store'), $service('Wedding'))->assertSessionHasErrors('category');
+        $this->actingAs($user)->post(route('catalog.store'), $service('Event'))->assertSessionHasNoErrors();
+
+        $this->assertSame('Event', CatalogItem::sole()->category);
+    }
+
+    public function test_service_without_category_is_rejected()
+    {
+        // Bukan "Lain-lain": jasa tanpa kategori tidak akan muncul di Buat Order.
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.store'), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000])
+            ->assertSessionHasErrors('category');
+    }
+
+    public function test_product_category_stays_free_text()
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.store'), $this->product(['category' => 'Bingkai']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Bingkai', CatalogItem::sole()->category);
+    }
+
+    public function test_index_flags_services_with_unknown_category()
+    {
+        $this->item(['name' => 'Paket Wedding', 'type' => CatalogItemType::Service, 'unit_cost' => null, 'category' => 'Wedding']);
+        $this->item(['category' => 'Lain-lain']);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('catalog.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('items.0.unknown_category', false)
+                ->where('items.1.unknown_category', true)
+                ->has('service_categories', 3)
+                ->where('service_categories.0.value', 'Studio')
+            );
+    }
+
+    public function test_updating_unknown_service_requires_known_category()
+    {
+        $item = $this->item(['name' => 'Paket Wedding', 'type' => CatalogItemType::Service, 'unit_cost' => null, 'category' => 'Wedding']);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('catalog.update', $item), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'category' => 'Wedding'])
+            ->assertSessionHasErrors('category');
+        $this->actingAs($user)
+            ->put(route('catalog.update', $item), ['name' => 'Paket Wedding', 'type' => 'service', 'price' => 8_500_000, 'category' => 'Event'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Event', $item->refresh()->category);
     }
 
     public function test_validation_rejects_bad_input()
