@@ -20,9 +20,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useFlash } from '@/hooks/use-flash';
 import { formatRp, hanyaDigit } from '@/lib/format';
+import type { Studio } from '@/modules/order/components/invoice-document';
+import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
-import type { PaymentMethod } from '@/modules/order/types';
+import type { PaymentMethod, Receipt } from '@/modules/order/types';
 import { index as catalogIndex } from '@/routes/catalog';
 import { index as posIndex } from '@/routes/pos';
 
@@ -43,8 +46,17 @@ interface SaleForm {
     customer_phone: string;
 }
 
-export default function Pos({ products }: { products: Product[] }) {
+export default function Pos({
+    products,
+    studio,
+}: {
+    products: Product[];
+    studio: Studio;
+}) {
     const [search, setSearch] = useState('');
+    // Struk sekali tampil setelah simpan; keranjang tetap dikosongkan di
+    // onSuccess — Sheet tidak menahan transaksi berikutnya.
+    const [receipt, clearReceipt] = useFlash<Receipt>('receipt');
     const form = useForm<SaleForm>({
         items: [],
         discount: '',
@@ -379,6 +391,12 @@ export default function Pos({ products }: { products: Product[] }) {
                     </Button>
                 </aside>
             </div>
+
+            <ReceiptSheet
+                receipt={receipt}
+                studio={studio}
+                onClose={clearReceipt}
+            />
         </>
     );
 }

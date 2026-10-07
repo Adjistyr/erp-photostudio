@@ -86,10 +86,14 @@ class Order extends Model
      * Link invoice untuk customer — signed URL tanpa kedaluwarsa: bisa dibuka
      * tanpa login, tapi id di dalamnya tidak bisa diganti untuk mengintip
      * invoice orang lain. Isinya selalu kondisi terkini (DP → pelunasan).
+     *
+     * `$print` = varian yang membuka dialog cetak saat dimuat. Ditandatangani
+     * TERPISAH: signature mencakup seluruh query, jadi `&print=1` yang
+     * ditempel klien ke URL biasa membuat link-nya 403.
      */
-    public function invoiceUrl(): string
+    public function invoiceUrl(bool $print = false): string
     {
-        return URL::signedRoute('invoices.public', ['order' => $this->id]);
+        return URL::signedRoute('invoices.public', array_filter(['order' => $this->id, 'print' => $print ? 1 : null]));
     }
 
     /** @return BelongsTo<Customer, $this> */

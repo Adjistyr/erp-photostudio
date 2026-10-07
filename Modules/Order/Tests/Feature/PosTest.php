@@ -172,6 +172,42 @@ class PosTest extends TestCase
         $this->sell(['customer_name' => 'X', 'customer_phone' => str_repeat('1', 31)])->assertSessionHasErrors('customer_phone');
     }
 
+    public function test_sale_flashes_receipt_with_signed_links()
+    {
+        $this->sell()->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.receipt.balance', 0)
+            ->assertSessionHas('inertia.flash_data.receipt.payment_status', 'paid')
+            ->assertSessionHas('inertia.flash_data.receipt.business_line', 'retail');
+
+        $receipt = session('inertia.flash_data.receipt');
+        $order = $this->newest();
+        $this->assertSame([$order->number, $order->total()], [$receipt['number'], $receipt['total']]);
+
+        // Dua URL berbeda, keduanya bertanda tangan sah.
+        $this->assertNotSame($receipt['invoice_url'], $receipt['print_url']);
+        auth()->logout();
+        $this->get($receipt['invoice_url'])->assertOk();
+        $this->get($receipt['print_url'])->assertOk();
+    }
+
+    public function test_receipt_carries_customer_phone_when_named()
+    {
+        $this->sell(['customer_name' => 'Rina', 'customer_phone' => '0812 777'])
+            ->assertSessionHas('inertia.flash_data.receipt.customer_phone', '62812777');
+
+        // Walk-in: key ada dengan nilai null (assertSessionHas menganggap null = tidak ada).
+        $this->sell();
+        $this->assertArrayHasKey('customer_phone', session('inertia.flash_data.receipt'));
+        $this->assertNull(session('inertia.flash_data.receipt.customer_phone'));
+    }
+
+    public function test_page_carries_studio_name_for_whatsapp_message()
+    {
+        config(['studio.name' => 'Studio Uji']);
+
+        $this->get(route('pos.index'))->assertInertia(fn (Assert $page) => $page->where('studio.name', 'Studio Uji'));
+    }
+
     public function test_services_and_inactive_products_are_rejected()
     {
         $this->item('Album Mini 20 Halaman')->update(['is_active' => false]);

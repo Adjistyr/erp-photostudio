@@ -11,6 +11,25 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
 };
 
 /**
+ * Flash `receipt` — dikirim sekali setelah transaksi POS (dan, nanti,
+ * catat bayar). Link = halaman publik invoice yang sama; untuk retail
+ * halaman itu berjudul "Struk".
+ */
+export interface Receipt {
+    order_id: number;
+    number: string;
+    total: number;
+    balance: number;
+    payment_status: PaymentStatus;
+    invoice_url: string;
+    /** Varian `?print=1`, ditandatangani terpisah — jangan tempel query di klien. */
+    print_url: string;
+    /** null = walk-in tanpa customer atau customer tanpa HP. */
+    customer_phone: string | null;
+    business_line: BusinessLine;
+}
+
+/**
  * Bentuk props order dari OrderController — angka turunan (total, sisa,
  * status bayar, persen DP, margin) sudah dihitung server.
  */
