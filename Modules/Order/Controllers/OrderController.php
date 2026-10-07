@@ -37,7 +37,7 @@ class OrderController extends Controller
 {
     public function index(): Response
     {
-        $orders = Order::with(['customer', 'items', 'payments', 'jobCosts'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator'])
             ->orderByDesc('number')
             ->get();
 
@@ -56,7 +56,7 @@ class OrderController extends Controller
         $month = Periods::orCurrent($request->query('month'));
         $start = Periods::start($month);
 
-        $orders = Order::with(['customer', 'items', 'payments', 'jobCosts'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
             ->whereBetween('service_date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ->orderBy('service_date')
@@ -199,6 +199,8 @@ class OrderController extends Controller
             'number' => $o->number,
             // null = walk-in tanpa data customer.
             'customer_name' => $o->customer?->name,
+            // null = dicatat sebelum ada pencatat (data lama) atau user sudah dihapus.
+            'created_by_name' => $o->creator?->name,
             'business_line' => $o->business_line->value,
             'items_summary' => $o->itemsSummary(),
             'service_date' => $o->service_date->toDateString(),
@@ -222,11 +224,11 @@ class OrderController extends Controller
             ])->values()->all(),
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,
-                'method' => $p->method->value, 'note' => $p->note,
+                'method' => $p->method->value, 'note' => $p->note, 'created_by_name' => $p->creator?->name,
             ])->values()->all(),
             'job_costs' => $o->jobCosts->sortBy('incurred_on')->map(fn (JobCost $j) => [
                 'id' => $j->id, 'incurred_on' => $j->incurred_on->toDateString(), 'category' => $j->category,
-                'description' => $j->description, 'amount' => $j->amount,
+                'description' => $j->description, 'amount' => $j->amount, 'created_by_name' => $j->creator?->name,
             ])->values()->all(),
         ];
     }

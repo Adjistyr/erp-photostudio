@@ -24,6 +24,7 @@ import {
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
+import { RecordedBy } from '@/components/recorded-by';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
 import {
     LineMark,
@@ -281,6 +282,7 @@ function OrderDetail({
                     {order.customer_name ?? 'Walk-in'} ·{' '}
                     {formatJadwal(scheduleOf(order))}
                     {order.location ? ` · ${order.location}` : ''}
+                    <RecordedBy name={order.created_by_name} />
                 </SheetDescription>
             </SheetHeader>
 
@@ -327,6 +329,9 @@ function OrderDetail({
                                         <TableCell className="text-muted-foreground">
                                             {formatTanggal(p.paid_on)} ·{' '}
                                             {PAYMENT_METHOD_LABEL[p.method]}
+                                            <RecordedBy
+                                                name={p.created_by_name}
+                                            />
                                         </TableCell>
                                         <TableCell className="text-right font-mono">
                                             {formatRp(p.amount)}
@@ -396,6 +401,9 @@ function OrderDetail({
                                         <TableCell>{j.category}</TableCell>
                                         <TableCell className="text-muted-foreground">
                                             {j.description}
+                                            <RecordedBy
+                                                name={j.created_by_name}
+                                            />
                                         </TableCell>
                                         <TableCell className="text-right font-mono">
                                             {formatRp(j.amount)}

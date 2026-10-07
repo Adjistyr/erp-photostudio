@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Finance\Models\Investment;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * @property int $id
@@ -36,10 +37,12 @@ use Modules\Finance\Models\Investment;
 #[Fillable([
     'name', 'category', 'model', 'units', 'unit_price', 'purchased_on',
     'maintenance_percent', 'useful_life_months', 'maintenance_interval_months',
-    'status', 'disposed_on', 'disposal_reason', 'sale_price', 'investment_id',
+    'status', 'disposed_on', 'disposal_reason', 'sale_price', 'investment_id', 'created_by',
 ])]
 class Asset extends Model
 {
+    use RecordsCreator;
+
     /**
      * Kategori + default umur ekonomis & interval perawatan (bulan). Owner
      * jarang tahu angkanya — default terisi saat kategori dipilih, dan tetap

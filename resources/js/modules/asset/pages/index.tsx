@@ -26,6 +26,7 @@ import {
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
+import { RecordedBy } from '@/components/recorded-by';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -96,6 +97,7 @@ interface MaintenanceRow {
     type: MaintenanceType;
     description: string;
     cost: number;
+    created_by_name: string | null;
 }
 
 interface AssetRow {
@@ -489,6 +491,9 @@ function AssetSheet({
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground">
                                                     {m.description}
+                                                    <RecordedBy
+                                                        name={m.created_by_name}
+                                                    />
                                                 </TableCell>
                                                 <SelUang nominal={m.cost} />
                                                 {!a.disposed_on && (

@@ -32,6 +32,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
 | Tutup buku (bulan final) | `PeriodClosing` · `period_closings` (`month`, `closed_at/by`, `reopened_at/by`; aktif = belum dibuka kembali) |
 | Template pesan (promo, terima kasih, reminder H-1) | `MessageTemplate` · `message_templates` (`key` primary; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`) |
+| Pencatat (siapa yang menginput) | `created_by` → `users` di semua tabel transaksi (order, pembayaran, biaya job/operasional, aset, servis, setoran, pemakaian dana, investasi); trait `Modules\Shared\Models\Concerns\RecordsCreator`. `null` = sebelum pencatatan atau user sudah dihapus |
 | Laba rugi | `Modules\Finance\Services\ProfitAndLoss` |
 | Piutang | `Modules\Finance\Services\Receivables` |
 | Bagi hasil | `Modules\Finance\Services\ProfitSharing` |
@@ -75,6 +76,7 @@ Menyimpan nilai turunan sebagai kolom adalah **blocker** — must fix before mer
 - Aset dilepas (`disposed_on`), **tidak dihapus** — menghapus mengubah alokasi bulan-bulan saat aset masih dimiliki.
 - Harga dan HPP item order **disalin saat transaksi** — perubahan katalog tidak mengubah order lama.
 - Catatan uang (pembayaran, biaya job/operasional, servis aset, pemakaian dana, setoran owner) **tidak diedit**. Koreksi salah catat = **hapus lalu catat ulang** (keputusan 2026-10-06), dan hanya untuk tanggal di bulan yang **belum tutup buku** (`OpenPeriod::ensureOpen()`). Setoran yang sudah terpakai (membiayai investasi, pinjaman mulai dilunasi, uang pos dana sudah dipakai) tidak bisa dihapus.
+- Setiap catatan menyimpan **pencatatnya** (`created_by`, diisi otomatis saat baris dibuat, tidak pernah diubah) — jejak untuk menelusuri selisih kas begitu ada lebih dari satu pengguna yang menginput.
 
 Mengedit aturan bagi hasil yang sudah dipakai, menghapus aset, atau menghapus/mengubah catatan uang di bulan yang sudah tutup buku adalah **blocker** — must fix before merge.
 

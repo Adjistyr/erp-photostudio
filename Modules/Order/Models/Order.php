@@ -16,6 +16,7 @@ use Modules\Expense\Models\JobCost;
 use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * Satu tabel untuk retail, studio, dan event (business-flow bagian 3).
@@ -43,10 +44,12 @@ use Modules\Shared\Enums\BusinessLine;
  */
 #[Fillable([
     'number', 'customer_id', 'business_line', 'service_date', 'service_time',
-    'work_status', 'location', 'notes', 'result_link', 'discount',
+    'work_status', 'location', 'notes', 'result_link', 'discount', 'created_by',
 ])]
 class Order extends Model
 {
+    use RecordsCreator;
+
     protected function casts(): array
     {
         return [

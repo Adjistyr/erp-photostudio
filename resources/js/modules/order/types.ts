@@ -17,6 +17,8 @@ export interface OrderRow {
     number: string;
     /** null = walk-in tanpa data customer. */
     customer_name: string | null;
+    /** null = dicatat sebelum ada pencatat atau user sudah dihapus. */
+    created_by_name: string | null;
     business_line: BusinessLine;
     items_summary: string;
     service_date: string;
@@ -43,6 +45,7 @@ export interface OrderRow {
         amount: number;
         method: PaymentMethod;
         note: string;
+        created_by_name: string | null;
     }[];
     job_costs: {
         id: number;
@@ -50,6 +53,7 @@ export interface OrderRow {
         category: string;
         description: string;
         amount: number;
+        created_by_name: string | null;
     }[];
 }
 
