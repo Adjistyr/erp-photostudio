@@ -42,9 +42,11 @@ class PosController extends Controller
     {
         $discount = $request->discount();
         $total = $request->subtotal() - $discount;
-        $customer = $this->customerFor($request->string('customer_name')->trim()->value());
+        $name = $request->string('customer_name')->trim()->value();
 
-        $order = DB::transaction(function () use ($request, $discount, $total, $customer, $events) {
+        $order = DB::transaction(function () use ($request, $discount, $total, $name, $events) {
+            // Di dalam transaksi: customer baru tidak boleh tertinggal kalau order gagal.
+            $customer = $this->customerFor($name, $request->customerPhone());
             $order = Order::create([
                 'number' => Order::nextNumber(),
                 // Null = walk-in tanpa nama — bukan baris customer "Umum" (docs/database.md).
@@ -88,20 +90,42 @@ class PosController extends Controller
     }
 
     /**
-     * Nama diisi → pakai customer yang namanya sama (tanpa beda huruf besar),
-     * atau buat baru. Kosong → walk-in tanpa customer.
+     * Nama kosong → walk-in tanpa customer (HP diabaikan: baris customer
+     * tanpa nama tidak berguna di daftar blast dan menghitung customer palsu).
+     * Nama diisi → cocokkan HP dulu (lebih unik), lalu nama tanpa beda huruf
+     * besar, lalu buat baru. Customer yang cocok lewat nama dan belum punya
+     * HP dilengkapi; yang sudah punya HP berbeda TIDAK ditimpa — dua orang
+     * bernama sama lebih mungkin daripada satu orang ganti nomor.
      *
-     * ponytail: cocok berdasarkan nama saja; dua customer bernama sama →
-     * yang tercatat lebih dulu. Tambah pencarian/pilih customer kalau mulai
-     * sering bentrok.
+     * ponytail: cocok HP → nama; dua customer bernama sama tanpa HP → yang
+     * tercatat lebih dulu. Tambah pilih-dari-daftar kalau mulai sering bentrok.
      */
-    private function customerFor(string $name): ?Customer
+    private function customerFor(string $name, ?string $phone): ?Customer
     {
         if ($name === '') {
             return null;
         }
 
-        return Customer::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->orderBy('id')->first()
-            ?? Customer::create(['name' => $name]);
+        if ($phone !== null) {
+            // Data lama bisa tersimpan `08…` — bandingkan bentuk ternormalisasi
+            // kedua sisi di SQL (PostgreSQL), bukan memuat semua customer.
+            $byPhone = Customer::whereNotNull('phone')
+                ->whereRaw("regexp_replace(regexp_replace(phone, '\\D', '', 'g'), '^0', '62') = ?", [$phone])
+                ->orderBy('id')->first();
+            if ($byPhone !== null) {
+                return $byPhone;
+            }
+        }
+
+        $byName = Customer::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->orderBy('id')->first();
+        if ($byName !== null) {
+            if ($phone !== null && ($byName->phone === null || $byName->phone === '')) {
+                $byName->update(['phone' => $phone]);
+            }
+
+            return $byName;
+        }
+
+        return Customer::create(['name' => $name, 'phone' => $phone]);
     }
 }

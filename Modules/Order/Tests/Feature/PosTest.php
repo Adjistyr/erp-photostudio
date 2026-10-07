@@ -114,6 +114,64 @@ class PosTest extends TestCase
         $this->assertSame('Pak Joko', $this->newest()->customer?->name);
     }
 
+    public function test_phone_is_normalised_and_saved_on_new_customer()
+    {
+        $this->sell(['customer_name' => 'Rina Baru', 'customer_phone' => '+62 812-3456-7890'])->assertSessionHasNoErrors();
+
+        $customer = Customer::where('name', 'Rina Baru')->sole();
+        $this->assertSame('6281234567890', $customer->phone);
+        $this->assertSame($customer->id, $this->newest()->customer_id);
+    }
+
+    public function test_phone_matches_existing_customer_even_when_name_differs()
+    {
+        $budi = Customer::create(['name' => 'Budi', 'phone' => '628111']);
+        $count = Customer::count();
+
+        $this->sell(['customer_name' => 'Budi S.', 'customer_phone' => '08111'])->assertSessionHasNoErrors();
+
+        $this->assertSame($budi->id, $this->newest()->customer_id);
+        $this->assertSame($count, Customer::count());
+        $this->assertSame('Budi', $budi->refresh()->name);
+    }
+
+    public function test_name_match_fills_missing_phone_but_never_overwrites()
+    {
+        $sari = Customer::create(['name' => 'Sari']);
+        $this->sell(['customer_name' => 'sari', 'customer_phone' => '08222'])->assertSessionHasNoErrors();
+        $this->assertSame('628222', $sari->refresh()->phone);
+
+        $this->sell(['customer_name' => 'Sari', 'customer_phone' => '08333'])->assertSessionHasNoErrors();
+        $this->assertSame('628222', $sari->refresh()->phone);
+        $this->assertSame($sari->id, $this->newest()->customer_id);
+        $this->assertSame(1, Customer::where('name', 'Sari')->count());
+    }
+
+    public function test_phone_without_name_is_ignored_and_sale_is_walk_in()
+    {
+        $count = Customer::count();
+
+        $this->sell(['customer_name' => '', 'customer_phone' => '08123'])->assertSessionHasNoErrors();
+
+        $this->assertNull($this->newest()->customer_id);
+        $this->assertSame($count, Customer::count());
+    }
+
+    public function test_legacy_phone_stored_as_08_still_matches()
+    {
+        $lama = Customer::create(['name' => 'Pak Lama', 'phone' => '08129999']);
+
+        $this->sell(['customer_name' => 'Lama', 'customer_phone' => '6281 29999'])->assertSessionHasNoErrors();
+
+        $this->assertSame($lama->id, $this->newest()->customer_id);
+        $this->assertSame('08129999', $lama->refresh()->phone); // data lama tidak diubah bentuk
+    }
+
+    public function test_phone_longer_than_30_chars_is_rejected()
+    {
+        $this->sell(['customer_name' => 'X', 'customer_phone' => str_repeat('1', 31)])->assertSessionHasErrors('customer_phone');
+    }
+
     public function test_services_and_inactive_products_are_rejected()
     {
         $this->item('Album Mini 20 Halaman')->update(['is_active' => false]);

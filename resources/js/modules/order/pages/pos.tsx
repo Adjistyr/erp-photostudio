@@ -40,6 +40,7 @@ interface SaleForm {
     discount: string;
     method: PaymentMethod;
     customer_name: string;
+    customer_phone: string;
 }
 
 export default function Pos({ products }: { products: Product[] }) {
@@ -49,6 +50,7 @@ export default function Pos({ products }: { products: Product[] }) {
         discount: '',
         method: 'cash',
         customer_name: '',
+        customer_phone: '',
     });
     const { data, setData, processing } = form;
     // Error baris berkunci "items.0.catalog_item_id" — tidak ada di tipe form.
@@ -319,6 +321,35 @@ export default function Pos({ products }: { products: Product[] }) {
                             yang sudah ada di Customer dipakai ulang.
                         </p>
                         <InputError message={errors.customer_name} />
+                    </div>
+
+                    {/* HP hanya bersama nama (aturan server) — disabled, bukan
+                        disembunyikan, supaya owner tahu field-nya ada. Yang
+                        dikirim ketikan mentah; server yang menormalkan. */}
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="customer_phone" className="text-sm">
+                            No HP{' '}
+                            <span className="text-muted-foreground">
+                                — opsional, untuk kirim struk
+                            </span>
+                        </label>
+                        <Input
+                            id="customer_phone"
+                            inputMode="tel"
+                            autoComplete="off"
+                            placeholder="08…"
+                            disabled={data.customer_name.trim() === ''}
+                            title={
+                                data.customer_name.trim() === ''
+                                    ? 'Isi nama dulu'
+                                    : undefined
+                            }
+                            value={data.customer_phone}
+                            onChange={(e) =>
+                                setData('customer_phone', e.target.value)
+                            }
+                        />
+                        <InputError message={errors.customer_phone} />
                     </div>
 
                     <div className="flex flex-col gap-1.5">

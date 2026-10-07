@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Catalog\Enums\CatalogItemType;
+use Modules\Customer\Support\Phone;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
 use Modules\Shared\Support\Money;
@@ -35,6 +36,8 @@ class StorePosSaleRequest extends FormRequest
             'discount' => ['nullable', 'integer', 'min:0'],
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             'customer_name' => ['nullable', 'string', 'max:255'],
+            // Longgar (max:30, tanpa pola): nomor luar negeri ada. Dinormalkan di server.
+            'customer_phone' => ['nullable', 'string', 'max:30'],
         ];
     }
 
@@ -56,6 +59,14 @@ class StorePosSaleRequest extends FormRequest
         }];
     }
 
+    /** HP ternormalisasi (`62…`); null kalau kosong atau tanpa digit. */
+    public function customerPhone(): ?string
+    {
+        $phone = Phone::normalise((string) $this->input('customer_phone', ''));
+
+        return $phone === '' ? null : $phone;
+    }
+
     public function discount(): int
     {
         return (int) $this->input('discount', 0);
@@ -73,6 +84,7 @@ class StorePosSaleRequest extends FormRequest
             'discount' => 'diskon',
             'method' => 'metode bayar',
             'customer_name' => 'nama customer',
+            'customer_phone' => 'no HP',
         ];
     }
 }
