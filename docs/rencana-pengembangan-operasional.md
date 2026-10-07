@@ -2,6 +2,8 @@
 
 Turunan dari `docs/research/analisis-modul-operasional.md` (7 Oktober 2026). Dokumen itu menjawab *apa yang kurang dan kenapa*; dokumen ini menjawab *apa yang dibangun, dalam urutan apa, dan kapan dianggap selesai*. Setiap item = satu PR ke `develop`, kecuali ditandai "satu PR" untuk beberapa item.
 
+**Spek per item ada di `docs/specs/`** — lebih rinci dan sudah diverifikasi terhadap kode; kalau dokumen ini dan spek berbeda, spek yang menang.
+
 Kode di bawah mengikuti struktur yang sudah ada (`Modules/<Domain>/…`, `resources/js/modules/<domain>/…`, route bernama, Wayfinder, Form Request, status turunan, `OpenPeriod`, `ConfirmDelete`). Nama tabel/kolom/route adalah **usulan** — boleh diubah saat implementasi asal konsisten dengan konvensi `docs/development.md` bagian 4.
 
 ## Definisi selesai (berlaku semua item)
@@ -21,16 +23,25 @@ Kode di bawah mengikuti struktur yang sudah ada (`Modules/<Domain>/…`, `resour
 | **1** | Data order yang bisa dikoreksi | 1.1 Kategori jasa · 1.2 Edit order · 1.3 Item custom · 1.4 Status mundur | L | Fase 0 |
 | **2** | Bukti ke customer | 2.1 HP di POS · 2.2 Struk setelah POS · 2.3 Bukti bayar setelah catat bayar · 2.4 Tagih via WA · 2.5 Transaksi hari ini | M | — (paralel dengan Fase 1) |
 | **3** | Skala & jalan pintas harian | 3.1 Pencarian + paginasi · 3.2 Filter piutang · 3.3 Kas harian per metode · 3.4 Customer baru dari form order · 3.5 Jadwal besok + ingatkan · 3.6 Margin % katalog | M–L | Fase 1 (3.4 butuh 1.2 pola form) |
-| **4** | Kenyamanan transaksi | 4.1 Diskon persen · 4.2 Retur/void retail · 4.3 Hold keranjang · 4.4 Split payment · 4.5 Ekspor CSV · 4.6 Layar sempit | L | Fase 2; 4.2 butuh keputusan owner |
-| **5** | Saat admin mulai input | 5.1 Peran & hak akses · 5.2 Shift kasir | L | Fase 0; keputusan owner |
+| **4** | Kenyamanan transaksi | 4.1 Diskon persen · 4.2 Retur/void retail · 4.3 Hold keranjang · 4.4 Split payment · 4.5 Ekspor CSV · 4.6 Layar sempit | L | Fase 2 |
+| **5** | Saat admin mulai input | 5.1 Peran & hak akses · 5.2 Shift kasir | L | Fase 0; owner memastikan ada staf yang akan input |
 | **6** | Aset & lainnya (P3) | 6.1 Serial + garansi · 6.2 Proyeksi penggantian · 6.3 Bundel · 6.4 Termin · 6.5 Riwayat harga · 6.6 Sumber lead · 6.7 Lampiran bukti transfer | per item S–L | sesuai kebutuhan |
 
 Fase 1 dan 2 bisa dikerjakan paralel (modul berbeda, tidak saling menyentuh). Fase 5 **jangan** dimulai sebelum owner memastikan ada staf yang akan input.
 
-## Keputusan yang harus diambil owner sebelum fase terkait
+## Keputusan sementara (rekomendasi dev — berlaku sampai owner mengubah)
 
-| # | Pertanyaan | Dipakai di | Default kalau tidak dijawab |
+Ditetapkan 7 Oktober 2026 supaya tidak ada fase yang menunggu. Owner bisa mengubah; kalau berubah **sebelum** item terkait dikerjakan, cukup edit tabel ini dan spek itemnya. Kalau berubah **sesudah**, jadi PR perubahan.
+
+| # | Keputusan | Alasan | Dipakai di |
 |---|---|---|---|
+| K1 | Order **Diserahkan**: hanya catatan & customer yang boleh diubah; jadwal dan item terkunci | Setelah diserahkan, jadwal adalah fakta historis; mengubah item mengubah omzet tanpa barang/jasa yang berubah. Koreksi harga setelah serah = retur (4.2) | 1.2 |
+| K2 | Migrasi hanya menormalkan huruf/spasi (`studio` → `Studio`, `add on` → `Add-on`); kategori yang tidak cocok **dibiarkan** dan ditandai peringatan di Katalog | Data < 30 baris — owner memperbaiki manual dalam semenit; pemetaan tebakan bisa salah dan kesalahannya tidak terlihat | 1.1 |
+| K3 | Refund **dibangun**, semua lini: nominal bebas ≤ (dibayar − sudah direfund), alasan wajib, bertanggal hari refund (`OpenPeriod`), basis kas — mengurangi omzet **bulan refund**, bukan bulan bayar. Order batal: DP tetap hangus secara default; kalau owner memutuskan mengembalikan, catat refund | Tidak pernah menyentuh bulan yang sudah tutup buku; satu mekanisme untuk retur retail dan pengembalian DP | 4.2, 3.3 |
+| K4 | **Admin** tidak melihat margin/HPP, Laporan, Modal & Bagi Hasil, dan angka finansial Dashboard; tidak boleh **menghapus** pembayaran/biaya/servis (koreksi = owner); boleh mencatat order, POS, pembayaran, biaya job, customer, servis aset, komunikasi. Tambah/lepas aset dan semua aksi modal = owner | Hapus adalah satu-satunya koreksi uang di app ini — satu pintu (owner) membuat selisih kas selalu bisa ditelusuri | 5.1 |
+| K5 | Pesan tagihan jadi template `billing` yang bisa diubah di Komunikasi, dipakai bersama oleh Invoice dan Pembayaran | Owner sudah terbiasa mengubah tiga template yang ada; satu sumber teks mencegah dua versi pesan | 2.4 |
+
+---|---|---|---|
 | K1 | Order yang sudah **Diserahkan** boleh diedit? (mis. salah customer ketahuan belakangan) | 1.2 | Tidak — hanya catatan & customer; item/jadwal terkunci |
 | K2 | Jasa yang kategorinya tidak dikenal saat migrasi (bukan Studio/Event/Add-on) dipetakan ke mana? | 1.1 | Dibiarkan, ditandai peringatan di Katalog; owner memperbaiki manual |
 | K3 | Kebijakan **refund**: uang kembali penuh / potong biaya / tidak ada refund? Dicatat sebagai uang keluar bulan refund (basis kas)? | 4.2 | Belum dibangun sampai dijawab |
@@ -107,7 +118,7 @@ Fase 1 dan 2 bisa dikerjakan paralel (modul berbeda, tidak saling menyentuh). Fa
 
 **Backend**
 - Route: `GET orders/{order}/edit` → `orders.edit`, `PUT orders/{order}` → `orders.update`.
-- `UpdateOrderRequest`: rules sama dengan `StoreOrderRequest` minus `business_line`, `dp`, `dp_method`; `withValidator` menolak bila order retail/batal (`422`, pesan "Order retail/batal tidak bisa diubah"), menolak perubahan selain notes/customer bila Diserahkan, menolak total baru < `totalPaid()` (pesan menyebut nominal DP).
+- `UpdateOrderRequest`: rules sama dengan `StoreOrderRequest` minus `business_line`, `dp`, `dp_method`; `after()` closures (konvensi `StoreOrderRequest::after()`, bukan `withValidator`) menolak bila order retail/batal (`422`, pesan "Order retail/batal tidak bisa diubah"), menolak perubahan selain notes/customer bila Diserahkan, menolak total baru < `totalPaid()` (pesan menyebut nominal DP).
 - `OrderController@edit` memakai props `create()` + `order` (bentuk `orderProps`), `@update` dalam `DB::transaction`: hitung diff field, sinkronkan item (hapus yang hilang, update qty yang ada, tambah yang baru), `RecordOrderEvent('updated', $changes)`. Redirect `orders.index` dengan flash.
 
 **Frontend**
@@ -169,7 +180,7 @@ Satu mekanisme untuk tiga titik: halaman publik invoice bertanda tangan (`invoic
 - Halaman publik invoice: untuk order retail, judul "Struk" bukan "Invoice", dan tambah `@media print { @page { size: 80mm auto } }` di layout khusus retail. Satu halaman, dua gaya — tidak ada route baru.
 
 **Frontend**
-- `pos.tsx` membaca `flash.receipt` → membuka `Sheet` "Transaksi tersimpan" dengan nomor (font mono besar), total, tombol **Cetak** (buka `invoice_url` tab baru → `window.print()` via `?print=1` yang memanggil print saat load), **Kirim WA** (bila HP; pesan `whatsappMessage` varian struk: "Terima kasih, struk: {link}"), **Salin link**, **Transaksi baru** (tutup Sheet, keranjang sudah kosong).
+- `pos.tsx` membaca `flash.receipt` → membuka `Sheet` "Transaksi tersimpan" dengan nomor (font mono besar), total, tombol **Cetak** (buka `print_url` tab baru — URL bertanda tangan tidak bisa ditambahi `?print=1` di klien, jadi `Order::invoiceUrl(print: true)` menandatangani varian cetaknya; halaman memanggil `window.print()` saat load), **Kirim WA** (bila HP; pesan `whatsappMessage` varian struk: "Terima kasih, struk: {link}"), **Salin link**, **Transaksi baru** (tutup Sheet, keranjang sudah kosong).
 - Sheet ini juga memperbaiki keluhan toast hilang: ringkasan tetap sampai ditutup.
 
 **Test minimal.** Store POS → flash `receipt` berisi `invoice_url` valid (signed); halaman publik retail memuat kata "Struk"; `?print=1` menyisipkan skrip print; order non-retail tetap "Invoice".
@@ -182,14 +193,14 @@ Satu mekanisme untuk tiga titik: halaman publik invoice bertanda tangan (`invoic
 
 **Frontend**
 - `PaymentDialog`: setelah `onSuccess`, bukan langsung tutup — tampilkan langkah "Tercatat. DP 60% · sisa Rp X" dengan tombol **Kirim bukti via WA** / **Salin link** / **Selesai**. Pesan: "Pembayaran Rp X diterima {tanggal}. Sisa Rp Y, jatuh tempo {tanggal}. Rincian: {link}".
-- Berlaku di semua pemanggil `PaymentDialog` (Order detail, Pembayaran, Dashboard) tanpa perubahan tambahan.
+- Berlaku di kedua pemanggil `PaymentDialog` (Order detail, Pembayaran) tanpa perubahan tambahan — Dashboard tidak memakainya.
 
 **Test minimal.** Catat bayar → flash `receipt.balance` benar; lunas → `payment_status = paid` dan pesan tanpa "sisa"; props receivables memuat `invoice_url`.
 
 ### 2.4 Tagih via WA dari layar Pembayaran
 
 **Backend**
-- (K5) Template baru `billing` di `MessageTemplate::defaults()` dengan placeholder `{nama}`, `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}`; `personalise()` diperluas untuk placeholder ini. `ReceivableController@index` mengirim `billing_template: string` (resolved).
+- (K5) Template baru `billing` di `MessageTemplate::defaults()` dengan placeholder `{nama}`, `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}`; metode baru `MessageTemplate::fill(string $body, array $values)`; `personalise($body, $name, $link)` tetap ada sebagai pembungkus (dipakai email blast). `ReceivableController@index` mengirim `billing_template: string` (resolved).
 - `whatsappMessage()` di `invoice-document.tsx` beralih memakai template yang sama (dikirim sebagai prop `billing_template` di halaman Invoice) — satu sumber teks tagihan.
 
 **Frontend**
@@ -262,9 +273,9 @@ Daftar piutang kecil (semua dimuat) → filter di klien saja: tab **Semua / Lewa
 
 **Test minimal.** Booking besok muncul, lusa tidak; order batal tidak muncul; template placeholder terganti.
 
-### 3.6 Katalog: margin % + pencarian klien
+### 3.6 Katalog: penanda margin rendah + pencarian klien
 
-`CatalogItemController@index` props menambah `margin_ratio` (produk: `(price − unit_cost) / price`; jasa `null`). Kolom "Margin" di tabel (produk saja, warna `destructive` bila < 20% — ambang di `config/studio.php` `low_margin_ratio`, default 0.2, dijelaskan di tooltip header). Input cari nama di atas tabel memakai `list-toolbar.tsx` mode klien. Hal yang sama (cari klien) untuk Aset. **S**.
+Katalog **sudah** menampilkan HPP, Margin, dan Margin % per produk (koreksi atas analisis). Yang ditambahkan: pewarnaan `destructive` pada margin % di bawah ambang `config('studio.low_margin_ratio')` (default 0.2, dijelaskan di tooltip header), dan input cari nama memakai `list-toolbar.tsx` mode klien untuk Katalog dan Aset. **S**.
 
 ---
 
@@ -274,14 +285,14 @@ Daftar piutang kecil (semua dimuat) → filter di klien saja: tab **Semua / Lewa
 
 Tetap satu kolom `orders.discount` nominal. UI POS: toggle `Rp | %`; mode % menghitung nominal di klien (`Math.round(subtotal × p / 100)`) dan menampilkan "10% = Rp 8.000"; yang dikirim tetap `discount` nominal → **tanpa perubahan backend**. Diskon per item **tidak** dibangun (perlu kolom di `order_items`, mengubah laporan margin produk; nilai tambah kecil di volume ini). Vitest kalkulasi pembulatan. **S**.
 
-### 4.2 Retur / void retail (menunggu K3)
+### 4.2 Retur / void retail
 
-**Aturan bisnis (usulan).** Retur = uang keluar bertanggal hari retur (basis kas), bukan menghapus pembayaran lama (bulan lama bisa sudah tutup buku). Order tetap `delivered`; status bayar turunan memperhitungkan refund. Barang pengganti = transaksi POS baru.
+**Aturan bisnis (K3).** Retur = uang keluar bertanggal hari retur (basis kas), bukan menghapus pembayaran lama (bulan lama bisa sudah tutup buku). Order tetap `delivered`; status bayar turunan memperhitungkan refund. Barang pengganti = transaksi POS baru.
 
 **Backend**
 - Tabel `refunds`: `id`, `order_id` FK restrict, `refunded_on` date (`OpenPeriod`), `amount` ≤ `totalPaid − refunded`, `method` PaymentMethod, `reason` string, `created_by`. Route `POST orders/{order}/refunds`, `DELETE orders/{order}/refunds/{refund}` (scoped, `ConfirmDelete`).
-- `Order::totalRefunded()`, `netPaid() = totalPaid − totalRefunded`; `paymentStatus()`, `balance()`, `margin()` memakai `netPaid()`; `ProfitAndLoss` revenue bulan = pembayaran − refund bulan itu; `CashReceipts` (3.3) per metode negatif. `RecordOrderEvent('refunded')`.
-- Hanya untuk retail **dan** studio/event? Usulan: semua lini (pembatalan dengan pengembalian DP juga butuh ini — menggantikan "DP hangus" ketika owner memutuskan mengembalikan). Konfirmasi di K3.
+- `Order::totalRefunded()`, `netPaid() = totalPaid − totalRefunded`; **hanya** `margin()` dan omzet Laba Rugi memakai `netPaid()` — `balance()`/`paymentStatus()` tetap bruto, kalau tidak order yang direfund penuh muncul lagi sebagai piutang di `Receivables::open()`; refund tampil sebagai badge "Retur"; `ProfitAndLoss` revenue bulan = pembayaran − refund bulan itu; `CashReceipts` (3.3) per metode negatif. `RecordOrderEvent('refunded')`.
+- Semua lini (K3): pengembalian DP order batal memakai mekanisme yang sama — menggantikan "DP hangus" hanya ketika owner memutuskan mengembalikan.
 
 **Frontend**
 - Di Sheet detail bagian Pembayaran: tombol "Catat Retur" → dialog jumlah, metode, alasan (wajib). Baris refund tampil merah dengan tanda minus. Invoice publik menampilkan "Pengembalian" bila ada.
@@ -294,7 +305,7 @@ Klien saja: `localStorage['pos.held']` array maks 5 `{label, lines, discount, cu
 
 ### 4.4 Split payment di POS
 
-`StorePosSaleRequest`: `payments` array 1–2 `{method, amount}`; `sum(amount) = total` (aturan `withValidator`); `method`/`paid` lama dihapus setelah frontend pindah (tidak dua jalur). `PosController@store` membuat N baris `payments`. UI: baris metode kedua muncul lewat "+ Bagi pembayaran", sisa dihitung otomatis. Struk (2.2) menampilkan dua baris. **M**.
+`StorePosSaleRequest`: `payments` array 1–2 `{method, amount}`; `sum(amount) = total` (aturan di `after()`); `method`/`paid` lama dihapus setelah frontend pindah (tidak dua jalur). `PosController@store` membuat N baris `payments`. UI: baris metode kedua muncul lewat "+ Bagi pembayaran", sisa dihitung otomatis. Struk (2.2) menampilkan dua baris. **M**.
 
 ### 4.5 Ekspor CSV
 
@@ -306,13 +317,13 @@ Tanpa framework baru: breakpoint `md`. POS → grid produk 2 kolom, keranjang ja
 
 ---
 
-## Fase 5 — Saat admin mulai input (menunggu K4)
+## Fase 5 — Saat admin mulai input
 
 ### 5.1 Peran & hak akses
 
 **Backend**
 - Kolom `users.role` string enum `UserRole { Owner = 'owner'; Admin = 'admin' }`, default `owner` untuk data lama. Tidak ada tabel permission — dua peran, aturan tetap, `Gate` cukup. `// ponytail: dua peran hard-coded; tabel permission kalau peran ketiga muncul`.
-- Gate: `view-finance` (Laporan, Modal & Bagi Hasil, Dashboard bagian omzet/BEP, margin & HPP di Order/Katalog/POS), `manage-catalog` (ubah harga/HPP), `delete-money` (hapus pembayaran/biaya/servis), `close-period`. Admin: hanya `null` dari semuanya kecuali mencatat (order, POS, pembayaran, biaya job, customer). Dipasang sebagai middleware `can:` di route group Finance dan `authorize()` di request yang relevan.
+- Gate: `view-finance` (Laporan, Modal & Bagi Hasil, Dashboard bagian omzet/BEP, margin & HPP di Order/Katalog/POS), `manage-catalog` (ubah harga/HPP), `delete-money` (hapus pembayaran/biaya/servis), `close-period`, `manage-users`, plus `manage-assets`, `manage-templates`, `record-operating-expense` supaya K4 tercakup penuh — tabel route × gate lengkap di spek 5.1. Admin: hanya `null` dari semuanya kecuali mencatat (order, POS, pembayaran, biaya job, customer). Dipasang sebagai middleware `can:` di route group Finance dan `authorize()` di request yang relevan.
 - Props yang memuat angka finansial (`margin`, `unit_cost`, `direct_cost`) **dihilangkan** di server untuk admin (bukan disembunyikan di klien).
 - Undangan user: registrasi Fortify sudah mati (`config/fortify.php` tanpa `Features::registration()`) → owner membuat user admin dari halaman Settings → "Pengguna" (`users.index/store/update` role & reset sandi). Hanya owner.
 

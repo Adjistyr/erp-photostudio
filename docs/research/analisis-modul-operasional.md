@@ -157,7 +157,7 @@ POS retail: laporan kas harian per metode, rekonsiliasi, tutup kasir. Aplikasi s
 - Tidak ada foto item — untuk POS internal tidak penting.
 
 ### POV Owner
-- Margin per produk ada di Laporan Penjualan. Di Katalog sendiri **margin % per item** tidak ditampilkan padahal harga dan HPP keduanya ada — satu kolom hitungan.
+- Margin per produk sudah tampil di dua tempat: Laporan Penjualan dan tabel Katalog (kolom HPP, Margin, Margin %). Yang belum ada hanya **penanda** produk bermargin rendah — owner harus membaca angkanya satu per satu. *(Koreksi 7 Okt: versi awal dokumen ini salah menyebut margin % belum ada di Katalog.)*
 - Tidak ada riwayat perubahan harga (kapan harga naik). Order lama aman (snapshot); yang hilang hanya analisis.
 
 ### Pembanding
@@ -167,7 +167,7 @@ POS retail: kategori terstruktur, varian/modifier, stok & HPP otomatis dari pemb
 | Usulan | Prio | Est. | Catatan |
 |---|---|---|---|
 | **Kategori jasa jadi pilihan tetap** (Studio / Event / Add-on) di form Katalog; kategori produk bebas; peringatan di Katalog untuk jasa yang kategorinya tidak dikenal | P1 | S | Validasi di `CatalogItemRequest` + Select di UI. Migrasi data: normalisasi kategori yang ada |
-| Kolom **margin %** di tabel Katalog (produk) | P2 | S | `(price − unit_cost) / price` |
+| Penanda margin rendah di tabel Katalog (di bawah ambang, mis. 20%) | P3 | S | Kolom margin % sudah ada; tinggal pewarnaan + ambang di `config/studio.php` |
 | Pencarian nama | P3 | S | |
 | Paket/bundel dengan komponen | P3 | L | Baru perlu kalau HPP bahan paket mau akurat; sekarang HPP bahan paket studio diabaikan |
 | Riwayat harga | P3 | M | |
