@@ -41,6 +41,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property-read Collection<int, OrderItem> $items
  * @property-read Collection<int, Payment> $payments
  * @property-read Collection<int, JobCost> $jobCosts
+ * @property-read Collection<int, OrderEvent> $events
  */
 #[Fillable([
     'number', 'customer_id', 'business_line', 'service_date', 'service_time',
@@ -113,6 +114,17 @@ class Order extends Model
     public function jobCosts(): HasMany
     {
         return $this->hasMany(JobCost::class);
+    }
+
+    /**
+     * Riwayat perubahan, terbaru dulu (id ikut diurutkan: dua event dalam
+     * satu detik tetap stabil). Ditulis hanya lewat Actions\RecordOrderEvent.
+     *
+     * @return HasMany<OrderEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(OrderEvent::class)->orderByDesc('created_at')->orderByDesc('id');
     }
 
     public function total(): int

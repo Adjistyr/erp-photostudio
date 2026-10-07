@@ -14,9 +14,12 @@ use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
 use Modules\Finance\Services\Periods;
+use Modules\Order\Actions\RecordOrderEvent;
+use Modules\Order\Enums\OrderEventType;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\OrderEvent;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\Payment;
 use Modules\Order\Requests\CancelOrderRequest;
@@ -37,7 +40,7 @@ class OrderController extends Controller
 {
     public function index(): Response
     {
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user'])
             ->orderByDesc('number')
             ->get();
 
@@ -56,7 +59,7 @@ class OrderController extends Controller
         $month = Periods::orCurrent($request->query('month'));
         $start = Periods::start($month);
 
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
             ->whereBetween('service_date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ->orderBy('service_date')
@@ -89,7 +92,7 @@ class OrderController extends Controller
      * Order + item + DP dalam satu transaksi: order tanpa item, atau DP tanpa
      * order, merusak laporan tanpa terlihat di layar.
      */
-    public function store(StoreOrderRequest $request): RedirectResponse
+    public function store(StoreOrderRequest $request, RecordOrderEvent $events): RedirectResponse
     {
         $data = $request->validated();
         $line = BusinessLine::from($data['business_line']);
@@ -97,7 +100,7 @@ class OrderController extends Controller
         $total = $request->total();
         $location = trim((string) ($data['location'] ?? ''));
 
-        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location) {
+        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events) {
             $order = Order::create([
                 'number' => Order::nextNumber(),
                 'customer_id' => $data['customer_id'],
@@ -120,14 +123,20 @@ class OrderController extends Controller
                 ]);
             }
 
+            $events->execute($order, OrderEventType::Created, [
+                'work_status' => ['from' => null, 'to' => $order->work_status->value],
+                'total' => ['from' => null, 'to' => $total],
+            ]);
+
             if ($deposit > 0) {
-                $order->payments()->create([
+                $payment = $order->payments()->create([
                     'paid_on' => now()->toDateString(),
                     'amount' => $deposit,
                     'method' => $data['dp_method'] ?? PaymentMethod::Transfer->value,
                     // Sama dengan OrderPaymentController: menutup total = pelunasan.
                     'note' => $deposit >= $total ? 'Pelunasan' : 'DP',
                 ]);
+                $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
             }
 
             return $order;
@@ -143,7 +152,7 @@ class OrderController extends Controller
      * satu langkah. Server yang menentukan langkahnya; klien tidak mengirim
      * status sembarang. Status bayar tidak punya endpoint sama sekali.
      */
-    public function advance(Order $order): RedirectResponse
+    public function advance(Order $order, RecordOrderEvent $events): RedirectResponse
     {
         $next = $order->work_status->next();
         if ($next === null) {
@@ -152,7 +161,11 @@ class OrderController extends Controller
             ]);
         }
 
-        $order->update(['work_status' => $next]);
+        $from = $order->work_status;
+        DB::transaction(function () use ($order, $next, $from, $events) {
+            $order->update(['work_status' => $next]);
+            $events->execute($order, OrderEventType::Advanced, ['work_status' => ['from' => $from->value, 'to' => $next->value]]);
+        });
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number}: status jadi {$next->label()}."]);
 
         return to_route('orders.index');
@@ -163,7 +176,7 @@ class OrderController extends Controller
      * ada (business-flow 2, pertanyaan 6). Alasan DITAMBAHKAN ke catatan,
      * bukan menimpa: catatan lama (permintaan customer, dsb.) tetap terbaca.
      */
-    public function cancel(CancelOrderRequest $request, Order $order): RedirectResponse
+    public function cancel(CancelOrderRequest $request, Order $order, RecordOrderEvent $events): RedirectResponse
     {
         if ($order->isCancelled()) {
             throw ValidationException::withMessages(['work_status' => 'Order sudah dibatalkan.']);
@@ -174,15 +187,27 @@ class OrderController extends Controller
             ? $order->notes
             : trim(($order->notes ? $order->notes."\n" : '')."Dibatalkan: {$reason}");
 
-        $order->update(['work_status' => WorkStatus::Cancelled, 'notes' => $notes]);
+        $from = $order->work_status;
+        DB::transaction(function () use ($order, $notes, $reason, $from, $events) {
+            $order->update(['work_status' => WorkStatus::Cancelled, 'notes' => $notes]);
+            $events->execute($order, OrderEventType::Cancelled, [
+                'work_status' => ['from' => $from->value, 'to' => WorkStatus::Cancelled->value],
+                'reason' => ['from' => null, 'to' => $reason !== '' ? $reason : null],
+            ]);
+        });
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number} dibatalkan."]);
 
         return to_route('orders.index');
     }
 
-    public function updateResultLink(OrderResultLinkRequest $request, Order $order): RedirectResponse
+    public function updateResultLink(OrderResultLinkRequest $request, Order $order, RecordOrderEvent $events): RedirectResponse
     {
-        $order->update(['result_link' => $request->validated('result_link')]);
+        $from = $order->result_link;
+        $to = $request->validated('result_link');
+        DB::transaction(function () use ($order, $from, $to, $events) {
+            $order->update(['result_link' => $to]);
+            $events->execute($order, OrderEventType::ResultLink, ['result_link' => ['from' => $from, 'to' => $to]]);
+        });
         Inertia::flash('toast', ['type' => 'success', 'message' => "Link hasil {$order->number} disimpan."]);
 
         return to_route('orders.index');
@@ -225,6 +250,10 @@ class OrderController extends Controller
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,
                 'method' => $p->method->value, 'note' => $p->note, 'created_by_name' => $p->creator?->name,
+            ])->values()->all(),
+            'events' => $o->events->map(fn (OrderEvent $e) => [
+                'id' => $e->id, 'type' => $e->type->value, 'changes' => $e->changes,
+                'user_name' => $e->user?->name, 'at' => $e->created_at->toIso8601String(),
             ])->values()->all(),
             'job_costs' => $o->jobCosts->sortBy('incurred_on')->map(fn (JobCost $j) => [
                 'id' => $j->id, 'incurred_on' => $j->incurred_on->toDateString(), 'category' => $j->category,

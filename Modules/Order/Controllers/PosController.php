@@ -10,8 +10,11 @@ use Inertia\Response;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
+use Modules\Order\Actions\RecordOrderEvent;
+use Modules\Order\Enums\OrderEventType;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\Payment;
 use Modules\Order\Requests\StorePosSaleRequest;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
@@ -35,13 +38,13 @@ class PosController extends Controller
     }
 
     /** Order + item + pelunasan dalam satu transaksi. */
-    public function store(StorePosSaleRequest $request): RedirectResponse
+    public function store(StorePosSaleRequest $request, RecordOrderEvent $events): RedirectResponse
     {
         $discount = $request->discount();
         $total = $request->subtotal() - $discount;
         $customer = $this->customerFor($request->string('customer_name')->trim()->value());
 
-        $order = DB::transaction(function () use ($request, $discount, $total, $customer) {
+        $order = DB::transaction(function () use ($request, $discount, $total, $customer, $events) {
             $order = Order::create([
                 'number' => Order::nextNumber(),
                 // Null = walk-in tanpa nama — bukan baris customer "Umum" (docs/database.md).
@@ -63,12 +66,18 @@ class PosController extends Controller
                 ]);
             }
 
-            $order->payments()->create([
+            $payment = $order->payments()->create([
                 'paid_on' => today()->toDateString(),
                 'amount' => $total,
                 'method' => $request->validated('method'),
                 'note' => 'Pelunasan',
             ]);
+
+            $events->execute($order, OrderEventType::Created, [
+                'work_status' => ['from' => null, 'to' => WorkStatus::Delivered->value],
+                'total' => ['from' => null, 'to' => $total],
+            ]);
+            $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
 
             return $order;
         });
