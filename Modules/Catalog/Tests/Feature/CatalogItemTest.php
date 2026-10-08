@@ -196,4 +196,13 @@ class CatalogItemTest extends TestCase
         // referensi item order lama.
         $this->assertFalse(Route::has('catalog.destroy'));
     }
+
+    public function test_index_exposes_low_margin_ratio_from_config()
+    {
+        config(['studio.low_margin_ratio' => 0.35]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('catalog.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('low_margin_ratio', 0.35));
+    }
 }

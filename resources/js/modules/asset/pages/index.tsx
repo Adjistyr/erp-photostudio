@@ -25,6 +25,8 @@ import {
 } from '@/components/data-table';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
+import { ListToolbar } from '@/components/list-toolbar';
+import type { ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
 import { RecordedBy } from '@/components/recorded-by';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -78,6 +80,7 @@ import {
     formatUmurPiutang,
     hanyaDigit,
 } from '@/lib/format';
+import { filterAssets } from '@/modules/asset/lib/filter';
 import { index as assetsIndex } from '@/routes/assets';
 
 type MaintenanceType = 'routine' | 'repair';
@@ -160,6 +163,9 @@ export default function AssetsIndex(props: Props) {
     // Simpan id, bukan objek: setelah servis/lepas, Sheet membaca props terbaru.
     const [detailId, setDetailId] = useState<number | null>(null);
     const detail = assets.find((a) => a.id === detailId) ?? null;
+    // Cari di klien (spek 3.6) — daftar aset kecil dan dimuat penuh.
+    const [search, setSearch] = useState<ListFilters>({ q: '' });
+    const visible = filterAssets(assets, { q: search.q });
 
     return (
         <>
@@ -213,7 +219,23 @@ export default function AssetsIndex(props: Props) {
                     </Alert>
                 )}
 
-                {assets.length === 0 ? (
+                {assets.length > 0 && (
+                    <ListToolbar
+                        value={search}
+                        placeholder="Cari kode, nama, model, atau kategori…"
+                        onChange={setSearch}
+                    />
+                )}
+
+                {assets.length > 0 && visible.length === 0 ? (
+                    <KosongTabel
+                        kalimat="Tidak ada aset yang cocok."
+                        aksi={{
+                            label: 'Hapus pencarian',
+                            onClick: () => setSearch({ q: '' }),
+                        }}
+                    />
+                ) : assets.length === 0 ? (
                     <KosongTabel
                         kalimat="Belum ada aset. Catat alat studio supaya dana maintenance dihitung otomatis."
                         aksi={{
@@ -237,7 +259,7 @@ export default function AssetsIndex(props: Props) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {assets.map((a) => (
+                            {visible.map((a) => (
                                 <TableRow
                                     key={a.id}
                                     // Dipudarkan seperti order Batal: riwayat, bukan yang aktif.

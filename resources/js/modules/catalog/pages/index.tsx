@@ -19,6 +19,8 @@ import {
     TabelData,
 } from '@/components/data-table';
 import InputError from '@/components/input-error';
+import { ListToolbar } from '@/components/list-toolbar';
+import type { ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +65,13 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { filterCatalog, isLowMargin } from '@/modules/catalog/lib/filter';
 import { index as catalogIndex } from '@/routes/catalog';
 import type { ServiceCategory } from '@/types/domain';
 
@@ -94,16 +102,21 @@ type Filter = (typeof FILTER)[number];
 export default function CatalogIndex({
     items,
     service_categories,
+    low_margin_ratio,
 }: {
     items: CatalogItem[];
     service_categories: ServiceCategoryOption[];
+    /** Ambang margin rendah 0..1 dari config/studio.php (spek 3.6). */
+    low_margin_ratio: number;
 }) {
     const [filter, setFilter] = useState<Filter>('all');
     /** null = dialog tertutup · 'new' = tambah · CatalogItem = edit item itu. */
     const [editing, setEditing] = useState<CatalogItem | 'new' | null>(null);
 
-    const visible =
-        filter === 'all' ? items : items.filter((i) => i.type === filter);
+    // Cari di klien (spek 3.6) — katalog kecil dan dimuat penuh.
+    const [search, setSearch] = useState<ListFilters>({ q: '' });
+    const visible = filterCatalog(items, { type: filter, q: search.q });
+    const lowMarginNote = `Merah bila di bawah ${formatPersen(low_margin_ratio)} — ambang di konfigurasi studio.`;
     const tersesat = items.filter((i) => i.unknown_category).length;
 
     const toggleActive = (item: CatalogItem) => {
@@ -152,7 +165,21 @@ export default function CatalogIndex({
                     </Alert>
                 )}
 
-                {visible.length === 0 ? (
+                <ListToolbar
+                    value={search}
+                    placeholder="Cari nama atau kategori…"
+                    onChange={setSearch}
+                />
+
+                {visible.length === 0 && search.q.trim() !== '' ? (
+                    <KosongTabel
+                        kalimat="Tidak ada item yang cocok."
+                        aksi={{
+                            label: 'Hapus pencarian',
+                            onClick: () => setSearch({ q: '' }),
+                        }}
+                    />
+                ) : visible.length === 0 ? (
                     <KosongTabel
                         kalimat="Belum ada produk atau jasa. Tambahkan yang paling sering dijual dulu."
                         aksi={{
@@ -170,7 +197,20 @@ export default function CatalogIndex({
                                 <KepalaUang>Harga jual</KepalaUang>
                                 <KepalaUang>HPP bahan</KepalaUang>
                                 <KepalaUang>Margin</KepalaUang>
-                                <KepalaUang>Margin %</KepalaUang>
+                                <KepalaUang>
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
+                                                <span className="cursor-help underline decoration-dotted decoration-from-font underline-offset-4" />
+                                            }
+                                        >
+                                            Margin %
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {lowMarginNote}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </KepalaUang>
                                 <TableHead>Status</TableHead>
                                 <TableHead />
                             </TableRow>
@@ -232,7 +272,20 @@ export default function CatalogIndex({
                                                     item.price - item.unit_cost
                                                 }
                                             />
-                                            <TableCell className="text-right font-mono">
+                                            {/* Produk bermargin tipis menonjol tanpa
+                                                harus membaca angkanya satu per satu. */}
+                                            <TableCell
+                                                className={`text-right font-mono ${isLowMargin(item.price, item.unit_cost, low_margin_ratio) ? 'text-destructive' : ''}`}
+                                                title={
+                                                    isLowMargin(
+                                                        item.price,
+                                                        item.unit_cost,
+                                                        low_margin_ratio,
+                                                    )
+                                                        ? lowMarginNote
+                                                        : undefined
+                                                }
+                                            >
                                                 {formatPersen(
                                                     (item.price -
                                                         item.unit_cost) /
