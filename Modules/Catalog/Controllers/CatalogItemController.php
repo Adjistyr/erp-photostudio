@@ -34,6 +34,8 @@ class CatalogItemController extends Controller
                     // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
                     'unknown_category' => ! $i->hasKnownServiceCategory(),
                 ])->values()->all(),
+            // Ambang penanda margin rendah (merah) di kolom Margin % produk.
+            'low_margin_ratio' => (float) config('studio.low_margin_ratio'),
             'service_categories' => array_map(fn (ServiceCategory $c) => ['value' => $c->value, 'label' => $c->label()], ServiceCategory::cases()),
         ]);
     }
