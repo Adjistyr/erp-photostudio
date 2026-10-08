@@ -171,6 +171,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 13. **Snapshot harga saat edit order.** Baris item lama (punya `id`) hanya boleh berubah qty — jangan salin ulang `unit_price`/`unit_cost` dari katalog, dan jangan hitung total edit dengan `subtotal()` trait `ResolvesCatalogLines` (memakai harga katalog untuk semua baris). Pakai `UpdateOrderRequest::newTotal()` / `lineTotal()` di klien.
 14. **Status bayar turunan — filter di SQL, jangan setelah `paginate()`.** `Order::scopeSearch()` menghitung `paid` (SUM payments) dan `total` (SUM qty × harga − diskon) lewat subquery, dengan tiga cabang yang sama persis dengan `paymentStatus()`. Menyaring hasil halaman di PHP membuat halaman berisi < 25 baris dan `total` salah.
 15. **SQL mentah harus literal-string.** Larastan menolak `whereRaw()` dengan string hasil interpolasi — pakai konstanta (mis. `Phone::SQL_NORMALISED_PHONE`) dan binding `?` untuk nilai.
+16. **Diskon persen hanya di klien.** POS mengonversi persen → nominal (`persenKeNominal()`, `modules/order/lib/discount.ts`) dan mengirim `discount` nominal lewat `transform` saat simpan; server tidak tahu ada mode persen. Jangan tambah field `discount_percent` di request.
 
 ---
 

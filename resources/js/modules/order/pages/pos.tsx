@@ -21,6 +21,12 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useFlash } from '@/hooks/use-flash';
+import {
+    nominalKePersen,
+    persenKeNominal,
+    rapikanPersen,
+} from '@/modules/order/lib/discount';
+import type { DiscountMode } from '@/modules/order/lib/discount';
 import { formatRp, hanyaDigit } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
@@ -99,7 +105,30 @@ export default function Pos({
         (s, l) => s + l.quantity * l.product.price,
         0,
     );
-    const discount = Math.min(Number(data.discount) || 0, subtotal);
+    // Diskon persen (spek 4.1): isian mentah di form, nominal diturunkan di
+    // sini dan dikirim lewat transform saat simpan. Dalam mode % persen yang
+    // dipertahankan — nominal ikut berubah bila keranjang berubah.
+    const [discountMode, setDiscountMode] = useState<DiscountMode>('rp');
+    const persen = Number(data.discount) || 0;
+    const discountNominal =
+        discountMode === 'pct'
+            ? persenKeNominal(subtotal, persen)
+            : Number(data.discount) || 0;
+    const pctError =
+        discountMode === 'pct' && persen >= 100
+            ? 'Diskon harus di bawah 100%.'
+            : undefined;
+    const discount = Math.min(discountNominal, subtotal);
+    const switchDiscountMode = (mode: DiscountMode) => {
+        if (mode === discountMode) return;
+        // Pindah mode mengonversi nilai yang ada, tidak mengosongkan field.
+        const next =
+            mode === 'pct'
+                ? nominalKePersen(subtotal, Number(data.discount) || 0)
+                : persenKeNominal(subtotal, persen);
+        setData('discount', next > 0 ? String(next) : '');
+        setDiscountMode(mode);
+    };
     const total = subtotal - discount;
     const materialCost = lines.reduce(
         (s, l) => s + l.quantity * (l.product.unit_cost ?? 0),
@@ -130,7 +159,9 @@ export default function Pos({
                 .filter((l) => l.quantity > 0),
         );
 
-    const submit = () =>
+    const submit = () => {
+        // Server selalu menerima nominal rupiah.
+        form.transform((d) => ({ ...d, discount: String(discountNominal) }));
         form.post(PosController.store().url, {
             preserveScroll: true,
             onSuccess: () => {
@@ -138,6 +169,7 @@ export default function Pos({
                 setSearch('');
             },
         });
+    };
 
     // POS bergantung pada Katalog — arahkan ke sana, bukan tawarkan aksi yang
     // belum bisa dijalankan (R7).
@@ -293,23 +325,62 @@ export default function Pos({
                                 >
                                     Diskon
                                 </label>
-                                {/* Non-digit dibuang — rupiah selalu integer (R5). */}
-                                <Input
-                                    id="discount"
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    className="h-8 w-28 text-right font-mono"
-                                    value={data.discount}
-                                    aria-invalid={Boolean(errors.discount)}
-                                    onChange={(e) =>
-                                        setData(
-                                            'discount',
-                                            hanyaDigit(e.target.value),
-                                        )
-                                    }
-                                />
+                                <div className="flex items-center gap-1">
+                                    <ToggleGroup
+                                        size="sm"
+                                        aria-label="Satuan diskon"
+                                        value={[discountMode]}
+                                        onValueChange={(v) => {
+                                            if (v[0] === 'rp' || v[0] === 'pct')
+                                                switchDiscountMode(v[0]);
+                                        }}
+                                    >
+                                        <ToggleGroupItem value="rp">
+                                            Rp
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="pct">
+                                            %
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
+                                    {/* Rp: non-digit dibuang — rupiah selalu integer (R5). */}
+                                    <Input
+                                        id="discount"
+                                        inputMode={
+                                            discountMode === 'pct'
+                                                ? 'decimal'
+                                                : 'numeric'
+                                        }
+                                        placeholder="0"
+                                        className="h-8 w-24 text-right font-mono"
+                                        value={data.discount}
+                                        aria-invalid={Boolean(
+                                            errors.discount ?? pctError,
+                                        )}
+                                        onChange={(e) =>
+                                            setData(
+                                                'discount',
+                                                discountMode === 'pct'
+                                                    ? rapikanPersen(
+                                                          e.target.value,
+                                                      )
+                                                    : hanyaDigit(
+                                                          e.target.value,
+                                                      ),
+                                            )
+                                        }
+                                    />
+                                </div>
                             </div>
-                            <InputError message={errors.discount} />
+                            {subtotal > 0 &&
+                                discountNominal > 0 &&
+                                !pctError && (
+                                    <p className="text-right text-xs text-muted-foreground">
+                                        {discountMode === 'pct'
+                                            ? `${persen}% = ${formatRp(discountNominal)}`
+                                            : `= ${nominalKePersen(subtotal, discountNominal)}% dari subtotal`}
+                                    </p>
+                                )}
+                            <InputError message={pctError ?? errors.discount} />
                             <Separator />
                             <div className="flex items-baseline justify-between">
                                 <span className="font-medium">Total</span>
@@ -408,7 +479,11 @@ export default function Pos({
 
                         <Button
                             size="lg"
-                            disabled={lines.length === 0 || processing}
+                            disabled={
+                                lines.length === 0 ||
+                                processing ||
+                                Boolean(pctError)
+                            }
                             onClick={submit}
                         >
                             Simpan & Bayar {total > 0 ? formatRp(total) : ''}
