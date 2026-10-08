@@ -10,7 +10,7 @@
  */
 
 import { Head, Link } from '@inertiajs/react';
-import { Send, TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import {
     KepalaUang,
@@ -23,6 +23,7 @@ import { LineMark, PaymentBadge } from '@/components/status-order';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { SummaryCard } from '@/components/summary-card';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,11 +34,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     formatPersen,
     formatRp,
     formatTanggal,
@@ -46,10 +42,7 @@ import {
 } from '@/lib/format';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFlash } from '@/hooks/use-flash';
-import {
-    billingValues,
-    waLink,
-} from '@/modules/order/components/invoice-document';
+import { billingValues } from '@/modules/order/components/invoice-document';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
@@ -333,26 +326,6 @@ function BillButton({
     template: string;
 }) {
     const overdue = row.days_until_due < 0;
-    const className = overdue ? 'border-destructive text-destructive' : '';
-
-    if (!row.customer_phone) {
-        return (
-            <Tooltip>
-                {/* Tombol disabled tidak memicu hover — tooltip di pembungkus. */}
-                <TooltipTrigger render={<span tabIndex={0} />}>
-                    <Button
-                        size="icon-sm"
-                        variant="outline"
-                        disabled
-                        aria-label="Tagih via WhatsApp — belum ada nomor HP"
-                    >
-                        <Send />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>Belum ada nomor HP</TooltipContent>
-            </Tooltip>
-        );
-    }
 
     const message = personalise(
         template,
@@ -366,26 +339,15 @@ function BillButton({
     );
 
     return (
-        <Button
-            size="icon-sm"
-            variant="outline"
-            className={className}
-            aria-label={`Tagih ${row.number} via WhatsApp`}
-            title={
+        <WhatsAppButton
+            phone={row.customer_phone}
+            message={message}
+            label={
                 overdue
-                    ? 'Tagih via WhatsApp — lewat jatuh tempo'
-                    : 'Tagih via WhatsApp'
+                    ? `Tagih ${row.number} via WhatsApp — lewat jatuh tempo`
+                    : `Tagih ${row.number} via WhatsApp`
             }
-            nativeButton={false}
-            render={
-                <a
-                    href={waLink(row.customer_phone, message)}
-                    target="_blank"
-                    rel="noreferrer"
-                />
-            }
-        >
-            <Send />
-        </Button>
+            urgent={overdue}
+        />
     );
 }

@@ -76,6 +76,10 @@ function contoh(sampleName: string): Record<string, string> {
         nomor: 'ORD-0012',
         sisa: formatRp(1_200_000),
         jatuh_tempo: formatTanggal('2026-10-12'),
+        // Reminder (spek 3.5).
+        tanggal: formatTanggal('2026-10-12'),
+        jam: '10:00',
+        lokasi: 'Studio',
     };
 }
 
@@ -408,7 +412,12 @@ function TemplatesTab({
                     <code className="font-mono">{'{sisa}'}</code>,{' '}
                     <code className="font-mono">{'{jatuh_tempo}'}</code>, dan{' '}
                     <code className="font-mono">{'{link}'}</code> (link
-                    invoice). Template Promo jadi isi awal pesan di tab blast.
+                    invoice); Reminder memakai{' '}
+                    <code className="font-mono">{'{tanggal}'}</code>,{' '}
+                    <code className="font-mono">{'{jam}'}</code>, dan{' '}
+                    <code className="font-mono">{'{lokasi}'}</code> sesi
+                    (dikirim dari Dashboard → Jadwal besok). Template Promo jadi
+                    isi awal pesan di tab blast.
                 </AlertDescription>
             </Alert>
 
