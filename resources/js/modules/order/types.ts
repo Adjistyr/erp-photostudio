@@ -42,10 +42,13 @@ export interface OrderRow {
     id: number;
     number: string;
     /** null = walk-in tanpa data customer. */
+    customer_id: number | null;
     customer_name: string | null;
     /** null = dicatat sebelum ada pencatat atau user sudah dihapus. */
     created_by_name: string | null;
     business_line: BusinessLine;
+    /** Bisa dibuka di Ubah Order (studio/event, bukan batal) — dari server. */
+    editable: boolean;
     items_summary: string;
     service_date: string;
     service_time: string | null;
@@ -64,7 +67,14 @@ export interface OrderRow {
     next_status: WorkStatus | null;
     payment_status: PaymentStatus;
     paid_percent: number;
-    items: { id: number; name: string; quantity: number; unit_price: number }[];
+    items: {
+        id: number;
+        name: string;
+        quantity: number;
+        unit_price: number;
+        catalog_item_id: number | null;
+        unit_cost: number | null;
+    }[];
     payments: {
         id: number;
         paid_on: string;
@@ -155,6 +165,8 @@ export const ORDER_FIELD_LABEL: Record<string, string> = {
     paid_on: 'Tanggal bayar',
     total: 'Total',
     reason: 'Alasan',
+    // Edit order (spek 1.2): ringkasan item sebelum → sesudah.
+    items: 'Item',
 };
 
 /** `changes` berisi unknown — objek tak terduga jadi JSON, bukan "[object Object]". */

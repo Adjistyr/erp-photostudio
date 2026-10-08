@@ -26,6 +26,7 @@ use Modules\Order\Models\Payment;
 use Modules\Order\Requests\CancelOrderRequest;
 use Modules\Order\Requests\OrderResultLinkRequest;
 use Modules\Order\Requests\StoreOrderRequest;
+use Modules\Order\Requests\UpdateOrderRequest;
 use Modules\Shared\Enums\BusinessLine;
 
 /**
@@ -153,6 +154,84 @@ class OrderController extends Controller
     }
 
     /**
+     * Edit order studio/event (spek 1.2). 404, bukan 403: order retail/batal
+     * memang tidak punya halaman edit dan tombolnya tidak ditampilkan.
+     */
+    public function edit(Order $order): Response
+    {
+        abort_unless($order->isEditable(), 404);
+        $order->load(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user']);
+        $kept = $order->items->pluck('catalog_item_id')->filter()->all();
+
+        return Inertia::render('order::edit', [
+            'order' => $this->orderProps($order),
+            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
+            // Paket aktif berkategori dikenal (sama dengan create) + paket yang
+            // dirujuk baris lama walau sudah nonaktif — supaya namanya tampil.
+            'catalog' => CatalogItem::where('type', CatalogItemType::Service)
+                ->where(fn ($q) => $q
+                    ->where(fn ($q) => $q->where('is_active', true)->whereIn('category', ServiceCategory::values()))
+                    ->orWhereIn('id', $kept))
+                ->orderBy('name')
+                ->get(['id', 'name', 'price', 'category', 'is_active']),
+            // Dua flag walau nilainya sama hari ini: K1 bisa direvisi tanpa
+            // mengubah bentuk props.
+            'locked' => ['schedule' => $order->hasLockedSchedule(), 'items' => $order->hasLockedSchedule()],
+        ]);
+    }
+
+    /**
+     * Sinkronisasi item: hapus yang hilang → ubah qty yang dipertahankan →
+     * tambah baris baru. Baris lama TIDAK disalin ulang dari katalog (harga
+     * deal tetap). Satu event `updated` berisi diff; tanpa perubahan → tanpa
+     * event. `work_status` tidak berubah walau jadwal digeser, dan tanggal
+     * baru tidak dicek tutup buku — jadwal bukan uang.
+     */
+    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events): RedirectResponse
+    {
+        $changes = $request->changes($order);
+        if ($changes === []) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Tidak ada yang berubah.']);
+
+            return to_route('orders.index');
+        }
+
+        DB::transaction(function () use ($request, $order, $changes, $events) {
+            $order->update($request->normalised());
+
+            $rows = $request->rows();
+            $keep = array_values(array_filter(array_column($rows, 'id')));
+            $order->items()->whereNotIn('id', $keep)->delete();
+
+            $stored = $order->items()->get()->keyBy('id');
+            foreach ($request->lines() as $i => ['item' => $catalog, 'quantity' => $qty]) {
+                $id = $rows[$i]['id'];
+                $line = $id !== null ? $stored->get($id) : null;
+                if ($line !== null) {
+                    if ($line->quantity !== $qty) {
+                        $line->update(['quantity' => $qty]);
+                    }
+
+                    continue;
+                }
+                $order->items()->create([
+                    'catalog_item_id' => $catalog->id,
+                    'name' => $catalog->name,
+                    'quantity' => $qty,
+                    'unit_price' => $catalog->price,
+                    'unit_cost' => $catalog->unit_cost,
+                ]);
+            }
+
+            $events->execute($order, OrderEventType::Updated, $changes);
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number} diperbarui."]);
+
+        return to_route('orders.index');
+    }
+
+    /**
      * Status kerja — SATU-SATUNYA status yang diinput manual, dan hanya maju
      * satu langkah. Server yang menentukan langkahnya; klien tidak mengirim
      * status sembarang. Status bayar tidak punya endpoint sama sekali.
@@ -228,10 +307,13 @@ class OrderController extends Controller
             'id' => $o->id,
             'number' => $o->number,
             // null = walk-in tanpa data customer.
+            'customer_id' => $o->customer_id,
             'customer_name' => $o->customer?->name,
             // null = dicatat sebelum ada pencatat (data lama) atau user sudah dihapus.
             'created_by_name' => $o->creator?->name,
             'business_line' => $o->business_line->value,
+            // Tombol Ubah di Sheet — aturan dari server, tidak dihitung ulang di klien.
+            'editable' => $o->isEditable(),
             'items_summary' => $o->itemsSummary(),
             'service_date' => $o->service_date->toDateString(),
             'service_time' => $o->service_time === null ? null : substr($o->service_time, 0, 5),
@@ -251,6 +333,7 @@ class OrderController extends Controller
             'paid_percent' => (int) round($o->paidRatio() * 100),
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
+                'catalog_item_id' => $i->catalog_item_id, 'unit_cost' => $i->unit_cost,
             ])->values()->all(),
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,

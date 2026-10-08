@@ -9,7 +9,7 @@
  */
 
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowRight, CalendarDays, Plus } from 'lucide-react';
+import { ArrowRight, CalendarDays, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
@@ -76,6 +76,7 @@ import {
 import {
     calendar as ordersCalendar,
     create as ordersCreate,
+    edit as ordersEdit,
     index as ordersIndex,
 } from '@/routes/orders';
 import { BUSINESS_LINES, LINE_LABEL, WORK_STATUS_LABEL } from '@/types/domain';
@@ -512,6 +513,18 @@ function OrderDetail({
                             }
                         >
                             Lihat Invoice
+                        </Button>
+                    )}
+                    {/* Reschedule, ganti jam/lokasi/item/customer — bukan
+                        batalkan lalu buat ulang (DP tidak "hangus"). */}
+                    {order.editable && (
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={<Link href={ordersEdit(order.id)} />}
+                        >
+                            <Pencil data-icon="inline-start" />
+                            Ubah
                         </Button>
                     )}
                     {order.work_status !== 'cancelled' && (

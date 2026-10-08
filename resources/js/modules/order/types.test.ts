@@ -62,3 +62,15 @@ test('field tidak dikenal tampil apa adanya, tidak throw', () => {
     );
     assert.equal(describeEvent(event('refunded', null)), 'Pengembalian');
 });
+
+test('diubah oleh edit order: customer (nama) dan item tampil berlabel', () => {
+    assert.equal(
+        describeEvent(
+            event('updated', {
+                customer_id: { from: 'Dewi', to: 'Sinta' },
+                items: { from: 'Paket A', to: 'Paket A, Add-on' },
+            }),
+        ),
+        'Customer Dewi → Sinta · Item Paket A → Paket A, Add-on',
+    );
+});

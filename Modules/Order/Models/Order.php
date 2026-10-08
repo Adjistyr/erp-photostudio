@@ -210,4 +210,20 @@ class Order extends Model
     {
         return $this->work_status === WorkStatus::Cancelled;
     }
+
+    /**
+     * Bisa diubah lewat Edit Order (spek 1.2): bukan retail (barang sudah
+     * diserahkan saat itu juga — koreksinya hapus pembayaran / retur) dan
+     * bukan order batal.
+     */
+    public function isEditable(): bool
+    {
+        return $this->business_line !== BusinessLine::Retail && ! $this->isCancelled();
+    }
+
+    /** Setelah diserahkan, jadwal & item terkunci — hanya catatan & customer (K1). */
+    public function hasLockedSchedule(): bool
+    {
+        return $this->work_status === WorkStatus::Delivered;
+    }
 }
