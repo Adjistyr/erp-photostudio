@@ -24,6 +24,8 @@ import { useFlash } from '@/hooks/use-flash';
 import { formatRp, hanyaDigit } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
+import { TodaySales } from '@/modules/order/components/today-sales';
+import type { TodaySale } from '@/modules/order/components/today-sales';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod, Receipt } from '@/modules/order/types';
 import { index as catalogIndex } from '@/routes/catalog';
@@ -49,14 +51,27 @@ interface SaleForm {
 export default function Pos({
     products,
     studio,
+    today_sales,
+    today_total,
 }: {
     products: Product[];
     studio: Studio;
+    /** Transaksi POS hari ini, 50 terbaru (spek 2.5). */
+    today_sales: TodaySale[];
+    /** Total hari ini tanpa order batal. */
+    today_total: number;
 }) {
     const [search, setSearch] = useState('');
     // Struk sekali tampil setelah simpan; keranjang tetap dikosongkan di
     // onSuccess — Sheet tidak menahan transaksi berikutnya.
-    const [receipt, clearReceipt] = useFlash<Receipt>('receipt');
+    const [flashReceipt, clearFlashReceipt] = useFlash<Receipt>('receipt');
+    // Struk dibuka ulang dari panel Hari ini — Sheet yang sama dengan flash.
+    const [manualReceipt, setManualReceipt] = useState<Receipt | null>(null);
+    const receipt = flashReceipt ?? manualReceipt;
+    const closeReceipt = () => {
+        clearFlashReceipt();
+        setManualReceipt(null);
+    };
     const form = useForm<SaleForm>({
         items: [],
         discount: '',
@@ -188,214 +203,229 @@ export default function Pos({
                     )}
                 </section>
 
-                <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5">
-                    <h2 className="font-heading text-base font-semibold">
-                        Keranjang
-                    </h2>
+                <div className="flex min-w-0 flex-col gap-4 self-start">
+                    <aside className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
+                        <h2 className="font-heading text-base font-semibold">
+                            Keranjang
+                        </h2>
 
-                    {lines.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            Klik item di kiri untuk menambahkan.
-                        </p>
-                    ) : (
-                        <div className="flex flex-col gap-3">
-                            {lines.map((l) => (
-                                <div
-                                    key={l.catalog_item_id}
-                                    className="flex items-center gap-2"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium">
-                                            {l.product.name}
-                                        </p>
-                                        <p className="font-mono text-xs text-muted-foreground">
-                                            {formatRp(l.product.price)} ×{' '}
-                                            {l.quantity}
-                                        </p>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-1">
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            aria-label={`Kurangi ${l.product.name}`}
-                                            onClick={() =>
-                                                changeQty(l.catalog_item_id, -1)
-                                            }
-                                        >
-                                            {l.quantity === 1 ? (
-                                                <Trash2 />
-                                            ) : (
-                                                <Minus />
+                        {lines.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                Klik item di kiri untuk menambahkan.
+                            </p>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                {lines.map((l) => (
+                                    <div
+                                        key={l.catalog_item_id}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium">
+                                                {l.product.name}
+                                            </p>
+                                            <p className="font-mono text-xs text-muted-foreground">
+                                                {formatRp(l.product.price)} ×{' '}
+                                                {l.quantity}
+                                            </p>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-1">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                aria-label={`Kurangi ${l.product.name}`}
+                                                onClick={() =>
+                                                    changeQty(
+                                                        l.catalog_item_id,
+                                                        -1,
+                                                    )
+                                                }
+                                            >
+                                                {l.quantity === 1 ? (
+                                                    <Trash2 />
+                                                ) : (
+                                                    <Minus />
+                                                )}
+                                            </Button>
+                                            <span className="w-6 text-center font-mono text-sm">
+                                                {l.quantity}
+                                            </span>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                aria-label={`Tambah ${l.product.name}`}
+                                                onClick={() =>
+                                                    changeQty(
+                                                        l.catalog_item_id,
+                                                        1,
+                                                    )
+                                                }
+                                            >
+                                                <Plus />
+                                            </Button>
+                                        </div>
+                                        <span className="w-24 shrink-0 text-right font-mono text-sm">
+                                            {formatRp(
+                                                l.quantity * l.product.price,
                                             )}
-                                        </Button>
-                                        <span className="w-6 text-center font-mono text-sm">
-                                            {l.quantity}
                                         </span>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            aria-label={`Tambah ${l.product.name}`}
-                                            onClick={() =>
-                                                changeQty(l.catalog_item_id, 1)
-                                            }
-                                        >
-                                            <Plus />
-                                        </Button>
                                     </div>
-                                    <span className="w-24 shrink-0 text-right font-mono text-sm">
-                                        {formatRp(l.quantity * l.product.price)}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    <InputError message={errors.items ?? itemError} />
+                                ))}
+                            </div>
+                        )}
+                        <InputError message={errors.items ?? itemError} />
 
-                    <Separator />
-
-                    <div className="flex flex-col gap-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                                Subtotal
-                            </span>
-                            <span className="font-mono">
-                                {formatRp(subtotal)}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                            <label
-                                htmlFor="discount"
-                                className="text-muted-foreground"
-                            >
-                                Diskon
-                            </label>
-                            {/* Non-digit dibuang — rupiah selalu integer (R5). */}
-                            <Input
-                                id="discount"
-                                inputMode="numeric"
-                                placeholder="0"
-                                className="h-8 w-28 text-right font-mono"
-                                value={data.discount}
-                                aria-invalid={Boolean(errors.discount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'discount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-                        <InputError message={errors.discount} />
                         <Separator />
-                        <div className="flex items-baseline justify-between">
-                            <span className="font-medium">Total</span>
-                            <span className="font-mono text-2xl font-semibold">
-                                {formatRp(total)}
-                            </span>
-                        </div>
-                        {/*
+
+                        <div className="flex flex-col gap-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    Subtotal
+                                </span>
+                                <span className="font-mono">
+                                    {formatRp(subtotal)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <label
+                                    htmlFor="discount"
+                                    className="text-muted-foreground"
+                                >
+                                    Diskon
+                                </label>
+                                {/* Non-digit dibuang — rupiah selalu integer (R5). */}
+                                <Input
+                                    id="discount"
+                                    inputMode="numeric"
+                                    placeholder="0"
+                                    className="h-8 w-28 text-right font-mono"
+                                    value={data.discount}
+                                    aria-invalid={Boolean(errors.discount)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'discount',
+                                            hanyaDigit(e.target.value),
+                                        )
+                                    }
+                                />
+                            </div>
+                            <InputError message={errors.discount} />
+                            <Separator />
+                            <div className="flex items-baseline justify-between">
+                                <span className="font-medium">Total</span>
+                                <span className="font-mono text-2xl font-semibold">
+                                    {formatRp(total)}
+                                </span>
+                            </div>
+                            {/*
                             HPP tercatat otomatis dari katalog (5.1) — yang paling
                             sering bocor: produk terlihat untung karena harga
                             bahannya tidak pernah dihitung. Metadata, bukan angka
                             yang diisi owner.
                         */}
-                        {lines.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                                HPP bahan {formatRp(materialCost)} · margin{' '}
-                                {formatRp(total - materialCost)}
-                            </p>
-                        )}
-                    </div>
+                            {lines.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                    HPP bahan {formatRp(materialCost)} · margin{' '}
+                                    {formatRp(total - materialCost)}
+                                </p>
+                            )}
+                        </div>
 
-                    <Separator />
+                        <Separator />
 
-                    {/*
+                        {/*
                         Customer OPSIONAL tanpa tanda wajib, dengan hint
                         konsekuensinya. Bukan Select yang harus dipilih.
                     */}
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="customer_name" className="text-sm">
-                            Customer{' '}
-                            <span className="text-muted-foreground">
-                                — opsional
-                            </span>
-                        </label>
-                        <Input
-                            id="customer_name"
-                            placeholder="Kosongkan kalau tidak perlu dicatat"
-                            value={data.customer_name}
-                            onChange={(e) =>
-                                setData('customer_name', e.target.value)
-                            }
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Tanpa nama, transaksi dicatat sebagai walk-in. Nama
-                            yang sudah ada di Customer dipakai ulang.
-                        </p>
-                        <InputError message={errors.customer_name} />
-                    </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label htmlFor="customer_name" className="text-sm">
+                                Customer{' '}
+                                <span className="text-muted-foreground">
+                                    — opsional
+                                </span>
+                            </label>
+                            <Input
+                                id="customer_name"
+                                placeholder="Kosongkan kalau tidak perlu dicatat"
+                                value={data.customer_name}
+                                onChange={(e) =>
+                                    setData('customer_name', e.target.value)
+                                }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Tanpa nama, transaksi dicatat sebagai walk-in.
+                                Nama yang sudah ada di Customer dipakai ulang.
+                            </p>
+                            <InputError message={errors.customer_name} />
+                        </div>
 
-                    {/* HP hanya bersama nama (aturan server) — disabled, bukan
+                        {/* HP hanya bersama nama (aturan server) — disabled, bukan
                         disembunyikan, supaya owner tahu field-nya ada. Yang
                         dikirim ketikan mentah; server yang menormalkan. */}
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="customer_phone" className="text-sm">
-                            No HP{' '}
-                            <span className="text-muted-foreground">
-                                — opsional, untuk kirim struk
-                            </span>
-                        </label>
-                        <Input
-                            id="customer_phone"
-                            inputMode="tel"
-                            autoComplete="off"
-                            placeholder="08…"
-                            disabled={data.customer_name.trim() === ''}
-                            title={
-                                data.customer_name.trim() === ''
-                                    ? 'Isi nama dulu'
-                                    : undefined
-                            }
-                            value={data.customer_phone}
-                            onChange={(e) =>
-                                setData('customer_phone', e.target.value)
-                            }
-                        />
-                        <InputError message={errors.customer_phone} />
-                    </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label htmlFor="customer_phone" className="text-sm">
+                                No HP{' '}
+                                <span className="text-muted-foreground">
+                                    — opsional, untuk kirim struk
+                                </span>
+                            </label>
+                            <Input
+                                id="customer_phone"
+                                inputMode="tel"
+                                autoComplete="off"
+                                placeholder="08…"
+                                disabled={data.customer_name.trim() === ''}
+                                title={
+                                    data.customer_name.trim() === ''
+                                        ? 'Isi nama dulu'
+                                        : undefined
+                                }
+                                value={data.customer_phone}
+                                onChange={(e) =>
+                                    setData('customer_phone', e.target.value)
+                                }
+                            />
+                            <InputError message={errors.customer_phone} />
+                        </div>
 
-                    <div className="flex flex-col gap-1.5">
-                        <span className="text-sm">Metode bayar</span>
-                        <ToggleGroup
-                            value={[data.method]}
-                            onValueChange={(v) => {
-                                const m = METHODS.find((x) => x === v[0]);
-                                if (m) setData('method', m);
-                            }}
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-sm">Metode bayar</span>
+                            <ToggleGroup
+                                value={[data.method]}
+                                onValueChange={(v) => {
+                                    const m = METHODS.find((x) => x === v[0]);
+                                    if (m) setData('method', m);
+                                }}
+                            >
+                                {METHODS.map((m) => (
+                                    <ToggleGroupItem key={m} value={m}>
+                                        {PAYMENT_METHOD_LABEL[m]}
+                                    </ToggleGroupItem>
+                                ))}
+                            </ToggleGroup>
+                            <InputError message={errors.method} />
+                        </div>
+
+                        <Button
+                            size="lg"
+                            disabled={lines.length === 0 || processing}
+                            onClick={submit}
                         >
-                            {METHODS.map((m) => (
-                                <ToggleGroupItem key={m} value={m}>
-                                    {PAYMENT_METHOD_LABEL[m]}
-                                </ToggleGroupItem>
-                            ))}
-                        </ToggleGroup>
-                        <InputError message={errors.method} />
-                    </div>
-
-                    <Button
-                        size="lg"
-                        disabled={lines.length === 0 || processing}
-                        onClick={submit}
-                    >
-                        Simpan & Bayar {total > 0 ? formatRp(total) : ''}
-                    </Button>
-                </aside>
+                            Simpan & Bayar {total > 0 ? formatRp(total) : ''}
+                        </Button>
+                    </aside>
+                    <TodaySales
+                        sales={today_sales}
+                        total={today_total}
+                        onOpenReceipt={setManualReceipt}
+                    />
+                </div>
             </div>
 
             <ReceiptSheet
                 receipt={receipt}
                 studio={studio}
-                onClose={clearReceipt}
+                onClose={closeReceipt}
             />
         </>
     );

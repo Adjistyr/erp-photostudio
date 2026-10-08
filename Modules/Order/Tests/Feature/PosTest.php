@@ -5,6 +5,7 @@ namespace Modules\Order\Tests\Feature;
 use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
@@ -238,5 +239,56 @@ class PosTest extends TestCase
             'items' => [['name' => 'Gantungan custom', 'unit_price' => 10_000, 'quantity' => 1]],
             'method' => 'cash',
         ])->assertSessionHasErrors('items.0.catalog_item_id');
+    }
+
+    public function test_page_lists_todays_retail_sales_newest_first_with_total()
+    {
+        $this->sell();
+        $first = $this->newest();
+        $this->sell(['method' => 'qris']);
+        $second = $this->newest();
+
+        $props = $this->get(route('pos.index'))->inertiaPage()['props'];
+
+        // ORD-0010 = retail demo hari ini; ORD-0012 (studio hari ini) & ORD-0006 (retail lain hari) tidak ikut.
+        $this->assertSame([$second->number, $first->number, 'ORD-0010'], array_column($props['today_sales'], 'number'));
+        $this->assertSame('qris', $props['today_sales'][0]['method']);
+        $this->assertSame($first->total() + $second->total() + 80_000, $props['today_total']);
+        $this->assertNotNull($props['today_sales'][0]['print_url']);
+    }
+
+    public function test_cancelled_sale_is_listed_but_excluded_from_total_and_has_no_links()
+    {
+        $this->sell();
+        $cancelled = $this->newest();
+        $cancelled->update(['work_status' => WorkStatus::Cancelled]);
+
+        $props = $this->get(route('pos.index'))->inertiaPage()['props'];
+        $row = collect($props['today_sales'])->firstWhere('id', $cancelled->id);
+
+        $this->assertTrue($row['cancelled']);
+        $this->assertNull($row['invoice_url']);
+        $this->assertNull($row['print_url']);
+        $this->assertSame(80_000, $props['today_total']);
+    }
+
+    public function test_today_sales_capped_at_fifty()
+    {
+        foreach (range(1, 51) as $n) {
+            Order::create([
+                'number' => sprintf('ORD-9%03d', $n), 'business_line' => BusinessLine::Retail,
+                'service_date' => '2026-08-26', 'work_status' => WorkStatus::Delivered,
+            ]);
+        }
+
+        $this->get(route('pos.index'))->assertInertia(fn (Assert $page) => $page->has('today_sales', 50));
+    }
+
+    public function test_time_is_in_app_timezone()
+    {
+        $this->travelTo(Carbon::parse('2026-08-26 02:30', 'Asia/Jakarta'));
+        $this->sell();
+
+        $this->get(route('pos.index'))->assertInertia(fn (Assert $page) => $page->where('today_sales.0.time', '02:30'));
     }
 }
