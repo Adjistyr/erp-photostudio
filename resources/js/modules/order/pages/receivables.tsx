@@ -42,7 +42,11 @@ import {
     formatTanggal,
     formatUmurPiutang,
 } from '@/lib/format';
+import { useFlash } from '@/hooks/use-flash';
+import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
+import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
+import type { Receipt } from '@/modules/order/types';
 import { index as receivablesIndex } from '@/routes/receivables';
 import type { BusinessLine, PaymentStatus } from '@/types/domain';
 
@@ -50,6 +54,9 @@ interface ReceivableRow {
     id: number;
     number: string;
     customer_name: string | null;
+    customer_phone: string | null;
+    /** Link invoice bertanda tangan (dipakai Tagih via WA, spek 2.4). */
+    invoice_url: string;
     business_line: BusinessLine;
     service_date: string;
     /** > 0 belum jatuh tempo, 0 hari ini, < 0 lewat (dihitung server). */
@@ -64,11 +71,14 @@ interface ReceivableRow {
 interface Props {
     orders: ReceivableRow[];
     totals: { total: number; overdue: number; overdue_count: number };
+    studio: Studio;
 }
 
-export default function Receivables({ orders, totals }: Props) {
+export default function Receivables({ orders, totals, studio }: Props) {
     // Simpan id, bukan objek: setelah mencatat, baris dibaca ulang dari props.
     const [payingId, setPayingId] = useState<number | null>(null);
+    // Bukti bayar untuk customer — muncul setelah PaymentDialog sukses.
+    const [receipt, clearReceipt] = useFlash<Receipt>('receipt');
     const paying = orders.find((o) => o.id === payingId) ?? null;
     const top = orders[0];
 
@@ -194,6 +204,11 @@ export default function Receivables({ orders, totals }: Props) {
                     onClose={() => setPayingId(null)}
                 />
             )}
+            <ReceiptSheet
+                receipt={receipt}
+                studio={studio}
+                onClose={clearReceipt}
+            />
         </>
     );
 }

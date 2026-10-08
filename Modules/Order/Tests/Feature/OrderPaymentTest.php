@@ -49,6 +49,46 @@ class OrderPaymentTest extends TestCase
         $this->assertSame('Pelunasan', $order->payments->last()?->note);
     }
 
+    public function test_partial_payment_flashes_receipt_with_remaining_balance()
+    {
+        // ORD-0005: belum ada pembayaran.
+        $order = $this->order('ORD-0005');
+        $dp = intdiv($order->total() * 40, 100);
+
+        $this->pay('ORD-0005', ['amount' => $dp])
+            ->assertSessionHas('inertia.flash_data.receipt.balance', $order->total() - $dp)
+            ->assertSessionHas('inertia.flash_data.receipt.payment_status', 'partial')
+            ->assertSessionHas('inertia.flash_data.receipt.paid_amount', $dp)
+            ->assertSessionHas('inertia.flash_data.receipt.paid_on', '2026-08-26')
+            ->assertSessionHas('inertia.flash_data.receipt.due_on', $order->service_date->toDateString());
+    }
+
+    public function test_full_payment_flashes_paid_receipt()
+    {
+        // ORD-0012: sisa 200 rb.
+        $this->pay('ORD-0012', ['amount' => 200_000])
+            ->assertSessionHas('inertia.flash_data.receipt.balance', 0)
+            ->assertSessionHas('inertia.flash_data.receipt.payment_status', 'paid')
+            ->assertSessionHas('inertia.flash_data.receipt.number', 'ORD-0012');
+    }
+
+    public function test_receipt_links_are_valid_signed_urls()
+    {
+        $this->pay('ORD-0012', ['amount' => 50_000]);
+        $receipt = session('inertia.flash_data.receipt');
+
+        auth()->logout();
+        $this->get($receipt['invoice_url'])->assertOk();
+        $this->get($receipt['print_url'])->assertOk();
+    }
+
+    public function test_failed_payment_does_not_flash_receipt()
+    {
+        $this->pay('ORD-0012', ['amount' => 999_999_999])
+            ->assertSessionHasErrors('amount')
+            ->assertSessionMissing('inertia.flash_data.receipt');
+    }
+
     public function test_first_partial_payment_is_dp_later_ones_termin()
     {
         // ORD-0005: belum ada pembayaran.

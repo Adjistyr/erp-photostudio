@@ -27,6 +27,11 @@ export interface Receipt {
     /** null = walk-in tanpa customer atau customer tanpa HP. */
     customer_phone: string | null;
     business_line: BusinessLine;
+    /** Hanya dari Catat Bayar (bukti bayar); POS tidak mengirimnya. */
+    paid_amount?: number;
+    paid_on?: string;
+    /** Jatuh tempo sisa = tanggal layanan. */
+    due_on?: string;
 }
 
 /**
