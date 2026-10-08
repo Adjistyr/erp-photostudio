@@ -16,6 +16,8 @@ import {
     formatRpSumbu,
     formatTanggal,
     keNomorWa,
+    namaDepan,
+    personalise,
     formatJadwal,
     formatTanggalJam,
     formatUmurPiutang,
@@ -183,4 +185,28 @@ test('selisihHari — abaikan jam, hitung hari kalender', () => {
     assert.equal(selisihHari('2026-08-26', '2026-10-18'), 53);
     assert.equal(selisihHari('2026-08-26', '2026-08-12'), -14);
     assert.equal(selisihHari('2026-08-26T23:59', '2026-08-26T00:01'), 0);
+});
+
+test('personalise — ganti semua placeholder, biarkan yang tak dikenal', () => {
+    assert.equal(
+        personalise('Halo {nama}, {sisa} ({sisa}) {asing}', {
+            nama: 'Budi',
+            sisa: 'Rp 1',
+        }),
+        'Halo Budi, Rp 1 (Rp 1) {asing}',
+    );
+    // Kata tanpa kurung tidak tersentuh; spasi di dalam kurung bukan placeholder.
+    assert.equal(
+        personalise('atas nama { nama }', { nama: 'X' }),
+        'atas nama { nama }',
+    );
+    // Properti prototype objek bukan nilai placeholder.
+    assert.equal(personalise('{constructor}', {}), '{constructor}');
+});
+
+test('namaDepan — kata pertama; kosong/null jadi "Kak"', () => {
+    assert.equal(namaDepan('Budi Santoso'), 'Budi');
+    assert.equal(namaDepan('  Sari  '), 'Sari');
+    assert.equal(namaDepan(''), 'Kak');
+    assert.equal(namaDepan(null), 'Kak');
 });

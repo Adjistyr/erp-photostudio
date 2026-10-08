@@ -9,8 +9,8 @@
  * field status yang diubah.
  */
 
-import { Head } from '@inertiajs/react';
-import { TriangleAlert } from 'lucide-react';
+import { Head, Link } from '@inertiajs/react';
+import { Send, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import {
     KepalaUang,
@@ -37,16 +37,27 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     formatPersen,
     formatRp,
     formatTanggal,
     formatUmurPiutang,
+    personalise,
 } from '@/lib/format';
 import { useFlash } from '@/hooks/use-flash';
+import {
+    billingValues,
+    waLink,
+} from '@/modules/order/components/invoice-document';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import type { Receipt } from '@/modules/order/types';
+import { index as communicationIndex } from '@/routes/communication';
 import { index as receivablesIndex } from '@/routes/receivables';
 import type { BusinessLine, PaymentStatus } from '@/types/domain';
 
@@ -72,9 +83,16 @@ interface Props {
     orders: ReceivableRow[];
     totals: { total: number; overdue: number; overdue_count: number };
     studio: Studio;
+    /** Template `billing` (editan owner di Komunikasi, K5). */
+    billing_template: string;
 }
 
-export default function Receivables({ orders, totals, studio }: Props) {
+export default function Receivables({
+    orders,
+    totals,
+    studio,
+    billing_template,
+}: Props) {
     // Simpan id, bukan objek: setelah mencatat, baris dibaca ulang dari props.
     const [payingId, setPayingId] = useState<number | null>(null);
     // Bukti bayar untuk customer — muncul setelah PaymentDialog sukses.
@@ -144,7 +162,12 @@ export default function Receivables({ orders, totals, studio }: Props) {
                                 <TableHead>Jatuh tempo</TableHead>
                                 <TableHead>Umur</TableHead>
                                 <KepalaUang>Total</KepalaUang>
-                                <KepalaUang>Dibayar</KepalaUang>
+                                {/* Dibayar = Total − Sisa dan terbaca dari persen badge;
+                                    disembunyikan di bawah 2xl supaya kolom aksi (Tagih WA +
+                                    Catat Bayar) muat tanpa scroll di laptop. */}
+                                <KepalaUang className="hidden 2xl:table-cell">
+                                    Dibayar
+                                </KepalaUang>
                                 <KepalaUang>Sisa</KepalaUang>
                                 <TableHead>Status</TableHead>
                                 <TableHead />
@@ -173,7 +196,10 @@ export default function Receivables({ orders, totals, studio }: Props) {
                                         {formatUmurPiutang(o.days_until_due)}
                                     </TableCell>
                                     <SelUang nominal={o.total} />
-                                    <SelUang nominal={o.paid} />
+                                    <SelUang
+                                        nominal={o.paid}
+                                        className="hidden 2xl:table-cell"
+                                    />
                                     <SelUang nominal={o.balance} />
                                     <TableCell>
                                         <PaymentBadge
@@ -182,18 +208,39 @@ export default function Receivables({ orders, totals, studio }: Props) {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => setPayingId(o.id)}
-                                        >
-                                            Catat Bayar
-                                        </Button>
+                                        <span className="flex justify-end gap-1.5">
+                                            <BillButton
+                                                row={o}
+                                                template={billing_template}
+                                            />
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setPayingId(o.id)
+                                                }
+                                            >
+                                                Catat Bayar
+                                            </Button>
+                                        </span>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </TabelData>
+                )}
+                {orders.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                        Pesan tagihan diambil dari template{' '}
+                        <Link
+                            href={communicationIndex()}
+                            className="underline underline-offset-4"
+                        >
+                            Tagihan di Komunikasi
+                        </Link>
+                        . App menyiapkan pesannya; pengiriman tetap lewat
+                        WhatsApp kamu.
+                    </p>
                 )}
             </div>
 
@@ -242,5 +289,75 @@ function Summary({
                 <p className="text-xs text-muted-foreground">{note}</p>
             </CardContent>
         </Card>
+    );
+}
+
+/**
+ * Tagih via WhatsApp — pesan dari template `billing`, dikirim manual.
+ * Lewat jatuh tempo → tombol bergaris merah (prioritas); isi pesan sama.
+ * Tanpa HP → disabled + tooltip; tidak ada fallback ke email.
+ */
+function BillButton({
+    row,
+    template,
+}: {
+    row: ReceivableRow;
+    template: string;
+}) {
+    const overdue = row.days_until_due < 0;
+    const className = overdue ? 'border-destructive text-destructive' : '';
+
+    if (!row.customer_phone) {
+        return (
+            <Tooltip>
+                {/* Tombol disabled tidak memicu hover — tooltip di pembungkus. */}
+                <TooltipTrigger render={<span tabIndex={0} />}>
+                    <Button
+                        size="icon-sm"
+                        variant="outline"
+                        disabled
+                        aria-label="Tagih via WhatsApp — belum ada nomor HP"
+                    >
+                        <Send />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>Belum ada nomor HP</TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    const message = personalise(
+        template,
+        billingValues({
+            customer_name: row.customer_name,
+            order_number: row.number,
+            balance: row.balance,
+            service_date: row.service_date,
+            public_url: row.invoice_url,
+        }),
+    );
+
+    return (
+        <Button
+            size="icon-sm"
+            variant="outline"
+            className={className}
+            aria-label={`Tagih ${row.number} via WhatsApp`}
+            title={
+                overdue
+                    ? 'Tagih via WhatsApp — lewat jatuh tempo'
+                    : 'Tagih via WhatsApp'
+            }
+            nativeButton={false}
+            render={
+                <a
+                    href={waLink(row.customer_phone, message)}
+                    target="_blank"
+                    rel="noreferrer"
+                />
+            }
+        >
+            <Send />
+        </Button>
     );
 }

@@ -7,6 +7,7 @@ use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
+use Modules\Customer\Models\MessageTemplate;
 use Modules\Order\Models\Order;
 use Tests\TestCase;
 
@@ -75,6 +76,15 @@ class InvoicesTest extends TestCase
         $other = $this->order('ORD-0012');
         $tampered = str_replace("/i/{$order->id}", "/i/{$other->id}", $order->invoiceUrl());
         $this->get($tampered)->assertForbidden();
+    }
+
+    public function test_list_carries_billing_template()
+    {
+        MessageTemplate::create(['key' => 'billing', 'body' => 'Tagih {nomor}']);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('invoices.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('billing_template', 'Tagih {nomor}'));
     }
 
     public function test_print_url_is_a_separately_signed_variant()

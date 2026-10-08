@@ -7,8 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Template pesan ke customer. `{nama}` = nama depan customer, `{link}` = link
- * hasil foto. Baris hanya ada untuk template yang sudah diedit owner.
+ * Template pesan ke customer. Baris hanya ada untuk template yang sudah
+ * diedit owner. Placeholder per template:
+ * - semua: `{nama}` = nama depan customer
+ * - thank_you: `{link}` = link hasil foto
+ * - billing: `{nomor}` nomor order, `{sisa}` sisa tagihan, `{jatuh_tempo}`
+ *   tanggal, `{link}` link invoice bertanda tangan
+ * Nama studio & rekening DITANAM ke teks default dari config, bukan placeholder.
  *
  * @property string $key
  * @property string $body
@@ -33,6 +38,7 @@ class MessageTemplate extends Model
     public static function defaults(): array
     {
         $studio = (string) config('studio.name');
+        $bank = (string) config('studio.bank_account');
 
         return [
             'promo' => [
@@ -49,6 +55,12 @@ class MessageTemplate extends Model
                 'title' => 'Reminder H-1',
                 'when' => 'Untuk dikirim manual sehari sebelum sesi studio atau acara.',
                 'body' => "Halo {nama}, mengingatkan sesi foto besok di {$studio}. Datang 10 menit lebih awal ya supaya persiapannya santai. Kalau ada perubahan jadwal, balas pesan ini.",
+            ],
+            // K5: satu teks tagihan untuk tombol WA di Pembayaran dan Invoice.
+            'billing' => [
+                'title' => 'Tagihan',
+                'when' => 'Dipakai tombol WA di layar Pembayaran dan "Buka WhatsApp" di Invoice untuk order yang belum lunas.',
+                'body' => "Halo {nama}, berikut tagihan {nomor} dari {$studio}. Sisa {sisa}, jatuh tempo {jatuh_tempo}. Pembayaran ke {$bank}. Rincian: {link}",
             ],
         ];
     }
@@ -69,12 +81,30 @@ class MessageTemplate extends Model
         return $templates;
     }
 
+    /** Isi satu template: editan owner kalau ada, selain itu default. */
+    public static function bodyFor(string $key): string
+    {
+        return static::query()->find($key)->body ?? static::defaults()[$key]['body'];
+    }
+
     /**
-     * `{nama}` → nama depan. Diikat kurung kurawal supaya kata "nama" di prosa
-     * ("atas nama") tidak ikut terganti.
+     * `{key}` → `$values[key]`. Diikat kurung kurawal supaya kata "nama" di
+     * prosa ("atas nama") tidak ikut terganti; placeholder yang tidak ada di
+     * `$values` dibiarkan — owner melihat salah ketiknya di pratinjau.
+     * Setara `personalise()` di resources/js/lib/format.ts.
+     *
+     * @param  array<string, string>  $values
      */
+    public static function fillPlaceholders(string $body, array $values): string
+    {
+        $search = array_map(fn (string $k) => '{'.$k.'}', array_keys($values));
+
+        return str_replace($search, array_values($values), $body);
+    }
+
+    /** Email blast: `{nama}` → nama depan, `{link}`. */
     public static function personalise(string $body, string $name, string $link = ''): string
     {
-        return str_replace(['{nama}', '{link}'], [explode(' ', trim($name))[0], $link], $body);
+        return static::fillPlaceholders($body, ['nama' => explode(' ', trim($name))[0], 'link' => $link]);
     }
 }

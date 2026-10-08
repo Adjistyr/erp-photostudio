@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Modules\Customer\Models\MessageTemplate;
 use Modules\Order\Models\Order;
 use Tests\TestCase;
 
@@ -67,6 +68,27 @@ class ReceivablesPageTest extends TestCase
 
         auth()->logout();
         $this->get($row['invoice_url'])->assertOk();
+    }
+
+    public function test_page_carries_default_billing_template_with_studio_name()
+    {
+        config(['studio.name' => 'Studio Uji', 'studio.bank_account' => 'BCA 111']);
+
+        $template = $this->get(route('receivables.index'))->inertiaPage()['props']['billing_template'];
+
+        $this->assertStringContainsString('Studio Uji', $template);
+        $this->assertStringContainsString('BCA 111', $template);
+        foreach (['{nama}', '{nomor}', '{sisa}', '{jatuh_tempo}', '{link}'] as $placeholder) {
+            $this->assertStringContainsString($placeholder, $template);
+        }
+    }
+
+    public function test_edited_billing_template_is_used()
+    {
+        MessageTemplate::create(['key' => 'billing', 'body' => 'Tagih {nomor} ya']);
+
+        $this->get(route('receivables.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('billing_template', 'Tagih {nomor} ya'));
     }
 
     public function test_paid_off_order_leaves_the_list()

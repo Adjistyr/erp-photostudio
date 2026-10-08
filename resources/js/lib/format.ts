@@ -98,6 +98,29 @@ export function keNomorWa(hp: string): string {
 }
 
 /**
+ * Isi placeholder template pesan: `{key}` → `values[key]`. Setara
+ * `MessageTemplate::fillPlaceholders()` di server.
+ *
+ * Diikat kurung kurawal: kata "nama" di prosa ("atas nama") tidak ikut
+ * terganti. Placeholder yang tidak dikenal dibiarkan — owner melihat salah
+ * ketiknya di pratinjau. `Object.hasOwn`, bukan `values[k]` saja: template
+ * berisi `{constructor}` tidak boleh mengambil properti prototype objek.
+ */
+export function personalise(
+    template: string,
+    values: Record<string, string>,
+): string {
+    return template.replace(/\{(\w+)\}/g, (m, k: string) =>
+        Object.hasOwn(values, k) ? values[k] : m,
+    );
+}
+
+/** Nama depan untuk sapaan; kosong (walk-in) → "Kak". */
+export function namaDepan(nama: string | null | undefined): string {
+    return (nama ?? '').trim().split(/\s+/)[0] || 'Kak';
+}
+
+/**
  * Isian nominal → hanya digit. Rupiah di app ini selalu integer (R5), jadi
  * "1.500.000" yang di-paste dari mutasi rekening harus jadi "1500000", bukan
  * ditolak atau dibaca 1,5.
