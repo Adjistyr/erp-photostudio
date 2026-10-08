@@ -16,6 +16,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
     Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
     Route::patch('orders/{order}/advance', [OrderController::class, 'advance'])->name('orders.advance');
+    Route::patch('orders/{order}/revert', [OrderController::class, 'revert'])->name('orders.revert');
     Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::patch('orders/{order}/result-link', [OrderController::class, 'updateResultLink'])->name('orders.result-link');
     Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])->name('orders.payments.store');

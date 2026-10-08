@@ -7,8 +7,10 @@ use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Finance\Services\ProfitAndLoss;
+use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\OrderEvent;
 use Tests\TestCase;
 
 /** Daftar order, status kerja, pembatalan, link hasil foto. */
@@ -62,6 +64,66 @@ class OrdersPageTest extends TestCase
         $this->patch(route('orders.advance', $this->order('ORD-0005')))->assertRedirect(route('orders.index'));
 
         $this->assertSame(WorkStatus::Scheduled, $this->order('ORD-0005')->work_status);
+    }
+
+    public function test_revert_moves_exactly_one_step_back_and_records_event()
+    {
+        // ORD-0008: Selesai Dikerjakan.
+        $this->patch(route('orders.revert', $this->order('ORD-0008')))->assertRedirect(route('orders.index'));
+
+        $order = $this->order('ORD-0008');
+        $this->assertSame(WorkStatus::InProgress, $order->work_status);
+        $event = $order->events()->first();
+        $this->assertSame('reverted', $event?->type->value);
+        $this->assertEquals(['from' => 'done', 'to' => 'in_progress'], $event?->changes['work_status']);
+
+        $this->patch(route('orders.revert', $order));
+        $this->assertSame(WorkStatus::Scheduled, $this->order('ORD-0008')->work_status);
+    }
+
+    public function test_booking_and_cancelled_cannot_revert()
+    {
+        $before = OrderEvent::count();
+
+        $this->patch(route('orders.revert', $this->order('ORD-0005')))->assertSessionHasErrors('work_status');
+        $this->patch(route('orders.revert', $this->order('ORD-0004')))->assertSessionHasErrors('work_status');
+
+        $this->assertSame(WorkStatus::Booking, $this->order('ORD-0005')->work_status);
+        $this->assertSame(WorkStatus::Cancelled, $this->order('ORD-0004')->work_status);
+        $this->assertSame($before, OrderEvent::count());
+    }
+
+    public function test_revert_from_delivered_keeps_result_link()
+    {
+        // ORD-0001: Diserahkan dengan link hasil.
+        $link = $this->order('ORD-0001')->result_link;
+        $this->assertNotNull($link);
+
+        $this->patch(route('orders.revert', $this->order('ORD-0001')));
+        $this->patch(route('orders.revert', $this->order('ORD-0001')));
+
+        $order = $this->order('ORD-0001');
+        $this->assertSame(WorkStatus::InProgress, $order->work_status);
+        $this->assertSame($link, $order->result_link);
+    }
+
+    public function test_revert_to_booking_is_allowed_even_with_deposit()
+    {
+        // ORD-0011: Dijadwalkan dengan DP 2,5 jt.
+        $this->patch(route('orders.revert', $this->order('ORD-0011')))->assertSessionHasNoErrors();
+
+        $order = $this->order('ORD-0011');
+        $this->assertSame(WorkStatus::Booking, $order->work_status);
+        $this->assertSame(PaymentStatus::Partial, $order->load(['items', 'payments'])->paymentStatus());
+    }
+
+    public function test_index_props_include_previous_status()
+    {
+        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders'])->keyBy('number');
+
+        $this->assertNull($orders['ORD-0005']['previous_status']);
+        $this->assertNull($orders['ORD-0004']['previous_status']);
+        $this->assertSame('done', $orders['ORD-0001']['previous_status']);
     }
 
     public function test_delivered_and_cancelled_cannot_advance()

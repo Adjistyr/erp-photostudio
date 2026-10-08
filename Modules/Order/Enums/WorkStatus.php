@@ -19,6 +19,10 @@ enum WorkStatus: string
      * Langkah berikutnya — hanya maju satu langkah, tidak ada mundur. Mundur
      * itu koreksi kesalahan yang jarang di skala satu pengguna; menyediakannya
      * berarti mendesain alur pembatalan-status yang belum tentu dibutuhkan.
+     *
+     * Sejak spek 1.4 alasan itu hilang: riwayat order (order_events) mencatat
+     * siapa dan kapan, jadi koreksi salah klik ada di previous() — satu
+     * langkah, tercatat. Batal tetap final.
      */
     public function next(): ?self
     {
@@ -28,6 +32,18 @@ enum WorkStatus: string
             self::InProgress => self::Done,
             self::Done => self::Delivered,
             self::Delivered, self::Cancelled => null,
+        };
+    }
+
+    /** Kebalikan next() — koreksi salah klik, satu langkah, tercatat di order_events (1.4). */
+    public function previous(): ?self
+    {
+        return match ($this) {
+            self::Scheduled => self::Booking,
+            self::InProgress => self::Scheduled,
+            self::Done => self::InProgress,
+            self::Delivered => self::Done,
+            self::Booking, self::Cancelled => null,
         };
     }
 
