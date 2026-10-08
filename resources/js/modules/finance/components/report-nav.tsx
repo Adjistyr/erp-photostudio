@@ -1,5 +1,5 @@
 /**
- * Navigasi antar-laporan + pilihan bulan. Satu baris di atas keempat laporan
+ * Navigasi antar-laporan + pilihan bulan. Satu baris di atas kelima laporan
  * supaya owner berpindah Laba Rugi → Margin → Penjualan tanpa kembali ke menu;
  * bulan yang sedang dilihat ikut terbawa (Piutang selalu per hari ini).
  */
@@ -7,18 +7,26 @@
 import { Link } from '@inertiajs/react';
 import { MonthNav } from '@/components/month-nav';
 import { Button } from '@/components/ui/button';
-import { margin, profitLoss, receivables, sales } from '@/routes/reports';
+import { cash, margin, profitLoss, receivables, sales } from '@/routes/reports';
 
-type Report = 'profit-loss' | 'margin' | 'sales' | 'receivables';
+type Report = 'profit-loss' | 'margin' | 'sales' | 'cash' | 'receivables';
 
-const REPORTS: Report[] = ['profit-loss', 'margin', 'sales', 'receivables'];
+// Empat laporan bulanan berkelompok; Piutang (per hari ini) tetap terakhir.
+const REPORTS: Report[] = [
+    'profit-loss',
+    'margin',
+    'sales',
+    'cash',
+    'receivables',
+];
 
-const MONTHLY = { 'profit-loss': profitLoss, margin, sales } as const;
+const MONTHLY = { 'profit-loss': profitLoss, margin, sales, cash } as const;
 
 const LABEL: Record<Report, string> = {
     'profit-loss': 'Laba Rugi',
     margin: 'Margin per Lini',
     sales: 'Penjualan',
+    cash: 'Kas Harian',
     receivables: 'Piutang',
 };
 

@@ -8,6 +8,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('reports', [ReportController::class, 'profitLoss'])->name('reports.profit-loss');
     Route::get('reports/margin', [ReportController::class, 'margin'])->name('reports.margin');
     Route::get('reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+    Route::get('reports/cash', [ReportController::class, 'cash'])->name('reports.cash');
     Route::get('reports/receivables', [ReportController::class, 'receivables'])->name('reports.receivables');
 
     Route::get('capital', [CapitalController::class, 'index'])->name('capital.index');
