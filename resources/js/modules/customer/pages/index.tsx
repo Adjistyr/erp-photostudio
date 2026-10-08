@@ -8,7 +8,7 @@
  * filter di tabel.
  */
 
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Send } from 'lucide-react';
 import { useState } from 'react';
 import CustomerController from '@/actions/Modules/Customer/Controllers/CustomerController';
@@ -21,6 +21,14 @@ import {
     TabelData,
 } from '@/components/data-table';
 import InputError from '@/components/input-error';
+import {
+    ListToolbar,
+    cleanQuery,
+    hasActiveFilter,
+} from '@/components/list-toolbar';
+import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
+import { Pagination } from '@/components/pagination';
+import type { Paginated } from '@/components/pagination';
 import { PageActions } from '@/components/page-actions';
 import {
     LineMark,
@@ -63,7 +71,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatJadwal, formatRp, formatTanggal, keNomorWa } from '@/lib/format';
 import { index as customersIndex } from '@/routes/customers';
 import { BUSINESS_LINES } from '@/types/domain';
@@ -103,22 +110,34 @@ interface CustomerSummary {
     orders: CustomerOrder[];
 }
 
-type Filter = 'all' | BusinessLine;
-
 const FILTER_LABEL: Record<BusinessLine, string> = {
     studio: 'Pernah studio',
     event: 'Pernah event',
     retail: 'Pernah retail',
 };
 
+/** "Pernah bertransaksi di lini" (order tidak batal) — dihitung server (spek 3.1). */
+const CUSTOMER_FILTERS: ListFilterDef[] = [
+    {
+        key: 'line',
+        label: 'Lini',
+        options: BUSINESS_LINES.map((l) => ({
+            value: l,
+            label: FILTER_LABEL[l],
+        })),
+    },
+];
+
 export default function CustomersIndex({
-    customers,
+    customers: page,
+    filters,
     sources,
 }: {
-    customers: CustomerSummary[];
+    customers: Paginated<CustomerSummary>;
+    /** Filter aktif dari URL (spek 3.1). */
+    filters: ListFilters;
     sources: string[];
 }) {
-    const [filter, setFilter] = useState<Filter>('all');
     // Simpan id, bukan objek: setelah edit, Sheet membaca data terbaru dari props.
     const [detailId, setDetailId] = useState<number | null>(null);
     /** null = tertutup · 'new' = tambah · CustomerSummary = edit. */
@@ -126,11 +145,15 @@ export default function CustomersIndex({
         null,
     );
 
-    const visible =
-        filter === 'all'
-            ? customers
-            : customers.filter((c) => c.lines.includes(filter));
+    const customers = page.data;
+    const visible = customers;
     const detail = customers.find((c) => c.id === detailId) ?? null;
+    const go = (next: ListFilters) =>
+        router.get(
+            customersIndex({ query: cleanQuery(next) }).url,
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
 
     return (
         <>
@@ -149,25 +172,23 @@ export default function CustomersIndex({
             </PageActions>
 
             <div className="flex flex-col gap-6 p-6">
-                <Tabs
-                    value={filter}
-                    onValueChange={(v) => {
-                        if (v === 'all') return setFilter('all');
-                        const line = BUSINESS_LINES.find((l) => l === v);
-                        if (line) setFilter(line);
-                    }}
-                >
-                    <TabsList>
-                        <TabsTrigger value="all">Semua</TabsTrigger>
-                        {(['studio', 'event', 'retail'] as const).map((l) => (
-                            <TabsTrigger key={l} value={l}>
-                                {FILTER_LABEL[l]}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </Tabs>
+                <ListToolbar
+                    value={filters}
+                    filters={CUSTOMER_FILTERS}
+                    placeholder="Cari nama atau HP…"
+                    onChange={go}
+                    total={{ count: page.total, noun: 'customer' }}
+                />
 
-                {visible.length === 0 ? (
+                {visible.length === 0 && hasActiveFilter(filters) ? (
+                    <KosongTabel
+                        kalimat="Tidak ada customer yang cocok."
+                        aksi={{
+                            label: 'Hapus filter',
+                            onClick: () => go({ q: '' }),
+                        }}
+                    />
+                ) : visible.length === 0 ? (
                     <KosongTabel
                         kalimat="Customer akan terkumpul otomatis dari setiap transaksi."
                         aksi={{
@@ -244,6 +265,16 @@ export default function CustomersIndex({
                         </TableBody>
                     </TabelData>
                 )}
+
+                <Pagination
+                    page={page}
+                    noun="customer"
+                    href={(n) =>
+                        customersIndex({
+                            query: { ...cleanQuery(filters), page: String(n) },
+                        }).url
+                    }
+                />
 
                 <p className="text-xs text-muted-foreground">
                     Customer terkumpul otomatis dari transaksi. Order yang

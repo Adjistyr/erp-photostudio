@@ -115,11 +115,21 @@ class SalesReport
      * order, tapi tetap di riwayat. Customer TANPA order tetap tampil — lead
      * yang kontaknya masuk sebelum transaksi.
      *
+     * `$customers` = satu halaman daftar Customer (spek 3.1; urutan dipertahankan,
+     * relasi `orders.items` & `orders.payments` harus sudah dimuat). null =
+     * semua customer, diurutkan nilai order (Laporan Penjualan, Komunikasi).
+     *
+     * @param  iterable<Customer>|null  $customers
      * @return list<CustomerSummary>
      */
-    public function customerSummaries(): array
+    public function customerSummaries(?iterable $customers = null): array
     {
-        $rows = Customer::with(['orders.items', 'orders.payments'])->get()
+        $sorted = $customers === null;
+        $customers = $customers === null
+            ? Customer::with(['orders.items', 'orders.payments'])->get()
+            : collect($customers);
+
+        $rows = $customers
             ->map(function (Customer $c) {
                 $all = $c->orders->sortByDesc('number')->values()->toBase();
                 $live = $all->reject(fn (Order $o) => $o->isCancelled());
@@ -134,12 +144,12 @@ class SalesReport
                     lines: array_values($lines),
                     lastTransaction: $all->max(fn (Order $o) => $o->service_date),
                 );
-            })
-            ->sortByDesc(fn (CustomerSummary $s) => $s->orderValue)
-            ->values()
-            ->all();
+            });
+        if ($sorted) {
+            $rows = $rows->sortByDesc(fn (CustomerSummary $s) => $s->orderValue);
+        }
 
-        return array_values($rows);
+        return array_values($rows->values()->all());
     }
 
     /**

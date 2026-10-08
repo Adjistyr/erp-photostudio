@@ -264,7 +264,7 @@ class OrderUpdateTest extends TestCase
 
     public function test_index_marks_only_studio_and_event_orders_editable()
     {
-        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders'])->keyBy('number');
+        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders']['data'])->keyBy('number');
 
         $this->assertTrue($orders['ORD-0005']['editable']);
         $this->assertTrue($orders['ORD-0001']['editable']);

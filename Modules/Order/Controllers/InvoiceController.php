@@ -11,6 +11,8 @@ use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\Payment;
+use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Http\ListQuery;
 
 /**
  * Invoice — DIGENERATE dari order, tidak diketik ulang (business-flow 5.5).
@@ -19,15 +21,23 @@ use Modules\Order\Models\Payment;
  */
 class InvoiceController extends Controller
 {
-    public function index(): Response
+    /** Pencarian + paginasi sama dengan Order & Booking (spek 3.1); order batal tetap disaring. */
+    public function index(Request $request): Response
     {
+        $list = ListQuery::fromRequest($request, [
+            'line' => BusinessLine::values(),
+            'pay' => ['unpaid', 'partial', 'paid'],
+        ]);
         $orders = Order::with(['customer', 'items', 'payments'])
             ->where('work_status', '!=', WorkStatus::Cancelled)
-            ->orderByDesc('number')
-            ->get();
+            ->search($list)
+            ->orderByDesc('id')
+            ->paginate(ListQuery::PER_PAGE)
+            ->withQueryString();
 
         return Inertia::render('order::invoices', [
-            'invoices' => $orders->map($this->invoiceProps(...))->values()->all(),
+            'invoices' => ListQuery::paginated($orders, $this->invoiceProps(...)),
+            'filters' => $list->toArray(),
             'studio' => config('studio'),
             // Teks "Buka WhatsApp" untuk invoice belum lunas (K5).
             'billing_template' => MessageTemplate::bodyFor('billing'),

@@ -25,25 +25,28 @@ class CustomerTest extends TestCase
         $this->get(route('customers.index'))->assertRedirect(route('login'));
     }
 
-    public function test_index_summaries_sorted_by_order_value_with_history()
+    public function test_index_summaries_sorted_by_name_with_history()
     {
         $this->seed(DemoSeeder::class);
 
         $this->actingAs($this->user())
             ->get(route('customers.index'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('customer::index')
-                ->has('customers', Customer::count())
-                ->where('customers.0.name', 'Rani & Dimas')
-                ->where('customers.0.order_value', 8_500_000)
-                ->where('customers.0.paid', 2_500_000)
-                ->where('customers.0.lines', ['event'])
-                ->where('customers.0.orders.0.number', 'ORD-0011')
+            ->assertInertia(function (Assert $page) {
+                $page->component('customer::index')
+                    ->has('customers.data', Customer::count())
+                    ->where('customers.total', Customer::count());
+                // Urut nama sejak paginasi server-side (spek 3.1).
+                $names = array_column($page->toArray()['props']['customers']['data'], 'name');
+                $sorted = $names;
+                sort($sorted);
+                $this->assertSame($sorted, $names);
+
+                $rani = collect($page->toArray()['props']['customers']['data'])->firstWhere('name', 'Rani & Dimas');
+                $this->assertSame([8_500_000, 2_500_000, ['event']], [$rani['order_value'], $rani['paid'], $rani['lines']]);
+                $this->assertSame('ORD-0011', $rani['orders'][0]['number']);
                 // Status bayar dihitung server — satu sumber kebenaran.
-                ->where('customers.0.orders.0.payment_status', 'partial')
-                ->where('customers.0.orders.0.paid_percent', 29)
-                ->where('customers.0.orders.0.balance', 6_000_000)
-            );
+                $this->assertSame(['partial', 29, 6_000_000], [$rani['orders'][0]['payment_status'], $rani['orders'][0]['paid_percent'], $rani['orders'][0]['balance']]);
+            });
     }
 
     public function test_cancelled_order_stays_in_history_without_raising_value()
@@ -53,7 +56,7 @@ class CustomerTest extends TestCase
         $this->actingAs($this->user())
             ->get(route('customers.index'))
             ->assertInertia(function (Assert $page) {
-                $fajar = collect($page->toArray()['props']['customers'])->firstWhere('name', 'Fajar Nugroho');
+                $fajar = collect($page->toArray()['props']['customers']['data'])->firstWhere('name', 'Fajar Nugroho');
                 $this->assertSame(0, $fajar['order_count']);
                 $this->assertSame(0, $fajar['order_value']);
                 $this->assertCount(1, $fajar['orders']);

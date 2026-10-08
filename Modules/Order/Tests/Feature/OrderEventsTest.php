@@ -145,7 +145,7 @@ class OrderEventsTest extends TestCase
         $this->travelTo('2026-08-26 10:00:00');
         $this->patch(route('orders.advance', $order));
 
-        $events = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders'])
+        $events = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders']['data'])
             ->firstWhere('id', $order->id)['events'];
 
         $this->assertSame(['advanced', 'advanced'], array_column($events, 'type'));

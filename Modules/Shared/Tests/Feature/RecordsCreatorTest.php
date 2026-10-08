@@ -95,7 +95,7 @@ class RecordsCreatorTest extends TestCase
             'amount' => 100_000, 'method' => 'cash', 'paid_on' => '2026-08-26',
         ]);
 
-        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders']);
+        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders']['data']);
 
         // Order demo dibuat seeder — tanpa pencatat; pembayaran baru punya.
         $this->assertNull($orders->first()['created_by_name']);

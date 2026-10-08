@@ -8,7 +8,7 @@
  * dilakukan app.
  */
 
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Copy, ExternalLink, Send } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -19,6 +19,14 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import {
+    ListToolbar,
+    cleanQuery,
+    hasActiveFilter,
+} from '@/components/list-toolbar';
+import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
+import { Pagination } from '@/components/pagination';
+import type { Paginated } from '@/components/pagination';
 import { LineMark, PaymentBadge } from '@/components/status-order';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -46,20 +54,55 @@ import type {
     Studio,
 } from '@/modules/order/components/invoice-document';
 import { index as invoicesIndex } from '@/routes/invoices';
+import {
+    BUSINESS_LINES,
+    LINE_LABEL,
+    PAYMENT_STATUS_LABEL,
+} from '@/types/domain';
+
+/** Filter daftar invoice (spek 3.1) — order batal tidak punya invoice. */
+const INVOICE_FILTERS: ListFilterDef[] = [
+    {
+        key: 'line',
+        label: 'Lini',
+        options: BUSINESS_LINES.map((l) => ({
+            value: l,
+            label: LINE_LABEL[l],
+        })),
+    },
+    {
+        key: 'pay',
+        label: 'Status bayar',
+        options: (['unpaid', 'partial', 'paid'] as const).map((s) => ({
+            value: s,
+            label: PAYMENT_STATUS_LABEL[s],
+        })),
+    },
+];
 
 export default function Invoices({
-    invoices,
+    invoices: page,
+    filters,
     studio,
     billing_template,
 }: {
-    invoices: Invoice[];
+    invoices: Paginated<Invoice>;
+    /** Filter aktif dari URL (spek 3.1). */
+    filters: ListFilters;
     studio: Studio;
     /** Template `billing` (editan owner di Komunikasi) untuk invoice belum lunas. */
     billing_template: string;
 }) {
     // Simpan id, bukan objek: isi invoice selalu dibaca dari props terbaru.
     const [previewId, setPreviewId] = useState<number | null>(null);
+    const invoices = page.data;
     const preview = invoices.find((i) => i.id === previewId) ?? null;
+    const go = (next: ListFilters) =>
+        router.get(
+            invoicesIndex({ query: cleanQuery(next) }).url,
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
 
     return (
         <>
@@ -78,8 +121,25 @@ export default function Invoices({
                     </AlertDescription>
                 </Alert>
 
+                <ListToolbar
+                    value={filters}
+                    filters={INVOICE_FILTERS}
+                    onChange={go}
+                    total={{ count: page.total, noun: 'invoice' }}
+                />
+
                 {invoices.length === 0 ? (
-                    <KosongTabel kalimat="Invoice muncul otomatis begitu ada order." />
+                    hasActiveFilter(filters) ? (
+                        <KosongTabel
+                            kalimat="Tidak ada invoice yang cocok."
+                            aksi={{
+                                label: 'Hapus filter',
+                                onClick: () => go({ q: '' }),
+                            }}
+                        />
+                    ) : (
+                        <KosongTabel kalimat="Invoice muncul otomatis begitu ada order." />
+                    )
                 ) : (
                     <TabelData>
                         <TableHeader>
@@ -140,6 +200,16 @@ export default function Invoices({
                         </TableBody>
                     </TabelData>
                 )}
+
+                <Pagination
+                    page={page}
+                    noun="invoice"
+                    href={(n) =>
+                        invoicesIndex({
+                            query: { ...cleanQuery(filters), page: String(n) },
+                        }).url
+                    }
+                />
             </div>
 
             <Sheet
