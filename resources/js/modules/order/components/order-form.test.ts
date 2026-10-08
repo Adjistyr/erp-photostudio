@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
 import {
+    customerMatches,
+    customerPayload,
+    hasCustomer,
     lineName,
     lineTotal,
     orderTotal,
@@ -140,4 +143,55 @@ test('toPayload: baris katalog tanpa nama/harga, baris custom tanpa paket', () =
             },
         ],
     );
+});
+
+test('customerPayload: customer_id ATAU new_customer, tidak keduanya', () => {
+    assert.deepEqual(
+        customerPayload({
+            customer_id: '7',
+            new_customer: { name: 'X', phone: '' },
+        }),
+        {
+            customer_id: '7',
+            new_customer: null,
+        },
+    );
+    assert.deepEqual(
+        customerPayload({
+            customer_id: '',
+            new_customer: { name: ' Budi ', phone: ' 0812 ' },
+        }),
+        {
+            customer_id: null,
+            new_customer: { name: 'Budi', phone: '0812' },
+        },
+    );
+});
+
+test('hasCustomer: pilih yang ada atau nama baru tidak kosong', () => {
+    assert.equal(hasCustomer({ customer_id: '3', new_customer: null }), true);
+    assert.equal(
+        hasCustomer({
+            customer_id: '',
+            new_customer: { name: 'A', phone: '' },
+        }),
+        true,
+    );
+    assert.equal(
+        hasCustomer({
+            customer_id: '',
+            new_customer: { name: '  ', phone: '0812' },
+        }),
+        false,
+    );
+    assert.equal(hasCustomer({ customer_id: '', new_customer: null }), false);
+});
+
+test('customerMatches: nama tanpa beda huruf besar atau digit HP', () => {
+    const c = { id: 1, name: 'Sinta Prameswari', phone: '0812-3344-5566' };
+    assert.equal(customerMatches(c, 'sinta'), true);
+    assert.equal(customerMatches(c, '3344 55'), true);
+    assert.equal(customerMatches(c, 'budi'), false);
+    // Digit terlalu sedikit tidak dicocokkan ke HP.
+    assert.equal(customerMatches(c, '12'), false);
 });

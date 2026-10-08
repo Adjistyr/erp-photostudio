@@ -9,6 +9,7 @@ use Illuminate\Validation\Validator;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
+use Modules\Order\Requests\Concerns\ResolvesCustomer;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
 
@@ -23,6 +24,7 @@ use Modules\Shared\Support\Money;
 class StoreOrderRequest extends FormRequest
 {
     use ResolvesCatalogLines;
+    use ResolvesCustomer;
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -31,7 +33,8 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'business_line' => ['required', Rule::in([BusinessLine::Studio->value, BusinessLine::Event->value])],
-            'customer_id' => ['required', 'integer', 'exists:customers,id'],
+            // customer_id ATAU new_customer (spek 3.4).
+            ...$this->customerRules(),
             // Tanggal lampau diizinkan: order sering dicatat setelah deal lewat chat.
             'service_date' => ['required', 'date_format:Y-m-d'],
             'service_time' => ['nullable', 'date_format:H:i'],
@@ -83,11 +86,19 @@ class StoreOrderRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    public function messages(): array
+    {
+        return $this->customerMessages();
+    }
+
+    /**
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
         return [
+            ...$this->customerAttributes(),
             'business_line' => 'jenis order',
-            'customer_id' => 'customer',
             'service_date' => 'tanggal',
             'service_time' => 'jam',
             'location' => 'lokasi',

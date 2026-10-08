@@ -17,6 +17,8 @@ import { formatRp, kelasRp } from '@/lib/format';
 import {
     OrderFormFields,
     SummaryLines,
+    customerPayload,
+    hasCustomer,
     orderTotal,
     rowsComplete,
     toPayload,
@@ -46,6 +48,7 @@ export default function OrdersEdit({
     const form = useForm<OrderFields>({
         customer_id:
             order.customer_id === null ? '' : String(order.customer_id),
+        new_customer: null,
         service_date: order.service_date,
         service_time: order.service_time ?? '',
         location: order.location ?? '',
@@ -72,7 +75,7 @@ export default function OrdersEdit({
     const total = orderTotal(data.items, catalog);
     const belowPaid = total < order.paid;
     const complete =
-        data.customer_id !== '' &&
+        hasCustomer(data) &&
         data.service_date !== '' &&
         total > 0 &&
         rowsComplete(data.items);
@@ -160,6 +163,7 @@ export default function OrdersEdit({
                                 // transform() mendaftarkan pengubah, tidak mengembalikan form.
                                 form.transform((d) => ({
                                     ...d,
+                                    ...customerPayload(d),
                                     items: toPayload(d.items),
                                 }));
                                 form.put(OrderController.update(order.id).url);

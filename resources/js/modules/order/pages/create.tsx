@@ -24,6 +24,8 @@ import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
 import {
     OrderFormFields,
     SummaryLines,
+    customerPayload,
+    hasCustomer,
     orderTotal,
     rowsComplete,
     toPayload,
@@ -57,6 +59,7 @@ export default function OrdersCreate({
     const form = useForm<OrderForm>({
         business_line: 'studio',
         customer_id: '',
+        new_customer: null,
         service_date: '',
         service_time: '',
         location: '',
@@ -70,7 +73,7 @@ export default function OrdersCreate({
     const total = orderTotal(data.items, catalog);
     const deposit = Number(data.dp) || 0;
     const complete =
-        data.customer_id !== '' &&
+        hasCustomer(data) &&
         data.service_date !== '' &&
         total > 0 &&
         rowsComplete(data.items);
@@ -247,6 +250,7 @@ export default function OrdersCreate({
                                 // transform() mendaftarkan pengubah, tidak mengembalikan form.
                                 form.transform((d) => ({
                                     ...d,
+                                    ...customerPayload(d),
                                     items: toPayload(d.items),
                                 }));
                                 form.post(OrderController.store().url);
