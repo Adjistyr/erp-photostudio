@@ -53,6 +53,13 @@ export const WORK_STATUS_LABEL: Record<WorkStatus, string> = {
 /** Diturunkan server dari pembayaran — tidak pernah diinput (bagian 4). */
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
 
+/** Label filter status bayar — sama dengan teks PaymentBadge. */
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+    unpaid: 'Belum Bayar',
+    partial: 'DP',
+    paid: 'Lunas',
+};
+
 /**
  * Kategori JASA katalog — menentukan di form order mana paket muncul
  * (Studio → sesi studio, Event → event, Add-on → keduanya). Enum di server:

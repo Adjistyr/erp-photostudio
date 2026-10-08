@@ -4,6 +4,7 @@ namespace Modules\Customer\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Customer\Models\Customer;
@@ -11,6 +12,8 @@ use Modules\Customer\Requests\CustomerRequest;
 use Modules\Finance\Services\CustomerSummary;
 use Modules\Finance\Services\SalesReport;
 use Modules\Order\Models\Order;
+use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Http\ListQuery;
 
 /**
  * Customer — pendataan untuk blast, bukan sales pipeline (business-flow 5.6).
@@ -19,10 +22,28 @@ use Modules\Order\Models\Order;
  */
 class CustomerController extends Controller
 {
-    public function index(SalesReport $sales): Response
+    /**
+     * Paginasi CUSTOMER dulu, baru ringkasan untuk 25 customer di halaman itu
+     * (spek 3.1) — bukan menghitung ringkasan semua customer lalu memotong.
+     * Urut nama: urutan nilai order butuh agregat di SQL untuk tiap halaman.
+     */
+    public function index(Request $request, SalesReport $sales): Response
     {
+        $list = ListQuery::fromRequest($request, ['line' => BusinessLine::values()]);
+        $page = Customer::with(['orders.items', 'orders.payments'])
+            ->search($list)
+            ->orderBy('name')
+            ->orderBy('id')
+            ->paginate(ListQuery::PER_PAGE)
+            ->withQueryString();
+        $summaries = $sales->customerSummaries($page->items());
+
         return Inertia::render('customer::index', [
-            'customers' => array_map($this->summaryProps(...), $sales->customerSummaries()),
+            'customers' => [
+                ...ListQuery::paginated($page, fn () => []),
+                'data' => array_map($this->summaryProps(...), $summaries),
+            ],
+            'filters' => $list->toArray(),
             'sources' => Customer::SOURCES,
         ]);
     }

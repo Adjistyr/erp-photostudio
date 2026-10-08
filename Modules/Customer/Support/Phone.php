@@ -25,4 +25,12 @@ final class Phone
         // tengah ("08120812") tidak boleh tersentuh.
         return preg_replace('/^0/', '62', $digits) ?? $digits;
     }
+
+    /**
+     * Ekspresi SQL (PostgreSQL) yang menormalkan kolom `phone` seperti
+     * normalise() — data lama `08…` dan baru `62…` dibandingkan dalam bentuk
+     * yang sama. Konstanta, bukan fungsi berparameter kolom: whereRaw hanya
+     * menerima literal-string (larastan), menutup celah injeksi lewat nama kolom.
+     */
+    public const SQL_NORMALISED_PHONE = "regexp_replace(regexp_replace(COALESCE(phone, ''), '\\D', '', 'g'), '^0', '62')";
 }

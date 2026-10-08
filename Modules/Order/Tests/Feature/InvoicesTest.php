@@ -41,12 +41,12 @@ class InvoicesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('order::invoices')
                 // 12 order − ORD-0004 (batal: tidak ditagih lagi).
-                ->has('invoices', 11)
-                ->where('invoices.0.number', 'INV-0012')
-                ->where('invoices.0.balance', 200_000)
-                ->has('invoices.0.items', 1)
-                ->has('invoices.0.payments', 1)
-                ->where('invoices.0.public_url', fn (string $url) => str_contains($url, 'signature='))
+                ->has('invoices.data', 11)
+                ->where('invoices.data.0.number', 'INV-0012')
+                ->where('invoices.data.0.balance', 200_000)
+                ->has('invoices.data.0.items', 1)
+                ->has('invoices.data.0.payments', 1)
+                ->where('invoices.data.0.public_url', fn (string $url) => str_contains($url, 'signature='))
                 ->where('studio.name', 'Studio Uji')
             );
     }
@@ -127,10 +127,10 @@ class InvoicesTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('orders.index'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('orders.0.invoice_url', fn (?string $url) => is_string($url) && str_contains($url, 'signature='))
-                // ORD-0004 = indeks 8 (urut nomor terbaru dulu).
-                ->where('orders.8.number', 'ORD-0004')
-                ->where('orders.8.invoice_url', null)
+                ->where('orders.data.0.invoice_url', fn (?string $url) => is_string($url) && str_contains($url, 'signature='))
+                // ORD-0004 = indeks 8 (urut terbaru dulu).
+                ->where('orders.data.8.number', 'ORD-0004')
+                ->where('orders.data.8.invoice_url', null)
             );
     }
 
@@ -142,5 +142,15 @@ class InvoicesTest extends TestCase
         $this->get($order->invoiceUrl())->assertInertia(fn (Assert $page) => $page
             ->where('invoice.items.0.is_custom', false)
             ->where('invoice.items.1.is_custom', true));
+    }
+
+    public function test_invoice_list_is_searchable_and_filterable()
+    {
+        $props = $this->actingAs(User::factory()->create())
+            ->get(route('invoices.index', ['q' => 'budi', 'pay' => 'paid']))->inertiaPage()['props'];
+
+        $this->assertSame(['INV-0009', 'INV-0001'], array_column($props['invoices']['data'], 'number'));
+        $this->assertSame(['q' => 'budi', 'pay' => 'paid'], $props['filters']);
+        $this->assertSame(1, $props['invoices']['last_page']);
     }
 }

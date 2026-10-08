@@ -43,19 +43,19 @@ class OrdersPageTest extends TestCase
         $this->get(route('orders.index'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('order::index')
-                ->has('orders', 12)
-                ->where('orders.0.number', 'ORD-0012')
-                ->where('orders.0.customer_name', 'Sinta Prameswari')
-                ->where('orders.0.service_time', '14:00')
-                ->where('orders.0.payment_status', 'partial')
-                ->where('orders.0.paid_percent', 43)
-                ->where('orders.0.next_status', 'done')
+                ->has('orders.data', 12)
+                ->where('orders.data.0.number', 'ORD-0012')
+                ->where('orders.data.0.customer_name', 'Sinta Prameswari')
+                ->where('orders.data.0.service_time', '14:00')
+                ->where('orders.data.0.payment_status', 'partial')
+                ->where('orders.data.0.paid_percent', 43)
+                ->where('orders.data.0.next_status', 'done')
                 // ORD-0011: wedding, biaya job 1,6 jt → margin 6,9 jt.
-                ->where('orders.1.direct_cost', 1_600_000)
-                ->where('orders.1.margin', 6_900_000)
-                ->has('orders.1.job_costs', 2)
+                ->where('orders.data.1.direct_cost', 1_600_000)
+                ->where('orders.data.1.margin', 6_900_000)
+                ->has('orders.data.1.job_costs', 2)
                 // Walk-in: tanpa customer.
-                ->where('orders.2.customer_name', null)
+                ->where('orders.data.2.customer_name', null)
             );
     }
 
@@ -119,7 +119,7 @@ class OrdersPageTest extends TestCase
 
     public function test_index_props_include_previous_status()
     {
-        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders'])->keyBy('number');
+        $orders = collect($this->get(route('orders.index'))->inertiaPage()['props']['orders']['data'])->keyBy('number');
 
         $this->assertNull($orders['ORD-0005']['previous_status']);
         $this->assertNull($orders['ORD-0004']['previous_status']);
@@ -169,7 +169,7 @@ class OrdersPageTest extends TestCase
 
         $this->get(route('orders.index'))
             ->assertInertia(function (Assert $page) {
-                $row = collect($page->toArray()['props']['orders'])->firstWhere('number', 'ORD-0008');
+                $row = collect($page->toArray()['props']['orders']['data'])->firstWhere('number', 'ORD-0008');
                 $this->assertSame(-200_000, $row['margin']);
                 $this->assertSame(1_200_000, $row['direct_cost']);
             });
@@ -179,7 +179,7 @@ class OrdersPageTest extends TestCase
     {
         $this->get(route('orders.index'))
             ->assertInertia(function (Assert $page) {
-                $row = collect($page->toArray()['props']['orders'])->firstWhere('number', 'ORD-0008');
+                $row = collect($page->toArray()['props']['orders']['data'])->firstWhere('number', 'ORD-0008');
                 $this->assertSame(2_500_000 - 1_200_000, $row['margin']);
             });
     }

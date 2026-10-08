@@ -38,7 +38,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 2.2 Struk setelah POS | `2.2-struk-pos.md` | M | 2.1 | ✅ #34 |
 | 2.3 Bukti bayar setelah catat bayar | `2.3-bukti-bayar.md` | S | 2.2 (pola flash `receipt`) | ✅ #35 |
 | 2.4 Tagih via WA | `2.4-tagih-via-wa.md` | S | 2.3 (props) | ✅ #36 |
-| 2.5 Transaksi hari ini di POS | `2.5-transaksi-hari-ini.md` | S | 2.2 | ⬜ |
+| 2.5 Transaksi hari ini di POS | `2.5-transaksi-hari-ini.md` | S | 2.2 | ✅ #40 |
 | 3.1 Pencarian + paginasi | `3.1-pencarian-paginasi.md` | M | — | ⬜ |
 | 3.2 Filter piutang | `3.2-filter-piutang.md` | S | 3.1 (komponen toolbar) | ⬜ |
 | 3.3 Kas harian per metode | `3.3-kas-harian.md` | M | — | ⬜ |

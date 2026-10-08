@@ -28,6 +28,7 @@ use Modules\Order\Requests\OrderResultLinkRequest;
 use Modules\Order\Requests\StoreOrderRequest;
 use Modules\Order\Requests\UpdateOrderRequest;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Http\ListQuery;
 
 /**
  * Order & Booking — satu tabel untuk retail, studio, event (business-flow 3).
@@ -40,14 +41,28 @@ use Modules\Shared\Enums\BusinessLine;
  */
 class OrderController extends Controller
 {
-    public function index(): Response
+    /**
+     * Daftar dengan pencarian, filter, dan paginasi server-side (spek 3.1).
+     * Urut id, bukan nomor: "ORD-10000" < "ORD-9999" (lihat Order::nextNumber()).
+     */
+    public function index(Request $request): Response
     {
+        $list = ListQuery::fromRequest($request, [
+            'line' => BusinessLine::values(),
+            'status' => WorkStatus::values(),
+            'pay' => ['unpaid', 'partial', 'paid'],
+            'from' => 'date',
+            'to' => 'date',
+        ]);
         $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user'])
-            ->orderByDesc('number')
-            ->get();
+            ->search($list)
+            ->orderByDesc('id')
+            ->paginate(ListQuery::PER_PAGE)
+            ->withQueryString();
 
         return Inertia::render('order::index', [
-            'orders' => $orders->map($this->orderProps(...))->values()->all(),
+            'orders' => ListQuery::paginated($orders, $this->orderProps(...)),
+            'filters' => $list->toArray(),
             // Nama & rekening studio untuk pesan bukti bayar.
             'studio' => config('studio'),
         ]);

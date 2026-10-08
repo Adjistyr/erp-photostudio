@@ -10,7 +10,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 |---|---|
 | Katalog (produk / jasa) | `CatalogItem` · `catalog_items` (`type`: product / service; `category` produk teks bebas, jasa wajib `ServiceCategory` Studio/Event/Add-on) |
 | HPP bahan per unit | `unit_cost` (null untuk jasa **dan** item custom) |
-| Customer | `Customer` · `customers` (`phone` disimpan ternormalisasi `62…` lewat `Modules\Customer\Support\Phone::normalise()` sejak spek 2.1; data lama `08…` tetap valid — pencocokan dari POS: HP → nama, HP yang sudah ada tidak ditimpa) |
+| Customer | `Customer` · `customers` (index pencarian `customers_name_lower_idx` = `LOWER(name)` dan `customers_phone_idx`; `phone` disimpan ternormalisasi `62…` lewat `Modules\Customer\Support\Phone::normalise()` sejak spek 2.1; data lama `08…` tetap valid — pencocokan dari POS: HP → nama, HP yang sudah ada tidak ditimpa) |
 | Order | `Order` · `orders` |
 | Lini (retail / studio / event) | `business_line` → `BusinessLine` |
 | Status kerja | `work_status` → `WorkStatus` (booking, scheduled, in_progress, done, delivered, cancelled) |

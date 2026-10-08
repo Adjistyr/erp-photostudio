@@ -5,6 +5,7 @@ namespace Modules\Order\Models;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,10 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
 use Modules\Customer\Models\Customer;
+use Modules\Customer\Support\Phone;
 use Modules\Expense\Models\JobCost;
 use Modules\Order\Enums\PaymentStatus;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Http\ListQuery;
 use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
@@ -190,6 +193,56 @@ class Order extends Model
     public function margin(): int
     {
         return ($this->isCancelled() ? $this->totalPaid() : $this->total()) - $this->directCost();
+    }
+
+    /**
+     * Pencarian + filter daftar order (spek 3.1) — dipakai Order & Booking,
+     * Invoice, dan ekspor. `q` cocok nomor order, nama customer, atau HP
+     * (digit saja).
+     *
+     * Filter status bayar DI SQL, bukan setelah paginate(): status bayar
+     * turunan, dan menyaring setelah paginasi membuat halaman berisi < 25
+     * baris dengan total yang salah. Tiga cabangnya harus sama persis dengan
+     * paymentStatus(): paid <= 0 → unpaid; paid < total → partial; sisanya paid.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeSearch(Builder $query, ListQuery $list): void
+    {
+        if ($list->q !== '') {
+            $like = '%'.mb_strtolower($list->q).'%';
+            $query->where(function (Builder $w) use ($list, $like) {
+                $w->whereRaw('LOWER(number) LIKE ?', [$like])
+                    ->orWhereHas('customer', function (Builder $c) use ($list, $like) {
+                        $c->whereRaw('LOWER(name) LIKE ?', [$like]);
+                        if ($list->phoneDigits() !== '') {
+                            $c->orWhereRaw(Phone::SQL_NORMALISED_PHONE.' LIKE ?', ['%'.Phone::normalise($list->phoneDigits()).'%']);
+                        }
+                    });
+            });
+        }
+        if (($line = $list->get('line')) !== null) {
+            $query->where('business_line', $line);
+        }
+        if (($status = $list->get('status')) !== null) {
+            $query->where('work_status', $status);
+        }
+        if (($from = $list->get('from')) !== null) {
+            $query->whereDate('service_date', '>=', $from);
+        }
+        if (($to = $list->get('to')) !== null) {
+            $query->whereDate('service_date', '<=', $to);
+        }
+
+        if (($pay = $list->get('pay')) !== null) {
+            $paid = '(SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.order_id = orders.id)';
+            $total = '((SELECT COALESCE(SUM(i.quantity * i.unit_price), 0) FROM order_items i WHERE i.order_id = orders.id) - orders.discount)';
+            match ($pay) {
+                'unpaid' => $query->whereRaw("{$paid} <= 0"),
+                'partial' => $query->whereRaw("{$paid} > 0 AND {$paid} < {$total}"),
+                default => $query->whereRaw("{$paid} > 0 AND {$paid} >= {$total}"),
+            };
+        }
     }
 
     /** Hari menuju jatuh tempo. Positif = belum jatuh tempo, 0 = hari ini. */

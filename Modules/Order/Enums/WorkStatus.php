@@ -15,6 +15,12 @@ enum WorkStatus: string
     case Delivered = 'delivered';
     case Cancelled = 'cancelled';
 
+    /** @return list<string> */
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
     /**
      * Langkah berikutnya — hanya maju satu langkah, tidak ada mundur. Mundur
      * itu koreksi kesalahan yang jarang di skala satu pengguna; menyediakannya

@@ -23,7 +23,15 @@ import {
 } from '@/components/data-table';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
+import {
+    ListToolbar,
+    cleanQuery,
+    hasActiveFilter,
+} from '@/components/list-toolbar';
+import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
+import { Pagination } from '@/components/pagination';
+import type { Paginated } from '@/components/pagination';
 import { RecordedBy } from '@/components/recorded-by';
 import { useFlash } from '@/hooks/use-flash';
 import type { Studio } from '@/modules/order/components/invoice-document';
@@ -65,7 +73,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     formatJadwal,
     formatPersen,
@@ -80,8 +87,13 @@ import {
     edit as ordersEdit,
     index as ordersIndex,
 } from '@/routes/orders';
-import { BUSINESS_LINES, LINE_LABEL, WORK_STATUS_LABEL } from '@/types/domain';
-import type { BusinessLine, WorkStatus } from '@/types/domain';
+import {
+    BUSINESS_LINES,
+    LINE_LABEL,
+    PAYMENT_STATUS_LABEL,
+    WORK_STATUS_LABEL,
+} from '@/types/domain';
+import type { PaymentStatus, WorkStatus } from '@/types/domain';
 import {
     PAYMENT_METHOD_LABEL,
     describeEvent,
@@ -89,28 +101,64 @@ import {
 } from '@/modules/order/types';
 import type { OrderRow, Receipt } from '@/modules/order/types';
 
-type Filter = 'all' | BusinessLine;
+const PAY_STATUSES: PaymentStatus[] = ['unpaid', 'partial', 'paid'];
+const WORK_STATUSES = Object.keys(WORK_STATUS_LABEL) as WorkStatus[];
+
+/** Filter daftar order (spek 3.1) — nilainya divalidasi ulang di server. */
+const ORDER_FILTERS: ListFilterDef[] = [
+    {
+        key: 'line',
+        label: 'Lini',
+        options: BUSINESS_LINES.map((l) => ({
+            value: l,
+            label: LINE_LABEL[l],
+        })),
+    },
+    {
+        key: 'status',
+        label: 'Status kerja',
+        options: WORK_STATUSES.map((s) => ({
+            value: s,
+            label: WORK_STATUS_LABEL[s],
+        })),
+    },
+    {
+        key: 'pay',
+        label: 'Status bayar',
+        options: PAY_STATUSES.map((s) => ({
+            value: s,
+            label: PAYMENT_STATUS_LABEL[s],
+        })),
+    },
+];
 
 export default function OrdersIndex({
     orders,
+    filters,
     studio,
 }: {
-    orders: OrderRow[];
+    orders: Paginated<OrderRow>;
+    /** Filter aktif dari URL (spek 3.1) — tampil lagi setelah reload. */
+    filters: ListFilters;
     studio: Studio;
 }) {
     // Bukti bayar setelah PaymentDialog sukses — tampil di atas Sheet detail.
     const [receipt, clearReceipt] = useFlash<Receipt>('receipt');
-    const [filter, setFilter] = useState<Filter>('all');
     // Simpan id, bukan objek: setelah aksi, Sheet membaca data terbaru dari props.
     const [detailId, setDetailId] = useState<number | null>(null);
     const [payingId, setPayingId] = useState<number | null>(null);
 
-    const visible =
-        filter === 'all'
-            ? orders
-            : orders.filter((o) => o.business_line === filter);
-    const detail = orders.find((o) => o.id === detailId) ?? null;
-    const paying = orders.find((o) => o.id === payingId) ?? null;
+    // Filter hidup di URL, bukan state: bisa dibagikan, tombol kembali jalan.
+    const go = (next: ListFilters) =>
+        router.get(
+            ordersIndex({ query: cleanQuery(next) }).url,
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    const visible = orders.data;
+    const filtered = hasActiveFilter(filters);
+    const detail = visible.find((o) => o.id === detailId) ?? null;
+    const paying = visible.find((o) => o.id === payingId) ?? null;
 
     return (
         <>
@@ -136,29 +184,51 @@ export default function OrdersIndex({
             </PageActions>
 
             <div className="flex flex-col gap-6 p-6">
-                <Tabs
-                    value={filter}
-                    onValueChange={(v) => {
-                        if (v === 'all') return setFilter('all');
-                        const line = BUSINESS_LINES.find((l) => l === v);
-                        if (line) setFilter(line);
-                    }}
+                <ListToolbar
+                    value={filters}
+                    filters={ORDER_FILTERS}
+                    onChange={go}
+                    total={{ count: orders.total, noun: 'order' }}
                 >
-                    <TabsList>
-                        <TabsTrigger value="all">Semua</TabsTrigger>
-                        {(['studio', 'event', 'retail'] as const).map((l) => (
-                            <TabsTrigger key={l} value={l}>
-                                {LINE_LABEL[l]}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </Tabs>
+                    {/* Rentang tanggal layanan — <input type="date"> bawaan. */}
+                    <Input
+                        type="date"
+                        aria-label="Dari tanggal"
+                        className="w-auto"
+                        value={filters.from ?? ''}
+                        onChange={(e) =>
+                            go({
+                                ...filters,
+                                from: e.target.value || undefined,
+                            })
+                        }
+                    />
+                    <Input
+                        type="date"
+                        aria-label="Sampai tanggal"
+                        className="w-auto"
+                        value={filters.to ?? ''}
+                        onChange={(e) =>
+                            go({ ...filters, to: e.target.value || undefined })
+                        }
+                    />
+                </ListToolbar>
 
                 {visible.length === 0 ? (
-                    <KosongTabel
-                        kalimat="Belum ada order. Order studio dan event akan muncul di sini."
-                        aksi={{ label: 'Buat Order', ke: ordersCreate() }}
-                    />
+                    filtered ? (
+                        <KosongTabel
+                            kalimat="Tidak ada order yang cocok."
+                            aksi={{
+                                label: 'Hapus filter',
+                                onClick: () => go({ q: '' }),
+                            }}
+                        />
+                    ) : (
+                        <KosongTabel
+                            kalimat="Belum ada order. Order studio dan event akan muncul di sini."
+                            aksi={{ label: 'Buat Order', ke: ordersCreate() }}
+                        />
+                    )
                 ) : (
                     <TabelData>
                         <TableHeader>
@@ -235,6 +305,19 @@ export default function OrdersIndex({
                         </TableBody>
                     </TabelData>
                 )}
+
+                <Pagination
+                    page={orders}
+                    noun="order"
+                    href={(page) =>
+                        ordersIndex({
+                            query: {
+                                ...cleanQuery(filters),
+                                page: String(page),
+                            },
+                        }).url
+                    }
+                />
             </div>
 
             <OrderSheet
