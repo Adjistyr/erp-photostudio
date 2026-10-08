@@ -37,7 +37,45 @@ class PosController extends Controller
                 ->get(['id', 'name', 'price', 'unit_cost']),
             // Nama studio untuk pesan WA struk.
             'studio' => config('studio'),
+            ...$this->todaySales(),
         ]);
+    }
+
+    /**
+     * Transaksi POS hari ini (spek 2.5): 50 terbaru, urut id — bukan nomor:
+     * `number` string ("ORD-10000" < "ORD-9999"). Order batal tetap tampil
+     * (supaya "sudah tercatat?" tidak menyesatkan) tapi tidak dijumlah dan
+     * tidak punya link struk.
+     *
+     * @return array{today_sales: array<int, array<string, mixed>>, today_total: int}
+     */
+    private function todaySales(): array
+    {
+        $sales = Order::with(['customer', 'items', 'payments'])
+            ->where('business_line', BusinessLine::Retail)
+            ->whereDate('service_date', today()->toDateString())
+            ->latest('id')
+            ->limit(50)
+            ->get();
+
+        return [
+            'today_sales' => $sales->map(fn (Order $o) => [
+                'id' => $o->id,
+                'number' => $o->number,
+                // created_at dalam zona waktu app (Asia/Jakarta).
+                'time' => $o->created_at?->format('H:i'),
+                'items_summary' => $o->itemsSummary(),
+                'total' => $o->total(),
+                // ponytail: POS = satu pembayaran; jadi daftar kalau split payment (4.4) ada.
+                'method' => $o->payments->first()?->method->value,
+                'cancelled' => $o->isCancelled(),
+                'customer_name' => $o->customer?->name,
+                'customer_phone' => $o->customer?->phone,
+                'invoice_url' => $o->isCancelled() ? null : $o->invoiceUrl(),
+                'print_url' => $o->isCancelled() ? null : $o->invoiceUrl(print: true),
+            ])->values()->all(),
+            'today_total' => (int) $sales->reject(fn (Order $o) => $o->isCancelled())->sum(fn (Order $o) => $o->total()),
+        ];
     }
 
     /** Order + item + pelunasan dalam satu transaksi. */
