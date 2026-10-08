@@ -241,3 +241,22 @@ export function describeEvent(e: OrderEvent): string {
         }
     }
 }
+
+/** Baris layar Pembayaran (ReceivableController) — dipakai halaman & filter klien. */
+export interface ReceivableRow {
+    id: number;
+    number: string;
+    customer_name: string | null;
+    customer_phone: string | null;
+    /** Link invoice bertanda tangan (dipakai Tagih via WA, spek 2.4). */
+    invoice_url: string;
+    business_line: BusinessLine;
+    service_date: string;
+    /** > 0 belum jatuh tempo, 0 hari ini, < 0 lewat (dihitung server). */
+    days_until_due: number;
+    total: number;
+    paid: number;
+    balance: number;
+    payment_status: PaymentStatus;
+    paid_percent: number;
+}
