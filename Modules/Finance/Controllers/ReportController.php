@@ -8,6 +8,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Expense\Models\OperatingExpense;
 use Modules\Finance\Services\AgingBucket;
+use Modules\Finance\Services\CashDay;
+use Modules\Finance\Services\CashReceipts;
 use Modules\Finance\Services\CustomerSummary;
 use Modules\Finance\Services\LineMargin;
 use Modules\Finance\Services\LineReceivable;
@@ -19,13 +21,14 @@ use Modules\Finance\Services\ProfitSharing;
 use Modules\Finance\Services\Receivables;
 use Modules\Finance\Services\SalesReport;
 use Modules\Finance\Services\ServiceSales;
+use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\Payment;
 use Modules\Shared\Enums\BusinessLine;
 
 /**
- * Laporan (prompt 4.19–4.22). Controller ini hanya MENYAJIKAN angka service
+ * Laporan (prompt 4.19–4.22) + Kas Harian (spek 3.3). Controller ini hanya MENYAJIKAN angka service
  * Finance — tidak ada rumus di sini, supaya angka laporan tidak bisa berbeda
  * dengan Dashboard, Biaya, atau Pembayaran.
  */
@@ -149,6 +152,30 @@ class ReportController extends Controller
                 'count' => $walkIns->count(),
                 'value' => $walkIns->sum(fn (Order $o) => $o->total()),
             ],
+        ]);
+    }
+
+    /** Kas Harian: penerimaan per hari × metode untuk tutup hari (spek 3.3). */
+    public function cash(Request $request, CashReceipts $cash): Response
+    {
+        $month = Periods::orCurrent($request->query('month'));
+        $r = $cash->forMonth($month);
+
+        return Inertia::render('finance::reports/cash', [
+            'month' => $month,
+            'today' => today()->toDateString(),
+            // Urutan kolom dari enum — satu sumber dengan PaymentMethod.
+            'methods' => array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::cases()),
+            'days' => array_map(fn (CashDay $d) => [
+                'date' => $d->date,
+                'by_method' => $d->byMethod,
+                'total' => $d->total,
+                'count' => $d->count,
+            ], $r->days),
+            'totals' => $r->totals,
+            'total' => $r->total,
+            'count' => $r->count,
+            'shares' => array_map(fn (int $v) => $r->total > 0 ? $v / $r->total : 0, $r->totals),
         ]);
     }
 

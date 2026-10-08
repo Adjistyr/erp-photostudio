@@ -260,7 +260,7 @@ Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena pen
 | — | **Aset & Maintenance** (bonus, di luar quotation) | Daftar alat, alokasi maintenance otomatis, nilai buku, jadwal perawatan, riwayat servis, lepas/jual aset | 8.9 |
 | 8 | **Invoice** | Generate dari order, bagikan link/PDF, riwayat pengiriman | 5.5 |
 | 9 | **Komunikasi** | Thank You mail, blast email, penyiapan blast WA, editor template | 5.5, 5.6 |
-| 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas, bagi hasil owner, progress balik modal | 5.7, 8 |
+| 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas, bagi hasil owner, progress balik modal, **kas harian** (penerimaan per hari × metode — untuk mencocokkan laci kas dan mutasi rekening tiap tutup hari; penerimaan saja) | 5.7, 8 |
 
 ### Urutan pengerjaan yang disarankan
 

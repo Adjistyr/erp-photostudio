@@ -20,15 +20,9 @@ import {
     TabelData,
 } from '@/components/data-table';
 import { LineMark, PaymentBadge } from '@/components/status-order';
+import { SummaryCard } from '@/components/summary-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     TableBody,
     TableCell,
@@ -107,18 +101,18 @@ export default function Receivables({
 
             <div className="flex flex-col gap-6 p-6">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Summary
+                    <SummaryCard
                         label="Total piutang"
                         value={formatRp(totals.total)}
                         note={`${orders.length} order belum lunas`}
                     />
-                    <Summary
+                    <SummaryCard
                         label="Lewat jatuh tempo"
                         value={formatRp(totals.overdue)}
                         note={`${totals.overdue_count} order`}
                         urgent={totals.overdue > 0}
                     />
-                    <Summary
+                    <SummaryCard
                         label="Belum jatuh tempo"
                         value={formatRp(totals.total - totals.overdue)}
                         note={`${orders.length - totals.overdue_count} order`}
@@ -263,34 +257,6 @@ export default function Receivables({
 Receivables.layout = {
     breadcrumbs: [{ title: 'Pembayaran', href: receivablesIndex() }],
 };
-
-function Summary({
-    label,
-    value,
-    note,
-    urgent,
-}: {
-    label: string;
-    value: string;
-    note: string;
-    urgent?: boolean;
-}) {
-    return (
-        <Card className="p-5">
-            <CardHeader className="p-0">
-                <CardDescription className="text-xs">{label}</CardDescription>
-                <CardTitle
-                    className={`font-mono text-3xl font-semibold ${urgent ? 'text-destructive' : ''}`}
-                >
-                    {value}
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-                <p className="text-xs text-muted-foreground">{note}</p>
-            </CardContent>
-        </Card>
-    );
-}
 
 /**
  * Tagih via WhatsApp — pesan dari template `billing`, dikirim manual.
