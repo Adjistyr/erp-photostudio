@@ -11,61 +11,36 @@
  */
 
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Info, Plus, Trash2 } from 'lucide-react';
+import { Info } from 'lucide-react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
-import { create as ordersCreate, index as ordersIndex } from '@/routes/orders';
-import { categoryMatches } from '@/modules/order/lib/category';
+import {
+    OrderFormFields,
+    SummaryLines,
+    orderTotal,
+} from '@/modules/order/components/order-form';
+import type {
+    CatalogOption,
+    CustomerOption,
+    OrderFields,
+} from '@/modules/order/components/order-form';
 import type { OrderType } from '@/modules/order/lib/category';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod } from '@/modules/order/types';
-import type { ServiceCategory } from '@/types/domain';
+import { create as ordersCreate, index as ordersIndex } from '@/routes/orders';
 
 const METHODS: PaymentMethod[] = ['cash', 'transfer', 'qris'];
 
-interface CustomerOption {
-    id: number;
-    name: string;
-    phone: string | null;
-}
-
-interface CatalogOption {
-    id: number;
-    name: string;
-    price: number;
-    category: ServiceCategory;
-}
-
-interface ItemRow {
-    key: number;
-    catalog_item_id: string;
-    quantity: number;
-}
-
-interface OrderForm {
+/** Field bersama + yang hanya ada saat membuat: jenis order dan DP. */
+interface OrderForm extends OrderFields {
     business_line: OrderType;
-    customer_id: string;
-    service_date: string;
-    service_time: string;
-    location: string;
-    notes: string;
-    items: ItemRow[];
     dp: string;
     dp_method: PaymentMethod;
 }
@@ -89,28 +64,11 @@ export default function OrdersCreate({
         dp_method: 'transfer',
     });
     const { data, setData, errors, processing } = form;
-    // Error baris item berkunci "items.0.catalog_item_id" — tidak ada di tipe
-    // data form, jadi dibaca lewat Record biasa.
-    const rowErrors: Record<string, string | undefined> = errors;
 
-    const services = catalog.filter((c) =>
-        categoryMatches(c.category, data.business_line),
-    );
-    const itemOf = (id: string) => catalog.find((c) => String(c.id) === id);
-
-    const total = data.items.reduce((s, r) => {
-        const c = itemOf(r.catalog_item_id);
-        return s + (c ? c.price * r.quantity : 0);
-    }, 0);
+    const total = orderTotal(data.items, catalog);
     const deposit = Number(data.dp) || 0;
     const complete =
         data.customer_id !== '' && data.service_date !== '' && total > 0;
-
-    const updateRow = (key: number, patch: Partial<ItemRow>) =>
-        setData(
-            'items',
-            data.items.map((r) => (r.key === key ? { ...r, ...patch } : r)),
-        );
 
     return (
         <>
@@ -119,8 +77,18 @@ export default function OrdersCreate({
 
             <div className="grid min-w-0 grid-cols-1 gap-6 p-6 xl:grid-cols-[1fr_20rem]">
                 <div className="flex min-w-0 flex-col gap-6">
-                    <Section title="Jenis & customer">
-                        <FieldGroup>
+                    <OrderFormFields
+                        line={data.business_line}
+                        data={data}
+                        onChange={(patch) =>
+                            setData((d) => ({ ...d, ...patch }))
+                        }
+                        // Error baris item berkunci "items.0.catalog_item_id" — tidak
+                        // ada di tipe data form, jadi diteruskan sebagai Record biasa.
+                        errors={errors}
+                        customers={customers}
+                        catalog={catalog}
+                        header={
                             <Field>
                                 <FieldLabel>Jenis order</FieldLabel>
                                 {/*
@@ -163,292 +131,8 @@ export default function OrdersCreate({
                                 </ToggleGroup>
                                 <InputError message={errors.business_line} />
                             </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="customer">
-                                    Customer
-                                </FieldLabel>
-                                {/* `items` supaya trigger menampilkan nama, bukan id. */}
-                                <Select
-                                    items={customers.map((c) => ({
-                                        value: String(c.id),
-                                        label: c.name,
-                                    }))}
-                                    value={data.customer_id}
-                                    onValueChange={(v) =>
-                                        setData('customer_id', v ?? '')
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id="customer"
-                                        aria-invalid={Boolean(
-                                            errors.customer_id,
-                                        )}
-                                    >
-                                        <SelectValue placeholder="Pilih customer" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            {customers.map((c) => (
-                                                <SelectItem
-                                                    key={c.id}
-                                                    value={String(c.id)}
-                                                >
-                                                    {c.name}
-                                                    {c.phone
-                                                        ? ` · ${c.phone}`
-                                                        : ''}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.customer_id} />
-                                {customers.length === 0 && (
-                                    <p className="text-xs text-muted-foreground">
-                                        Belum ada customer — tambahkan dulu di
-                                        menu Customer.
-                                    </p>
-                                )}
-                            </Field>
-                        </FieldGroup>
-                    </Section>
-
-                    <Section title="Item">
-                        <div className="flex flex-col gap-3">
-                            {data.items.map((r, i) => {
-                                const c = itemOf(r.catalog_item_id);
-                                const rowError =
-                                    rowErrors[`items.${i}.catalog_item_id`] ??
-                                    rowErrors[`items.${i}.quantity`];
-                                return (
-                                    <div
-                                        key={r.key}
-                                        className="flex flex-col gap-1"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <div className="min-w-0 flex-1">
-                                                <Select
-                                                    items={services.map(
-                                                        (s) => ({
-                                                            value: String(s.id),
-                                                            label: `${s.name} · ${formatRp(s.price)}`,
-                                                        }),
-                                                    )}
-                                                    value={r.catalog_item_id}
-                                                    onValueChange={(v) =>
-                                                        updateRow(r.key, {
-                                                            catalog_item_id:
-                                                                v ?? '',
-                                                        })
-                                                    }
-                                                >
-                                                    <SelectTrigger
-                                                        className="w-full"
-                                                        aria-invalid={Boolean(
-                                                            rowError,
-                                                        )}
-                                                    >
-                                                        <SelectValue placeholder="Pilih paket dari katalog" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectGroup>
-                                                            {services.map(
-                                                                (s) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            s.id
-                                                                        }
-                                                                        value={String(
-                                                                            s.id,
-                                                                        )}
-                                                                    >
-                                                                        {s.name}{' '}
-                                                                        ·{' '}
-                                                                        {formatRp(
-                                                                            s.price,
-                                                                        )}
-                                                                    </SelectItem>
-                                                                ),
-                                                            )}
-                                                        </SelectGroup>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <Input
-                                                inputMode="numeric"
-                                                aria-label="Qty"
-                                                className="w-16 text-center font-mono"
-                                                value={String(r.quantity)}
-                                                onChange={(e) =>
-                                                    updateRow(r.key, {
-                                                        quantity: Math.max(
-                                                            1,
-                                                            Number(
-                                                                hanyaDigit(
-                                                                    e.target
-                                                                        .value,
-                                                                ),
-                                                            ) || 1,
-                                                        ),
-                                                    })
-                                                }
-                                            />
-                                            <span className="w-32 shrink-0 text-right font-mono text-sm">
-                                                {c
-                                                    ? formatRp(
-                                                          c.price * r.quantity,
-                                                      )
-                                                    : '—'}
-                                            </span>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                aria-label="Hapus baris item"
-                                                disabled={
-                                                    data.items.length === 1
-                                                }
-                                                onClick={() =>
-                                                    setData(
-                                                        'items',
-                                                        data.items.filter(
-                                                            (x) =>
-                                                                x.key !== r.key,
-                                                        ),
-                                                    )
-                                                }
-                                            >
-                                                <Trash2 />
-                                            </Button>
-                                        </div>
-                                        <InputError message={rowError} />
-                                    </div>
-                                );
-                            })}
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="self-start"
-                                onClick={() =>
-                                    setData('items', [
-                                        ...data.items,
-                                        {
-                                            key: Date.now(),
-                                            catalog_item_id: '',
-                                            quantity: 1,
-                                        },
-                                    ])
-                                }
-                            >
-                                <Plus data-icon="inline-start" />
-                                Tambah item
-                            </Button>
-                            <InputError message={errors.items} />
-
-                            {data.business_line === 'event' && (
-                                <p className="text-xs text-muted-foreground">
-                                    Paket event sering dinegosiasi per deal.
-                                    Harga custom di luar katalog belum bisa
-                                    diisi — masih pertanyaan terbuka ke client.
-                                </p>
-                            )}
-                        </div>
-                    </Section>
-
-                    <Section title="Jadwal & lokasi">
-                        <FieldGroup>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <Field>
-                                    <FieldLabel htmlFor="service_date">
-                                        Tanggal{' '}
-                                        {data.business_line === 'event'
-                                            ? 'acara'
-                                            : 'sesi'}
-                                    </FieldLabel>
-                                    {/* <input type="date"> bawaan: locale ikut sistem,
-                                        keyboard jalan, nol dependency. */}
-                                    <Input
-                                        id="service_date"
-                                        type="date"
-                                        value={data.service_date}
-                                        aria-invalid={Boolean(
-                                            errors.service_date,
-                                        )}
-                                        onChange={(e) =>
-                                            setData(
-                                                'service_date',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError message={errors.service_date} />
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="service_time">
-                                        Jam{' '}
-                                        <span className="text-muted-foreground">
-                                            — opsional
-                                        </span>
-                                    </FieldLabel>
-                                    <Input
-                                        id="service_time"
-                                        type="time"
-                                        value={data.service_time}
-                                        onChange={(e) =>
-                                            setData(
-                                                'service_time',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError message={errors.service_time} />
-                                </Field>
-                            </div>
-
-                            <Field>
-                                <FieldLabel htmlFor="location">
-                                    Lokasi{' '}
-                                    {data.business_line === 'studio' && (
-                                        <span className="text-muted-foreground">
-                                            — kosongkan kalau di studio
-                                        </span>
-                                    )}
-                                </FieldLabel>
-                                <Input
-                                    id="location"
-                                    placeholder={
-                                        data.business_line === 'studio'
-                                            ? 'Studio'
-                                            : 'Nama venue'
-                                    }
-                                    value={data.location}
-                                    onChange={(e) =>
-                                        setData('location', e.target.value)
-                                    }
-                                />
-                                <InputError message={errors.location} />
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="notes">
-                                    Catatan{' '}
-                                    <span className="text-muted-foreground">
-                                        — opsional
-                                    </span>
-                                </FieldLabel>
-                                <Textarea
-                                    id="notes"
-                                    rows={3}
-                                    value={data.notes}
-                                    onChange={(e) =>
-                                        setData('notes', e.target.value)
-                                    }
-                                />
-                                <InputError message={errors.notes} />
-                            </Field>
-                        </FieldGroup>
-                    </Section>
+                        }
+                    />
                 </div>
 
                 <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5">
@@ -456,30 +140,7 @@ export default function OrdersCreate({
                         Ringkasan
                     </h2>
 
-                    <div className="flex flex-col gap-2 text-sm">
-                        {data.items.map((r) => {
-                            const c = itemOf(r.catalog_item_id);
-                            if (!c) return null;
-                            return (
-                                <div
-                                    key={r.key}
-                                    className="flex justify-between gap-2"
-                                >
-                                    <span className="min-w-0 truncate text-muted-foreground">
-                                        {c.name} × {r.quantity}
-                                    </span>
-                                    <span className="shrink-0 font-mono">
-                                        {formatRp(c.price * r.quantity)}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                        {total === 0 && (
-                            <p className="text-muted-foreground">
-                                Belum ada item dipilih.
-                            </p>
-                        )}
-                    </div>
+                    <SummaryLines items={data.items} catalog={catalog} />
 
                     <Separator />
 
@@ -602,18 +263,3 @@ OrdersCreate.layout = {
         { title: 'Buat Order', href: ordersCreate() },
     ],
 };
-
-function Section({
-    title,
-    children,
-}: {
-    title: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <section className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-            <h2 className="font-heading text-base font-semibold">{title}</h2>
-            {children}
-        </section>
-    );
-}
