@@ -40,7 +40,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 2.4 Tagih via WA | `2.4-tagih-via-wa.md` | S | 2.3 (props) | ✅ #36 |
 | 2.5 Transaksi hari ini di POS | `2.5-transaksi-hari-ini.md` | S | 2.2 | ✅ #40 |
 | 3.1 Pencarian + paginasi | `3.1-pencarian-paginasi.md` | M | — | ✅ #41 |
-| 3.2 Filter piutang | `3.2-filter-piutang.md` | S | 3.1 (komponen toolbar) | ⬜ |
+| 3.2 Filter piutang | `3.2-filter-piutang.md` | S | 3.1 (komponen toolbar) | ✅ #43 |
 | 3.3 Kas harian per metode | `3.3-kas-harian.md` | M | — | ✅ #42 |
 | 3.4 Customer baru dari form order | `3.4-customer-dari-form-order.md` | S | 1.2, 2.1 | ⬜ |
 | 3.5 Jadwal besok + ingatkan | `3.5-jadwal-besok.md` | S | 2.4 (`personalise`) | ⬜ |

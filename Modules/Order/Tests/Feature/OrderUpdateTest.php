@@ -304,4 +304,30 @@ class OrderUpdateTest extends TestCase
         ]])->assertSessionHasErrors('items.1.name');
         $this->assertSame(75_000, $custom?->refresh()->unit_price);
     }
+
+    public function test_update_can_switch_to_new_customer_and_records_name()
+    {
+        $order = $this->order('ORD-0005');
+        $from = $order->customer?->name;
+
+        $this->update($order, ['customer_id' => null, 'new_customer' => ['name' => 'Kakak Dewi', 'phone' => '0877 1234 5678']])
+            ->assertSessionHasNoErrors();
+
+        $customer = Customer::where('name', 'Kakak Dewi')->sole();
+        $this->assertSame($customer->id, $order->refresh()->customer_id);
+        $this->assertEquals(['from' => $from, 'to' => 'Kakak Dewi'], $this->lastEvent($order)?->changes['customer_id']);
+    }
+
+    public function test_new_customer_matching_current_customer_is_not_a_change()
+    {
+        $order = $this->order('ORD-0005');
+        $before = OrderEvent::count();
+        $count = Customer::count();
+
+        // Nama customer ORD-0005 sendiri, ditulis beda huruf besar.
+        $this->update($order, ['customer_id' => null, 'new_customer' => ['name' => mb_strtoupper((string) $order->customer?->name)]])
+            ->assertSessionHas('inertia.flash_data.toast.message', 'Tidak ada yang berubah.');
+
+        $this->assertSame([$before, $count], [OrderEvent::count(), Customer::count()]);
+    }
 }

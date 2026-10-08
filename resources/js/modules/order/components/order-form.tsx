@@ -11,11 +11,20 @@
  * bisa diganti; ganti paket = hapus baris lalu tambah yang baru.
  */
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, UserPlus, X } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '@/components/ui/combobox';
 import {
     Field,
     FieldDescription,
@@ -68,9 +77,18 @@ export interface ItemRow {
     price?: string;
 }
 
+/** Customer yang diketik di form order (spek 3.4) — dicocokkan/dibuat server. */
+export interface NewCustomer {
+    name: string;
+    phone: string;
+}
+
 /** Field yang sama di Buat dan Ubah Order. */
 export interface OrderFields {
+    /** '' saat memakai customer baru. */
     customer_id: string;
+    /** null = memilih customer yang sudah ada. */
+    new_customer: NewCustomer | null;
     service_date: string;
     service_time: string;
     location: string;
@@ -104,6 +122,50 @@ export function lineName(
     if (row.name !== undefined) return row.name.trim() || null;
     return (
         catalog.find((x) => String(x.id) === row.catalog_item_id)?.name ?? null
+    );
+}
+
+/**
+ * Bagian customer di payload: `customer_id` ATAU `new_customer`, tidak
+ * keduanya (server tetap memenangkan customer_id bila keduanya terkirim).
+ */
+export function customerPayload(
+    data: Pick<OrderFields, 'customer_id' | 'new_customer'>,
+): {
+    customer_id: string | null;
+    new_customer: NewCustomer | null;
+} {
+    if (data.customer_id !== '')
+        return { customer_id: data.customer_id, new_customer: null };
+    return {
+        customer_id: null,
+        new_customer: data.new_customer
+            ? {
+                  name: data.new_customer.name.trim(),
+                  phone: data.new_customer.phone.trim(),
+              }
+            : null,
+    };
+}
+
+/** Customer sudah dipilih atau nama customer baru sudah diisi. */
+export function hasCustomer(
+    data: Pick<OrderFields, 'customer_id' | 'new_customer'>,
+): boolean {
+    return (
+        data.customer_id !== '' || (data.new_customer?.name.trim() ?? '') !== ''
+    );
+}
+
+/** Cocok nama (tanpa beda huruf besar) atau HP (digit saja). */
+export function customerMatches(c: CustomerOption, query: string): boolean {
+    const q = query.trim().toLowerCase();
+    if (q === '') return true;
+    const digits = q.replace(/\D/g, '');
+    return (
+        c.name.toLowerCase().includes(q) ||
+        (digits.length >= 3 &&
+            (c.phone ?? '').replace(/\D/g, '').includes(digits))
     );
 }
 
@@ -193,44 +255,13 @@ export function OrderFormFields({
                     {header}
                     <Field>
                         <FieldLabel htmlFor="customer">Customer</FieldLabel>
-                        {/* `items` supaya trigger menampilkan nama, bukan id. */}
-                        <Select
-                            items={customers.map((c) => ({
-                                value: String(c.id),
-                                label: c.name,
-                            }))}
-                            value={data.customer_id}
-                            onValueChange={(v) =>
-                                onChange({ customer_id: v ?? '' })
-                            }
-                        >
-                            <SelectTrigger
-                                id="customer"
-                                aria-invalid={Boolean(errors.customer_id)}
-                            >
-                                <SelectValue placeholder="Pilih customer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {customers.map((c) => (
-                                        <SelectItem
-                                            key={c.id}
-                                            value={String(c.id)}
-                                        >
-                                            {c.name}
-                                            {c.phone ? ` · ${c.phone}` : ''}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.customer_id} />
-                        {customers.length === 0 && (
-                            <p className="text-xs text-muted-foreground">
-                                Belum ada customer — tambahkan dulu di menu
-                                Customer.
-                            </p>
-                        )}
+                        <CustomerPicker
+                            customers={customers}
+                            customerId={data.customer_id}
+                            newCustomer={data.new_customer}
+                            errors={errors}
+                            onChange={onChange}
+                        />
                     </Field>
                 </FieldGroup>
             </Section>
@@ -591,6 +622,158 @@ export function SummaryLines({
             {lines.length === 0 && (
                 <p className="text-muted-foreground">Belum ada item dipilih.</p>
             )}
+        </div>
+    );
+}
+
+/**
+ * Pemilih customer dengan pencarian (spek 3.4). Ketikan yang tidak cocok
+ * persis dengan nama mana pun menawarkan "Buat customer '…'" — admin tidak
+ * perlu bolak-balik ke menu Customer untuk customer yang baru deal lewat chat.
+ * Dedup (HP lalu nama) dilakukan server, jadi memilih "buat" untuk orang yang
+ * ternyata sudah ada tidak membuat baris ganda.
+ */
+function CustomerPicker({
+    customers,
+    customerId,
+    newCustomer,
+    errors,
+    onChange,
+}: {
+    customers: CustomerOption[];
+    customerId: string;
+    newCustomer: NewCustomer | null;
+    errors: Record<string, string | undefined>;
+    onChange: (patch: Partial<OrderFields>) => void;
+}) {
+    const [query, setQuery] = useState('');
+
+    if (newCustomer) {
+        return (
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary">Customer baru</Badge>
+                    <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label="Batal buat customer baru"
+                        onClick={() => onChange({ new_customer: null })}
+                    >
+                        <X />
+                    </Button>
+                </div>
+                <Input
+                    id="customer"
+                    aria-label="Nama customer baru"
+                    value={newCustomer.name}
+                    aria-invalid={Boolean(
+                        errors['new_customer.name'] ?? errors.customer_id,
+                    )}
+                    onChange={(e) =>
+                        onChange({
+                            new_customer: {
+                                ...newCustomer,
+                                name: e.target.value,
+                            },
+                        })
+                    }
+                />
+                <Input
+                    aria-label="No HP customer baru"
+                    inputMode="tel"
+                    placeholder="No HP (opsional) — 08…"
+                    value={newCustomer.phone}
+                    aria-invalid={Boolean(errors['new_customer.phone'])}
+                    onChange={(e) =>
+                        onChange({
+                            new_customer: {
+                                ...newCustomer,
+                                phone: e.target.value,
+                            },
+                        })
+                    }
+                />
+                <InputError
+                    message={
+                        errors['new_customer.name'] ??
+                        errors['new_customer.phone'] ??
+                        errors.customer_id
+                    }
+                />
+                <p className="text-xs text-muted-foreground">
+                    Nama atau HP yang sudah ada di Customer dipakai ulang, tidak
+                    dibuat ganda.
+                </p>
+            </div>
+        );
+    }
+
+    const selected = customers.find((c) => String(c.id) === customerId) ?? null;
+    const typed = query.trim();
+    const exact = customers.some(
+        (c) => c.name.toLowerCase() === typed.toLowerCase(),
+    );
+
+    return (
+        <div className="flex flex-col gap-2">
+            <Combobox
+                items={customers}
+                value={selected}
+                onValueChange={(c: CustomerOption | null) =>
+                    onChange({
+                        customer_id: c ? String(c.id) : '',
+                        new_customer: null,
+                    })
+                }
+                itemToStringLabel={(c: CustomerOption) => c.name}
+                isItemEqualToValue={(a: CustomerOption, b: CustomerOption) =>
+                    a.id === b.id
+                }
+                filter={(c: CustomerOption, q: string) => customerMatches(c, q)}
+                onInputValueChange={setQuery}
+            >
+                <ComboboxInput
+                    id="customer"
+                    className="w-full"
+                    placeholder="Cari nama atau HP…"
+                    aria-invalid={Boolean(errors.customer_id)}
+                />
+                <ComboboxContent>
+                    <ComboboxEmpty>
+                        Belum ada customer dengan nama itu.
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                        {(c: CustomerOption) => (
+                            <ComboboxItem key={c.id} value={c}>
+                                {c.name}
+                                {c.phone && (
+                                    <span className="text-muted-foreground">
+                                        · {c.phone}
+                                    </span>
+                                )}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+            {/* Hanya untuk ketikan berhuruf — angka saja adalah pencarian HP, bukan nama. */}
+            {/\p{L}/u.test(typed) && !exact && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    onClick={() =>
+                        onChange({
+                            customer_id: '',
+                            new_customer: { name: typed, phone: '' },
+                        })
+                    }
+                >
+                    <UserPlus data-icon="inline-start" />
+                    Buat customer &ldquo;{typed}&rdquo;
+                </Button>
+            )}
+            <InputError message={errors.customer_id} />
         </div>
     );
 }

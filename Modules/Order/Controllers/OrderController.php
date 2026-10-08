@@ -12,6 +12,7 @@ use Inertia\Response;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Customer\Actions\FindOrCreateCustomer;
 use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
 use Modules\Finance\Services\Periods;
@@ -113,7 +114,7 @@ class OrderController extends Controller
      * Order + item + DP dalam satu transaksi: order tanpa item, atau DP tanpa
      * order, merusak laporan tanpa terlihat di layar.
      */
-    public function store(StoreOrderRequest $request, RecordOrderEvent $events): RedirectResponse
+    public function store(StoreOrderRequest $request, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
     {
         $data = $request->validated();
         $line = BusinessLine::from($data['business_line']);
@@ -121,10 +122,14 @@ class OrderController extends Controller
         $total = $request->total();
         $location = trim((string) ($data['location'] ?? ''));
 
-        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events) {
+        $customer = null;
+        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events, $findOrCreate, &$customer) {
+            // Customer baru dibuat di transaksi yang sama — gagal simpan order
+            // tidak boleh meninggalkan customer yatim (spek 3.4).
+            $customer = $request->resolveCustomer($findOrCreate);
             $order = Order::create([
                 'number' => Order::nextNumber(),
-                'customer_id' => $data['customer_id'],
+                'customer_id' => $customer->id,
                 'business_line' => $line,
                 'service_date' => $data['service_date'],
                 'service_time' => $data['service_time'] ?? null,
@@ -164,7 +169,10 @@ class OrderController extends Controller
             return $order;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number} tersimpan."]);
+        $isNew = $customer?->wasRecentlyCreated === true;
+        Inertia::flash('toast', ['type' => 'success', 'message' => $isNew
+            ? "{$order->number} tersimpan untuk {$customer->name} (customer baru)."
+            : "{$order->number} tersimpan."]);
 
         return to_route('orders.index');
     }
@@ -203,17 +211,19 @@ class OrderController extends Controller
      * event. `work_status` tidak berubah walau jadwal digeser, dan tanggal
      * baru tidak dicek tutup buku — jadwal bukan uang.
      */
-    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events): RedirectResponse
+    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
     {
-        $changes = $request->changes($order);
-        if ($changes === []) {
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'Tidak ada yang berubah.']);
+        // Customer dicocokkan/dibuat lebih dulu (di transaksi) supaya diff
+        // membandingkan customer yang sebenarnya — "customer baru" yang ternyata
+        // cocok dengan customer order ini bukan perubahan.
+        $changes = DB::transaction(function () use ($request, $order, $events, $findOrCreate) {
+            $customerId = $request->resolveCustomer($findOrCreate)->id;
+            $changes = $request->changes($order, $customerId);
+            if ($changes === []) {
+                return [];
+            }
 
-            return to_route('orders.index');
-        }
-
-        DB::transaction(function () use ($request, $order, $changes, $events) {
-            $order->update($request->normalised());
+            $order->update($request->normalised($customerId));
 
             $rows = $request->rows();
             $keep = array_values(array_filter(array_column($rows, 'id')));
@@ -240,9 +250,13 @@ class OrderController extends Controller
             }
 
             $events->execute($order, OrderEventType::Updated, $changes);
+
+            return $changes;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number} diperbarui."]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $changes === []
+            ? 'Tidak ada yang berubah.'
+            : "{$order->number} diperbarui."]);
 
         return to_route('orders.index');
     }

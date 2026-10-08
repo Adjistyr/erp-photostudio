@@ -9,7 +9,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
-use Modules\Customer\Models\Customer;
+use Modules\Customer\Actions\FindOrCreateCustomer;
 use Modules\Order\Actions\RecordOrderEvent;
 use Modules\Order\Enums\OrderEventType;
 use Modules\Order\Enums\PaymentStatus;
@@ -79,15 +79,17 @@ class PosController extends Controller
     }
 
     /** Order + item + pelunasan dalam satu transaksi. */
-    public function store(StorePosSaleRequest $request, RecordOrderEvent $events): RedirectResponse
+    public function store(StorePosSaleRequest $request, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
     {
         $discount = $request->discount();
         $total = $request->subtotal() - $discount;
         $name = $request->string('customer_name')->trim()->value();
 
-        $order = DB::transaction(function () use ($request, $discount, $total, $name, $events) {
+        $order = DB::transaction(function () use ($request, $discount, $total, $name, $events, $findOrCreate) {
             // Di dalam transaksi: customer baru tidak boleh tertinggal kalau order gagal.
-            $customer = $this->customerFor($name, $request->customerPhone());
+            // Nama kosong → walk-in tanpa customer (HP diabaikan: baris customer
+            // tanpa nama tidak berguna di daftar blast dan menghitung customer palsu).
+            $customer = $name === '' ? null : $findOrCreate->execute($name, $request->customerPhone());
             $order = Order::create([
                 'number' => Order::nextNumber(),
                 // Null = walk-in tanpa nama — bukan baris customer "Umum" (docs/database.md).
@@ -142,45 +144,5 @@ class PosController extends Controller
         ]);
 
         return to_route('pos.index');
-    }
-
-    /**
-     * Nama kosong → walk-in tanpa customer (HP diabaikan: baris customer
-     * tanpa nama tidak berguna di daftar blast dan menghitung customer palsu).
-     * Nama diisi → cocokkan HP dulu (lebih unik), lalu nama tanpa beda huruf
-     * besar, lalu buat baru. Customer yang cocok lewat nama dan belum punya
-     * HP dilengkapi; yang sudah punya HP berbeda TIDAK ditimpa — dua orang
-     * bernama sama lebih mungkin daripada satu orang ganti nomor.
-     *
-     * ponytail: cocok HP → nama; dua customer bernama sama tanpa HP → yang
-     * tercatat lebih dulu. Tambah pilih-dari-daftar kalau mulai sering bentrok.
-     */
-    private function customerFor(string $name, ?string $phone): ?Customer
-    {
-        if ($name === '') {
-            return null;
-        }
-
-        if ($phone !== null) {
-            // Data lama bisa tersimpan `08…` — bandingkan bentuk ternormalisasi
-            // kedua sisi di SQL (PostgreSQL), bukan memuat semua customer.
-            $byPhone = Customer::whereNotNull('phone')
-                ->whereRaw("regexp_replace(regexp_replace(phone, '\\D', '', 'g'), '^0', '62') = ?", [$phone])
-                ->orderBy('id')->first();
-            if ($byPhone !== null) {
-                return $byPhone;
-            }
-        }
-
-        $byName = Customer::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->orderBy('id')->first();
-        if ($byName !== null) {
-            if ($phone !== null && ($byName->phone === null || $byName->phone === '')) {
-                $byName->update(['phone' => $phone]);
-            }
-
-            return $byName;
-        }
-
-        return Customer::create(['name' => $name, 'phone' => $phone]);
     }
 }

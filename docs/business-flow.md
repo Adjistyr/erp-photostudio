@@ -174,7 +174,7 @@ Hasil: Order `retail`, status kerja **Diserahkan**, status bayar **Lunas**, dan 
 
 1. Customer menghubungi (DM/WA/datang) menanyakan slot.
 2. Owner cek kalender ketersediaan tanggal dan jam.
-3. Buat Order `studio`: customer, paket dari katalog, tanggal + jam, status **Booking**.
+3. Buat Order `studio`: customer (cari nama/HP, atau buat customer baru langsung dari form — nama + HP; yang sudah ada dipakai ulang), paket dari katalog, tanggal + jam, status **Booking**.
 4. Kirim invoice DP ke customer (link atau PDF).
 5. Customer bayar DP → owner catat Payment. Status kerja naik jadi **Dijadwalkan**.
 6. H-1: owner lihat daftar booking besok dan kirim reminder ke customer.

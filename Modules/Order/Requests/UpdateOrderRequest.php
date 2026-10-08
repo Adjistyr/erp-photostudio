@@ -12,6 +12,7 @@ use Modules\Customer\Models\Customer;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
+use Modules\Order\Requests\Concerns\ResolvesCustomer;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
 
@@ -25,6 +26,7 @@ use Modules\Shared\Support\Money;
 class UpdateOrderRequest extends FormRequest
 {
     use ResolvesCatalogLines;
+    use ResolvesCustomer;
 
     /**
      * Order retail/batal ditolak SEBELUM validasi field — item retail adalah
@@ -49,7 +51,8 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_id' => ['required', 'integer', 'exists:customers,id'],
+            // customer_id ATAU new_customer (spek 3.4).
+            ...$this->customerRules(),
             'service_date' => ['required', 'date_format:Y-m-d'],
             'service_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -191,15 +194,18 @@ class UpdateOrderRequest extends FormRequest
      * supaya pembandingan "berubah?" tidak tertipu spasi atau jam "14:00" vs
      * "14:00:00".
      *
+     * `$customerId` = hasil resolveCustomer() bila customer baru dibuat/dicocokkan
+     * di transaksi; null = `customer_id` dari input.
+     *
      * @return array{customer_id: int, service_date: string, service_time: string|null, location: string|null, notes: string|null}
      */
-    public function normalised(): array
+    public function normalised(?int $customerId = null): array
     {
         $location = trim((string) $this->input('location', ''));
         $time = (string) $this->input('service_time', '');
 
         return [
-            'customer_id' => $this->integer('customer_id'),
+            'customer_id' => $customerId ?? $this->integer('customer_id'),
             'service_date' => (string) $this->input('service_date'),
             'service_time' => $time !== '' ? $time : null,
             // Sama dengan store(): studio tanpa lokasi = di studio.
@@ -214,9 +220,9 @@ class UpdateOrderRequest extends FormRequest
      *
      * @return array<string, array{from: mixed, to: mixed}>
      */
-    public function changes(Order $order): array
+    public function changes(Order $order, ?int $customerId = null): array
     {
-        $new = $this->normalised();
+        $new = $this->normalised($customerId);
         $current = $this->currentValues($order);
         $changes = [];
 
@@ -292,10 +298,18 @@ class UpdateOrderRequest extends FormRequest
     /**
      * @return array<string, string>
      */
+    public function messages(): array
+    {
+        return $this->customerMessages();
+    }
+
+    /**
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
         return [
-            'customer_id' => 'customer',
+            ...$this->customerAttributes(),
             'service_date' => 'tanggal',
             'service_time' => 'jam',
             'location' => 'lokasi',

@@ -212,4 +212,78 @@ class OrderCreateTest extends TestCase
         $line = $this->newest()->items->sole();
         $this->assertSame(['Paket Studio 1 Jam', 350_000], [$line->name, $line->unit_price]);
     }
+
+    /** @param  array<string, mixed>  $data */
+    private function storeWithNewCustomer(array $data)
+    {
+        return $this->store(['customer_id' => null, ...$data]);
+    }
+
+    public function test_creates_order_with_new_customer()
+    {
+        $count = Customer::count();
+
+        $this->storeWithNewCustomer(['new_customer' => ['name' => '  Budi Baru ', 'phone' => '0812 9999 1111']])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast.message', fn (string $m) => str_contains($m, 'Budi Baru (customer baru)'));
+
+        $this->assertSame($count + 1, Customer::count());
+        $customer = Customer::where('name', 'Budi Baru')->sole();
+        $this->assertSame('6281299991111', $customer->phone);
+        $this->assertSame($customer->id, $this->newest()->customer_id);
+    }
+
+    public function test_new_customer_with_existing_phone_reuses_customer()
+    {
+        // Sinta: 0812-3344-5566 di data demo.
+        $sinta = Customer::where('name', 'Sinta Prameswari')->sole();
+        $count = Customer::count();
+
+        $this->storeWithNewCustomer(['new_customer' => ['name' => 'Sinta P', 'phone' => '+62 812 3344 5566']])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast.message', fn (string $m) => ! str_contains($m, 'customer baru'));
+
+        $this->assertSame($count, Customer::count());
+        $this->assertSame($sinta->id, $this->newest()->customer_id);
+        $this->assertSame('Sinta Prameswari', $sinta->refresh()->name);
+    }
+
+    public function test_new_customer_without_phone_matches_name_case_insensitively()
+    {
+        $count = Customer::count();
+
+        $this->storeWithNewCustomer(['new_customer' => ['name' => 'dewi anggraini']])->assertSessionHasNoErrors();
+
+        $this->assertSame($count, Customer::count());
+        $this->assertSame(Customer::where('name', 'Dewi Anggraini')->sole()->id, $this->newest()->customer_id);
+    }
+
+    public function test_requires_customer_id_or_new_customer_name()
+    {
+        $this->storeWithNewCustomer(['new_customer' => ['name' => '', 'phone' => '0812']])
+            ->assertSessionHasErrors(['customer_id' => 'Pilih customer atau isi nama customer baru.']);
+    }
+
+    public function test_customer_id_wins_when_both_sent()
+    {
+        $count = Customer::count();
+        $dewi = Customer::where('name', 'Dewi Anggraini')->sole();
+
+        $this->store(['customer_id' => $dewi->id, 'new_customer' => ['name' => 'Liar', 'phone' => '0899']])->assertSessionHasNoErrors();
+
+        $this->assertSame($count, Customer::count());
+        $this->assertSame($dewi->id, $this->newest()->customer_id);
+    }
+
+    public function test_failed_item_validation_does_not_create_customer()
+    {
+        $count = Customer::count();
+
+        $this->storeWithNewCustomer([
+            'new_customer' => ['name' => 'Tidak Jadi'],
+            'items' => [['catalog_item_id' => 999_999, 'quantity' => 1]],
+        ])->assertSessionHasErrors('items.0.catalog_item_id');
+
+        $this->assertSame($count, Customer::count());
+    }
 }
