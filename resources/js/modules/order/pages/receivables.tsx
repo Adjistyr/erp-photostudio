@@ -20,6 +20,8 @@ import {
     TabelData,
 } from '@/components/data-table';
 import { LineMark, PaymentBadge } from '@/components/status-order';
+import { ListToolbar } from '@/components/list-toolbar';
+import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { SummaryCard } from '@/components/summary-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -42,6 +44,7 @@ import {
     formatUmurPiutang,
     personalise,
 } from '@/lib/format';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFlash } from '@/hooks/use-flash';
 import {
     billingValues,
@@ -50,28 +53,31 @@ import {
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
-import type { Receipt } from '@/modules/order/types';
+import { filterReceivables } from '@/modules/order/lib/receivables-filter';
+import type { AgeTab } from '@/modules/order/lib/receivables-filter';
+import type { ReceivableRow, Receipt } from '@/modules/order/types';
 import { index as communicationIndex } from '@/routes/communication';
 import { index as receivablesIndex } from '@/routes/receivables';
-import type { BusinessLine, PaymentStatus } from '@/types/domain';
+import { BUSINESS_LINES, LINE_LABEL } from '@/types/domain';
 
-interface ReceivableRow {
-    id: number;
-    number: string;
-    customer_name: string | null;
-    customer_phone: string | null;
-    /** Link invoice bertanda tangan (dipakai Tagih via WA, spek 2.4). */
-    invoice_url: string;
-    business_line: BusinessLine;
-    service_date: string;
-    /** > 0 belum jatuh tempo, 0 hari ini, < 0 lewat (dihitung server). */
-    days_until_due: number;
-    total: number;
-    paid: number;
-    balance: number;
-    payment_status: PaymentStatus;
-    paid_percent: number;
-}
+const AGE_TABS: AgeTab[] = ['all', 'overdue', 'soon'];
+
+const AGE_LABEL: Record<AgeTab, string> = {
+    all: 'Semua',
+    overdue: 'Lewat jatuh tempo',
+    soon: '≤ 7 hari lagi',
+};
+
+const RECEIVABLE_FILTERS: ListFilterDef[] = [
+    {
+        key: 'line',
+        label: 'Lini',
+        options: BUSINESS_LINES.map((l) => ({
+            value: l,
+            label: LINE_LABEL[l],
+        })),
+    },
+];
 
 interface Props {
     orders: ReceivableRow[];
@@ -91,8 +97,20 @@ export default function Receivables({
     const [payingId, setPayingId] = useState<number | null>(null);
     // Bukti bayar untuk customer — muncul setelah PaymentDialog sukses.
     const [receipt, clearReceipt] = useFlash<Receipt>('receipt');
+    // Dari `orders`, bukan hasil filter: dialog tidak boleh tertutup bila
+    // barisnya hilang dari filter setelah dibayar sebagian.
     const paying = orders.find((o) => o.id === payingId) ?? null;
     const top = orders[0];
+
+    // Filter di klien (spek 3.2) — state komponen, bukan URL: layar ini selalu
+    // per hari ini dan tidak dibagikan.
+    const [age, setAge] = useState<AgeTab>('all');
+    const [search, setSearch] = useState<ListFilters>({ q: '' });
+    const line = BUSINESS_LINES.find((l) => l === search.line);
+    const visible = filterReceivables(orders, { q: search.q, line, age });
+    const filtered = visible.length !== orders.length;
+    const count = (a: AgeTab) =>
+        filterReceivables(orders, { q: '', age: a }).length;
 
     return (
         <>
@@ -140,11 +158,55 @@ export default function Receivables({
                     </Alert>
                 )}
 
+                {orders.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                        <Tabs
+                            value={age}
+                            onValueChange={(v) => {
+                                const a = AGE_TABS.find((x) => x === v);
+                                if (a) setAge(a);
+                            }}
+                        >
+                            <TabsList>
+                                {AGE_TABS.map((a) => (
+                                    <TabsTrigger key={a} value={a}>
+                                        {AGE_LABEL[a]} ({count(a)})
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                        <ListToolbar
+                            value={search}
+                            filters={RECEIVABLE_FILTERS}
+                            placeholder="Cari nomor order atau customer…"
+                            onChange={setSearch}
+                        />
+                        {filtered && (
+                            <p className="text-xs text-muted-foreground">
+                                Kartu di atas menghitung seluruh piutang; tabel
+                                di bawah difilter ({visible.length} dari{' '}
+                                {orders.length}).
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 {orders.length === 0 ? (
                     // Piutang kosong itu KABAR BAIK, bukan kekurangan data (R7).
                     <KosongTabel
                         nada="baik"
                         kalimat="Tidak ada tagihan tertunggak."
+                    />
+                ) : visible.length === 0 ? (
+                    <KosongTabel
+                        kalimat="Tidak ada piutang yang cocok."
+                        aksi={{
+                            label: 'Hapus filter',
+                            onClick: () => {
+                                setAge('all');
+                                setSearch({ q: '' });
+                            },
+                        }}
                     />
                 ) : (
                     <TabelData>
@@ -168,7 +230,7 @@ export default function Receivables({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {orders.map((o) => (
+                            {visible.map((o) => (
                                 <TableRow key={o.id}>
                                     <SelKode>{o.number}</SelKode>
                                     <TableCell className="font-medium whitespace-nowrap">
