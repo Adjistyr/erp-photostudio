@@ -6,6 +6,11 @@ use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Modules\Customer\Models\Customer;
+use Modules\Customer\Models\MessageTemplate;
+use Modules\Order\Enums\WorkStatus;
+use Modules\Order\Models\Order;
+use Modules\Shared\Enums\BusinessLine;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -68,5 +73,70 @@ class DashboardTest extends TestCase
                 ->where('due_maintenance.0.asset_name', 'Printer foto')
                 ->where('due_maintenance.0.days_until', -25)
             );
+    }
+
+    /** Order terjadwal pada tanggal tertentu (data uji reminder). */
+    private function booking(string $number, string $date, ?string $time, BusinessLine $line = BusinessLine::Studio, WorkStatus $status = WorkStatus::Scheduled): Order
+    {
+        $customer = Customer::create(['name' => "Customer {$number}", 'phone' => '0812 0000 '.substr($number, -4)]);
+
+        return Order::create(['number' => $number, 'customer_id' => $customer->id, 'business_line' => $line,
+            'service_date' => $date, 'service_time' => $time, 'work_status' => $status, 'location' => 'Studio']);
+    }
+
+    /** @return array<string, mixed> */
+    private function dashboardProps(): array
+    {
+        $this->actingAs(User::factory()->create());
+
+        return $this->get(route('dashboard'))->inertiaPage()['props'];
+    }
+
+    public function test_lists_tomorrow_bookings_only()
+    {
+        $this->travelTo('2026-10-09 09:00:00');
+        $this->booking('ORD-0901', '2026-10-10', '10:00');
+        $this->booking('ORD-0902', '2026-10-11', '10:00'); // lusa
+        $this->booking('ORD-0903', '2026-10-09', '10:00'); // hari ini
+
+        $props = $this->dashboardProps();
+
+        $this->assertSame(['ORD-0901'], array_column($props['bookings_tomorrow'], 'number'));
+        $this->assertSame(['ORD-0903'], array_column($props['bookings_today'], 'number'));
+        $this->assertSame('0812 0000 0901', $props['bookings_tomorrow'][0]['customer_phone']);
+        $this->assertSame(['2026-10-10', 'Studio'], [$props['bookings_tomorrow'][0]['service_date'], $props['bookings_tomorrow'][0]['location']]);
+    }
+
+    public function test_tomorrow_excludes_cancelled_and_retail()
+    {
+        $this->travelTo('2026-10-09 09:00:00');
+        $this->booking('ORD-0911', '2026-10-10', null, status: WorkStatus::Cancelled);
+        $this->booking('ORD-0912', '2026-10-10', null, BusinessLine::Retail, WorkStatus::Delivered);
+        $this->booking('ORD-0913', '2026-10-10', null, BusinessLine::Event);
+
+        $this->assertSame(['ORD-0913'], array_column($this->dashboardProps()['bookings_tomorrow'], 'number'));
+    }
+
+    public function test_tomorrow_sorted_by_time_with_null_last()
+    {
+        $this->travelTo('2026-10-09 09:00:00');
+        $this->booking('ORD-0921', '2026-10-10', null);
+        $this->booking('ORD-0922', '2026-10-10', '15:00');
+        $this->booking('ORD-0923', '2026-10-10', '08:30');
+
+        $this->assertSame(['ORD-0923', 'ORD-0922', 'ORD-0921'], array_column($this->dashboardProps()['bookings_tomorrow'], 'number'));
+    }
+
+    public function test_reminder_template_uses_override_when_set()
+    {
+        $default = $this->dashboardProps()['reminder_template'];
+        foreach (['{nama}', '{tanggal}', '{jam}', '{lokasi}'] as $placeholder) {
+            $this->assertStringContainsString($placeholder, $default);
+        }
+
+        $this->put(route('communication.templates.update', 'reminder'), ['body' => 'Besok {jam} ya {nama}']);
+
+        $this->assertSame('Besok {jam} ya {nama}', $this->dashboardProps()['reminder_template']);
+        $this->assertSame('Besok {jam} ya {nama}', MessageTemplate::bodyFor('reminder'));
     }
 }

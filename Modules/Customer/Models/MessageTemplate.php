@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
  * diedit owner. Placeholder per template:
  * - semua: `{nama}` = nama depan customer
  * - thank_you: `{link}` = link hasil foto
+ * - reminder: `{tanggal}`, `{jam}`, `{lokasi}` sesi (diisi tombol WA di Dashboard → Jadwal besok)
  * - billing: `{nomor}` nomor order, `{sisa}` sisa tagihan, `{jatuh_tempo}`
  *   tanggal, `{link}` link invoice bertanda tangan
  * Nama studio & rekening DITANAM ke teks default dari config, bukan placeholder.
@@ -53,8 +54,8 @@ class MessageTemplate extends Model
             ],
             'reminder' => [
                 'title' => 'Reminder H-1',
-                'when' => 'Untuk dikirim manual sehari sebelum sesi studio atau acara.',
-                'body' => "Halo {nama}, mengingatkan sesi foto besok di {$studio}. Datang 10 menit lebih awal ya supaya persiapannya santai. Kalau ada perubahan jadwal, balas pesan ini.",
+                'when' => 'Dipakai tombol WA di Dashboard → Jadwal besok, sehari sebelum sesi studio atau acara.',
+                'body' => "Halo {nama}, mengingatkan jadwal foto bersama {$studio} besok, {tanggal} pukul {jam} di {lokasi}. Datang 10 menit lebih awal ya supaya persiapannya santai. Kalau ada perubahan jadwal, balas pesan ini.",
             ],
             // K5: satu teks tagihan untuk tombol WA di Pembayaran dan Invoice.
             'billing' => [

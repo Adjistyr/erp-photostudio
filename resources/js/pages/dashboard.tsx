@@ -35,6 +35,7 @@ import {
 } from '@/components/status-order';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 import {
     Card,
     CardContent,
@@ -57,11 +58,15 @@ import {
     formatTanggal,
     formatUmurPiutang,
 } from '@/lib/format';
+import { reminderMessage } from '@/modules/order/lib/reminder';
 import { dashboard } from '@/routes';
 import { index as assetsIndex } from '@/routes/assets';
 import { index as capitalIndex } from '@/routes/capital';
 import { index as catalogIndex } from '@/routes/catalog';
-import { index as ordersIndex } from '@/routes/orders';
+import {
+    calendar as ordersCalendar,
+    index as ordersIndex,
+} from '@/routes/orders';
 import { index as receivablesIndex } from '@/routes/receivables';
 import type { BusinessLine, PaymentStatus, WorkStatus } from '@/types/domain';
 
@@ -69,9 +74,12 @@ interface BookingRow {
     id: number;
     number: string;
     customer_name: string | null;
+    customer_phone: string | null;
     business_line: BusinessLine;
     items_summary: string;
+    service_date: string;
     service_time: string | null;
+    location: string | null;
     work_status: WorkStatus;
     payment_status: PaymentStatus;
     paid_percent: number;
@@ -95,6 +103,10 @@ interface Props {
     today: string;
     month: string;
     bookings_today: BookingRow[];
+    /** Reminder H-1 (spek 3.5). */
+    bookings_tomorrow: BookingRow[];
+    /** Template `reminder` (editan owner di Komunikasi), belum dipersonalisasi. */
+    reminder_template: string;
     revenue: number;
     receivables: {
         total: number;
@@ -259,53 +271,24 @@ export default function Dashboard(props: Props) {
                     {bookings_today.length === 0 ? (
                         <KosongTabel kalimat="Tidak ada jadwal hari ini." />
                     ) : (
-                        <TabelData>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>No</TableHead>
-                                    <TableHead>Customer</TableHead>
-                                    <TableHead>Lini</TableHead>
-                                    <TableHead>Item</TableHead>
-                                    <TableHead>Jam</TableHead>
-                                    <TableHead>
-                                        <WorkProgressLegend>
-                                            Status Kerja
-                                        </WorkProgressLegend>
-                                    </TableHead>
-                                    <TableHead>Status Bayar</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {bookings_today.map((o) => (
-                                    <TableRow key={o.id}>
-                                        <SelKode>{o.number}</SelKode>
-                                        <TableCell className="font-medium">
-                                            {o.customer_name ?? 'Walk-in'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <LineMark line={o.business_line} />
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {o.items_summary}
-                                        </TableCell>
-                                        <TableCell className="font-mono whitespace-nowrap">
-                                            {o.service_time ?? '—'}
-                                        </TableCell>
-                                        <TableCell>
-                                            <WorkProgress
-                                                status={o.work_status}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <PaymentBadge
-                                                status={o.payment_status}
-                                                paidPercent={o.paid_percent}
-                                            />
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </TabelData>
+                        <BookingTable rows={bookings_today} />
+                    )}
+                </Section>
+
+                {/* Reminder H-1: pesan dari template Reminder di Komunikasi,
+                    dikirim manual — admin tidak perlu bolak-balik Kalender →
+                    Customer → Komunikasi. */}
+                <Section
+                    title="Jadwal besok"
+                    action={{ label: 'Kalender', href: ordersCalendar() }}
+                >
+                    {props.bookings_tomorrow.length === 0 ? (
+                        <KosongTabel kalimat="Tidak ada jadwal besok." />
+                    ) : (
+                        <BookingTable
+                            rows={props.bookings_tomorrow}
+                            reminderTemplate={props.reminder_template}
+                        />
                     )}
                 </Section>
 
@@ -495,5 +478,76 @@ function Section({
             </div>
             {children}
         </section>
+    );
+}
+
+/**
+ * Tabel jadwal (hari ini / besok). Dengan `reminderTemplate`, tiap baris
+ * punya tombol WA berisi pesan reminder yang sudah terisi.
+ */
+function BookingTable({
+    rows,
+    reminderTemplate,
+}: {
+    rows: BookingRow[];
+    reminderTemplate?: string;
+}) {
+    return (
+        <TabelData>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>No</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Lini</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Jam</TableHead>
+                    <TableHead>
+                        <WorkProgressLegend>Status Kerja</WorkProgressLegend>
+                    </TableHead>
+                    <TableHead>Status Bayar</TableHead>
+                    {reminderTemplate !== undefined && <TableHead />}
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {rows.map((o) => (
+                    <TableRow key={o.id}>
+                        <SelKode>{o.number}</SelKode>
+                        <TableCell className="font-medium">
+                            {o.customer_name ?? 'Walk-in'}
+                        </TableCell>
+                        <TableCell>
+                            <LineMark line={o.business_line} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                            {o.items_summary}
+                        </TableCell>
+                        <TableCell className="font-mono whitespace-nowrap">
+                            {o.service_time ?? '—'}
+                        </TableCell>
+                        <TableCell>
+                            <WorkProgress status={o.work_status} />
+                        </TableCell>
+                        <TableCell>
+                            <PaymentBadge
+                                status={o.payment_status}
+                                paidPercent={o.paid_percent}
+                            />
+                        </TableCell>
+                        {reminderTemplate !== undefined && (
+                            <TableCell className="w-10">
+                                <WhatsAppButton
+                                    phone={o.customer_phone}
+                                    message={reminderMessage(
+                                        reminderTemplate,
+                                        o,
+                                    )}
+                                    label={`Ingatkan ${o.customer_name ?? o.number} via WhatsApp`}
+                                />
+                            </TableCell>
+                        )}
+                    </TableRow>
+                ))}
+            </TableBody>
+        </TabelData>
     );
 }

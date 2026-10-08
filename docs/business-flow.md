@@ -177,7 +177,7 @@ Hasil: Order `retail`, status kerja **Diserahkan**, status bayar **Lunas**, dan 
 3. Buat Order `studio`: customer (cari nama/HP, atau buat customer baru langsung dari form — nama + HP; yang sudah ada dipakai ulang), paket dari katalog, tanggal + jam, status **Booking**.
 4. Kirim invoice DP ke customer (link atau PDF).
 5. Customer bayar DP → owner catat Payment. Status kerja naik jadi **Dijadwalkan**.
-6. H-1: owner lihat daftar booking besok dan kirim reminder ke customer.
+6. H-1: owner buka Dashboard → **Jadwal besok** dan klik tombol WA per baris — pesan reminder sudah terisi dari template Reminder di Komunikasi (nama, tanggal, jam, lokasi); pengiriman tetap manual.
 7. Hari-H sesi berjalan → status **Dikerjakan**.
 8. Kalau ada biaya langsung (fee MUA, fotografer freelance), dicatat di BiayaJob order ini.
 9. Editing selesai → status **Selesai Dikerjakan**.
