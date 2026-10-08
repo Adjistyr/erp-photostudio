@@ -65,6 +65,8 @@ export interface OrderRow {
     work_status: WorkStatus;
     /** Langkah berikutnya; null kalau sudah Diserahkan atau Batal. */
     next_status: WorkStatus | null;
+    /** Langkah sebelumnya untuk koreksi salah klik; null kalau Booking atau Batal. */
+    previous_status: WorkStatus | null;
     payment_status: PaymentStatus;
     paid_percent: number;
     items: {

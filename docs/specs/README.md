@@ -32,7 +32,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 0.2 Riwayat perubahan order | `0.2-order-events.md` | M | — | ✅ #31 |
 | 1.1 Kategori jasa terstruktur | `1.1-kategori-jasa.md` | S | — | ✅ #32 |
 | 1.2 Edit order | `1.2-edit-order.md` | L | 0.1, 0.2 | ✅ #37 |
-| 1.3 Item custom | `1.3-item-custom.md` | M | 1.2 (form bersama) | ⬜ |
+| 1.3 Item custom | `1.3-item-custom.md` | M | 1.2 (form bersama) | ✅ #38 |
 | 1.4 Status mundur | `1.4-status-mundur.md` | S | 0.2 | ⬜ |
 | 2.1 Nomor HP di POS | `2.1-hp-di-pos.md` | S | — | ✅ #33 |
 | 2.2 Struk setelah POS | `2.2-struk-pos.md` | M | 2.1 | ✅ #34 |

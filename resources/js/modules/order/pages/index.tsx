@@ -81,7 +81,7 @@ import {
     index as ordersIndex,
 } from '@/routes/orders';
 import { BUSINESS_LINES, LINE_LABEL, WORK_STATUS_LABEL } from '@/types/domain';
-import type { BusinessLine } from '@/types/domain';
+import type { BusinessLine, WorkStatus } from '@/types/domain';
 import {
     PAYMENT_METHOD_LABEL,
     describeEvent,
@@ -558,6 +558,9 @@ function StatusControl({ order }: { order: OrderRow }) {
             <WorkProgress status={order.work_status} />
             <div className="flex items-center gap-2">
                 <LineMark line={order.business_line} />
+                {order.previous_status && (
+                    <RevertStatus order={order} to={order.previous_status} />
+                )}
                 {next && (
                     <Button
                         size="sm"
@@ -576,6 +579,57 @@ function StatusControl({ order }: { order: OrderRow }) {
                 )}
             </div>
         </div>
+    );
+}
+
+/**
+ * Mundur satu langkah (spek 1.4) — tautan kecil, bukan tombol utama: ini
+ * koreksi salah klik, bukan alur normal. Dikonfirmasi karena tercatat di
+ * riwayat dan terlihat customer lewat status di invoice/kalender.
+ */
+function RevertStatus({ order, to }: { order: OrderRow; to: WorkStatus }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger
+                render={
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground"
+                    />
+                }
+            >
+                Kembalikan ke {WORK_STATUS_LABEL[to]}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        Kembalikan status {order.number}?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Status kembali ke {WORK_STATUS_LABEL[to]}. Tercatat di
+                        riwayat order; pembayaran dan link hasil tidak berubah.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel render={<Button variant="outline" />}>
+                        Batal
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                        render={<Button />}
+                        onClick={() =>
+                            router.patch(
+                                OrderController.revert(order.id).url,
+                                {},
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        Kembalikan
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
 

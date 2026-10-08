@@ -257,6 +257,31 @@ class OrderController extends Controller
     }
 
     /**
+     * Mundur satu langkah — koreksi salah klik (spek 1.4). Simetris dengan
+     * advance(): server yang menentukan tujuannya. Boleh mundur ke Booking
+     * walau ada DP (melarangnya membuat salah klik dua kali tidak bisa
+     * dikoreksi); link hasil tidak dihapus, hanya disembunyikan statusnya.
+     */
+    public function revert(Order $order, RecordOrderEvent $events): RedirectResponse
+    {
+        $previous = $order->work_status->previous();
+        if ($previous === null) {
+            throw ValidationException::withMessages(['work_status' => $order->isCancelled()
+                ? 'Order yang dibatalkan tidak bisa dikembalikan statusnya.'
+                : 'Booking adalah status awal.']);
+        }
+
+        $from = $order->work_status;
+        DB::transaction(function () use ($order, $previous, $from, $events) {
+            $order->update(['work_status' => $previous]);
+            $events->execute($order, OrderEventType::Reverted, ['work_status' => ['from' => $from->value, 'to' => $previous->value]]);
+        });
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number}: status kembali ke {$previous->label()}."]);
+
+        return to_route('orders.index');
+    }
+
+    /**
      * Pembatalan. DP yang sudah masuk TETAP omzet — kebijakan refund belum
      * ada (business-flow 2, pertanyaan 6). Alasan DITAMBAHKAN ke catatan,
      * bukan menimpa: catatan lama (permintaan customer, dsb.) tetap terbaca.
@@ -330,6 +355,8 @@ class OrderController extends Controller
             'margin' => $o->margin(),
             'work_status' => $o->work_status->value,
             'next_status' => $o->work_status->next()?->value,
+            // null = Booking (status awal) atau Batal (final).
+            'previous_status' => $o->work_status->previous()?->value,
             'payment_status' => $o->paymentStatus()->value,
             'paid_percent' => (int) round($o->paidRatio() * 100),
             'items' => $o->items->map(fn (OrderItem $i) => [
