@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Customer\Models\MessageTemplate;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
@@ -28,6 +29,8 @@ class InvoiceController extends Controller
         return Inertia::render('order::invoices', [
             'invoices' => $orders->map($this->invoiceProps(...))->values()->all(),
             'studio' => config('studio'),
+            // Teks "Buka WhatsApp" untuk invoice belum lunas (K5).
+            'billing_template' => MessageTemplate::bodyFor('billing'),
         ]);
     }
 

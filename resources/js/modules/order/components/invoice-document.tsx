@@ -14,7 +14,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { KELAS_DENSITY } from '@/components/data-table';
-import { formatJadwal, formatRp, formatTanggal, keNomorWa } from '@/lib/format';
+import {
+    formatJadwal,
+    formatRp,
+    formatTanggal,
+    keNomorWa,
+    namaDepan,
+    personalise,
+} from '@/lib/format';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod, Receipt } from '@/modules/order/types';
 import type { BusinessLine, PaymentStatus } from '@/types/domain';
@@ -56,19 +63,46 @@ export interface Invoice {
     print_url: string;
 }
 
-/** Pesan WhatsApp ke customer — disiapkan app, dikirim manual oleh owner. */
-export function whatsappMessage(invoice: Invoice, studio: Studio): string {
-    const firstName = (invoice.customer_name ?? '').split(' ')[0] || 'Kak';
+/**
+ * Pesan WhatsApp ke customer — disiapkan app, dikirim manual oleh owner.
+ * Belum lunas → template `billing` (editan owner di Komunikasi, K5) — teks
+ * yang sama dengan tombol Tagih di layar Pembayaran. Lunas → teks tetap.
+ */
+export function whatsappMessage(
+    invoice: Invoice,
+    studio: Studio,
+    billingTemplate: string,
+): string {
+    if (invoice.balance > 0) {
+        return personalise(billingTemplate, billingValues(invoice));
+    }
     return (
-        `Halo ${firstName}, berikut invoice ${invoice.number} dari ${studio.name}.\n` +
+        `Halo ${namaDepan(invoice.customer_name)}, berikut invoice ${invoice.number} dari ${studio.name}.\n` +
         `Total ${formatRp(invoice.total)}` +
         (invoice.paid > 0 ? `, sudah dibayar ${formatRp(invoice.paid)}` : '') +
-        (invoice.balance > 0
-            ? `, sisa ${formatRp(invoice.balance)}.\n`
-            : '. Lunas, terima kasih!\n') +
-        (invoice.balance > 0 ? `Pembayaran ke ${studio.bank_account}.\n` : '') +
+        '. Lunas, terima kasih!\n' +
         `Detail: ${invoice.public_url}`
     );
+}
+
+/**
+ * Nilai placeholder template `billing` — satu tempat untuk Invoice dan
+ * Pembayaran supaya kedua layar menghasilkan pesan yang sama.
+ */
+export function billingValues(order: {
+    customer_name: string | null;
+    order_number: string;
+    balance: number;
+    service_date: string;
+    public_url: string;
+}): Record<string, string> {
+    return {
+        nama: namaDepan(order.customer_name),
+        nomor: order.order_number,
+        sisa: formatRp(order.balance),
+        jatuh_tempo: formatTanggal(order.service_date),
+        link: order.public_url,
+    };
 }
 
 /**

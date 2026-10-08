@@ -50,9 +50,12 @@ import { index as invoicesIndex } from '@/routes/invoices';
 export default function Invoices({
     invoices,
     studio,
+    billing_template,
 }: {
     invoices: Invoice[];
     studio: Studio;
+    /** Template `billing` (editan owner di Komunikasi) untuk invoice belum lunas. */
+    billing_template: string;
 }) {
     // Simpan id, bukan objek: isi invoice selalu dibaca dari props terbaru.
     const [previewId, setPreviewId] = useState<number | null>(null);
@@ -145,7 +148,11 @@ export default function Invoices({
             >
                 <SheetContent className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-2xl">
                     {preview && (
-                        <InvoicePreview invoice={preview} studio={studio} />
+                        <InvoicePreview
+                            invoice={preview}
+                            studio={studio}
+                            billingTemplate={billing_template}
+                        />
                     )}
                 </SheetContent>
             </Sheet>
@@ -160,9 +167,11 @@ Invoices.layout = {
 function InvoicePreview({
     invoice,
     studio,
+    billingTemplate,
 }: {
     invoice: Invoice;
     studio: Studio;
+    billingTemplate: string;
 }) {
     return (
         <>
@@ -184,7 +193,7 @@ function InvoicePreview({
                                 nativeButton={false}
                                 render={
                                     <a
-                                        href={`https://wa.me/${keNomorWa(invoice.customer_phone)}?text=${encodeURIComponent(whatsappMessage(invoice, studio))}`}
+                                        href={`https://wa.me/${keNomorWa(invoice.customer_phone)}?text=${encodeURIComponent(whatsappMessage(invoice, studio, billingTemplate))}`}
                                         target="_blank"
                                         rel="noreferrer"
                                     />

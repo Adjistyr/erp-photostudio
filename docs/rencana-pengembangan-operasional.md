@@ -200,7 +200,7 @@ Satu mekanisme untuk tiga titik: halaman publik invoice bertanda tangan (`invoic
 ### 2.4 Tagih via WA dari layar Pembayaran
 
 **Backend**
-- (K5) Template baru `billing` di `MessageTemplate::defaults()` dengan placeholder `{nama}`, `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}`; metode baru `MessageTemplate::fill(string $body, array $values)`; `personalise($body, $name, $link)` tetap ada sebagai pembungkus (dipakai email blast). `ReceivableController@index` mengirim `billing_template: string` (resolved).
+- (K5) Template baru `billing` di `MessageTemplate::defaults()` dengan placeholder `{nama}`, `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}`; metode baru `MessageTemplate::fillPlaceholders(string $body, array $values)`; `personalise($body, $name, $link)` tetap ada sebagai pembungkus (dipakai email blast). `ReceivableController@index` mengirim `billing_template: string` (resolved).
 - `whatsappMessage()` di `invoice-document.tsx` beralih memakai template yang sama (dikirim sebagai prop `billing_template` di halaman Invoice) — satu sumber teks tagihan.
 
 **Frontend**

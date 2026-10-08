@@ -31,7 +31,13 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { formatTanggal, keNomorWa } from '@/lib/format';
+import {
+    formatRp,
+    formatTanggal,
+    keNomorWa,
+    namaDepan,
+    personalise,
+} from '@/lib/format';
 import { index as communicationIndex } from '@/routes/communication';
 import type { BusinessLine } from '@/types/domain';
 
@@ -60,14 +66,17 @@ interface Template {
 }
 
 /**
- * `{nama}` → nama depan; sama dengan MessageTemplate::personalise di server.
- * `{link}` hanya terisi di pratinjau sebagai penanda — blast tidak punya link
- * hasil foto per customer.
+ * Nilai contoh untuk pratinjau template — termasuk placeholder template
+ * Tagihan, supaya owner melihat hasil akhirnya sebelum menyimpan.
  */
-function personalise(body: string, name: string, link = ''): string {
-    return body
-        .replaceAll('{nama}', name.trim().split(' ')[0])
-        .replaceAll('{link}', link);
+function contoh(sampleName: string): Record<string, string> {
+    return {
+        nama: namaDepan(sampleName),
+        link: '[link]',
+        nomor: 'ORD-0012',
+        sisa: formatRp(1_200_000),
+        jatuh_tempo: formatTanggal('2026-10-12'),
+    };
 }
 
 export default function Communication({
@@ -208,7 +217,13 @@ function WhatsAppTab({
                                 nativeButton={false}
                                 render={
                                     <a
-                                        href={`https://wa.me/${keNomorWa(c.phone ?? '')}?text=${encodeURIComponent(personalise(body, c.name))}`}
+                                        href={`https://wa.me/${keNomorWa(c.phone ?? '')}?text=${encodeURIComponent(
+                                            personalise(body, {
+                                                nama: namaDepan(c.name),
+                                                // Blast tidak punya link per customer.
+                                                link: '',
+                                            }),
+                                        )}`}
                                         target="_blank"
                                         rel="noreferrer"
                                     />
@@ -388,8 +403,12 @@ function TemplatesTab({
                     <code className="font-mono">{'{nama}'}</code> diganti nama
                     depan customer,{' '}
                     <code className="font-mono">{'{link}'}</code> diganti link
-                    hasil foto dari order. Template Promo jadi isi awal pesan di
-                    tab blast.
+                    hasil foto dari order. Template Tagihan juga memakai{' '}
+                    <code className="font-mono">{'{nomor}'}</code>,{' '}
+                    <code className="font-mono">{'{sisa}'}</code>,{' '}
+                    <code className="font-mono">{'{jatuh_tempo}'}</code>, dan{' '}
+                    <code className="font-mono">{'{link}'}</code> (link
+                    invoice). Template Promo jadi isi awal pesan di tab blast.
                 </AlertDescription>
             </Alert>
 
@@ -431,7 +450,7 @@ function TemplateCard({
             <div className="flex flex-col gap-1 rounded-md bg-muted p-3">
                 <span className="text-xs text-muted-foreground">Pratinjau</span>
                 <p className="text-sm whitespace-pre-line">
-                    {personalise(data.body, sampleName, '[link hasil foto]')}
+                    {personalise(data.body, contoh(sampleName))}
                 </p>
             </div>
             <Button
@@ -603,7 +622,7 @@ function MessagePanel({
                         Pratinjau
                     </span>
                     <p className="text-sm whitespace-pre-line">
-                        {personalise(body, sampleName, '[link hasil foto]')}
+                        {personalise(body, contoh(sampleName))}
                     </p>
                 </div>
             )}

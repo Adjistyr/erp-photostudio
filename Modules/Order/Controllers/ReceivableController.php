@@ -5,6 +5,7 @@ namespace Modules\Order\Controllers;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Customer\Models\MessageTemplate;
 use Modules\Finance\Services\Receivables;
 use Modules\Order\Models\Order;
 
@@ -46,6 +47,8 @@ class ReceivableController extends Controller
             ],
             // Nama & rekening studio untuk pesan bukti bayar.
             'studio' => config('studio'),
+            // Teks tombol Tagih via WA — editan owner di Komunikasi (K5).
+            'billing_template' => MessageTemplate::bodyFor('billing'),
         ]);
     }
 }

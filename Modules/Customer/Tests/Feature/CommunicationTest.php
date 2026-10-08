@@ -38,9 +38,12 @@ class CommunicationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('customer::communication')
                 ->has('customers', Customer::count())
-                ->has('templates', 3)
+                ->has('templates', 4)
                 ->where('templates.0.key', 'promo')
                 ->where('templates.0.body', MessageTemplate::defaults()['promo']['body'])
+                // K5: pesan tagihan bisa diubah owner di sini.
+                ->where('templates.3.key', 'billing')
+                ->where('templates.3.title', 'Tagihan')
             );
     }
 

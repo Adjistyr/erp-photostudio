@@ -8,7 +8,9 @@ import {
     paymentReceiptMessage,
     receiptMessage,
     waLink,
+    whatsappMessage,
 } from '@/modules/order/components/invoice-document';
+import type { Invoice } from '@/modules/order/components/invoice-document';
 
 test('receiptMessage memuat nomor, total berformat, dan link', () => {
     const teks = receiptMessage(
@@ -103,4 +105,51 @@ test('bukti bayar tagihan lewat jatuh tempo: tanggal lampau tidak disebut', () =
         teks.includes(`Sisa ${formatRp(150000)}. Pembayaran ke BCA 111.`),
     );
     assert.ok(!teks.includes('jatuh tempo'));
+});
+
+const invoice = (balance: number): Invoice => ({
+    id: 12,
+    number: 'INV-0012',
+    order_number: 'ORD-0012',
+    customer_name: 'Sinta Prameswari',
+    customer_phone: '0812',
+    business_line: 'studio',
+    items_summary: 'Paket',
+    service_date: '2026-10-12',
+    service_time: null,
+    location: null,
+    items: [],
+    discount: 0,
+    total: 350000,
+    payments: [],
+    paid: 350000 - balance,
+    balance,
+    payment_status: balance > 0 ? 'partial' : 'paid',
+    paid_percent: 0,
+    public_url: 'https://x/i/12',
+    print_url: 'https://x/i/12?print=1',
+});
+const studio = {
+    name: 'Studio Uji',
+    address: '',
+    phone: '',
+    bank_account: 'BCA 1',
+};
+
+test('whatsappMessage belum lunas memakai template billing', () => {
+    assert.equal(
+        whatsappMessage(
+            invoice(200000),
+            studio,
+            '{nama}|{nomor}|{sisa}|{link}',
+        ),
+        `Sinta|ORD-0012|${formatRp(200000)}|https://x/i/12`,
+    );
+});
+
+test('whatsappMessage lunas memakai teks tetap, bukan template', () => {
+    const teks = whatsappMessage(invoice(0), studio, 'TEMPLATE');
+    assert.ok(!teks.includes('TEMPLATE'));
+    assert.ok(teks.includes('Lunas, terima kasih!'));
+    assert.ok(teks.startsWith('Halo Sinta'));
 });

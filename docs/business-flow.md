@@ -205,7 +205,7 @@ Satu order bisa punya banyak Payment. Setiap Payment mencatat tanggal, nominal, 
 
 Setelah pembayaran dicatat, app menawarkan **bukti bayar** untuk customer: kirim via WA (nominal diterima, sisa + jatuh tempo, atau "Lunas") atau salin link. Buktinya adalah link invoice yang sama — selalu memuat pembayaran terbaru, tidak ada kwitansi terpisah.
 
-Dari sini muncul satu layar yang paling sering dibuka owner: **daftar piutang** — semua order yang status bayarnya belum Lunas, diurutkan berdasarkan tanggal acara atau umur tagihan. Tanpa layar ini, tagihan yang belum ditagih akan terlupakan, dan ini kebocoran paling umum di bisnis jasa.
+Dari sini muncul satu layar yang paling sering dibuka owner: **daftar piutang** — semua order yang status bayarnya belum Lunas, diurutkan berdasarkan tanggal acara atau umur tagihan. Tanpa layar ini, tagihan yang belum ditagih akan terlupakan, dan ini kebocoran paling umum di bisnis jasa. Tiap baris punya tombol **Tagih via WA**: pesannya dari template *Tagihan* di Komunikasi (bisa diubah owner; dipakai juga tombol WhatsApp di Invoice), pengiriman tetap manual.
 
 ### 5.5 Invoice & Thank You Mail
 

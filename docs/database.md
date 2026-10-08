@@ -31,7 +31,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Aset | `Asset` · `assets` |
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
 | Tutup buku (bulan final) | `PeriodClosing` · `period_closings` (`month`, `closed_at/by`, `reopened_at/by`; aktif = belum dibuka kembali) |
-| Template pesan (promo, terima kasih, reminder H-1) | `MessageTemplate` · `message_templates` (`key` primary; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`) |
+| Template pesan (promo, terima kasih, reminder H-1, tagihan) | `MessageTemplate` · `message_templates` (`key` primary: `promo`, `thank_you`, `reminder`, `billing`; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`). Placeholder: semua `{nama}`; `thank_you` `{link}` hasil foto; `billing` `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}` invoice. Nama studio & rekening ditanam ke default dari `config/studio.php` |
 | Pencatat (siapa yang menginput) | `created_by` → `users` di semua tabel transaksi (order, pembayaran, biaya job/operasional, aset, servis, setoran, pemakaian dana, investasi); trait `Modules\Shared\Models\Concerns\RecordsCreator`. `null` = sebelum pencatatan atau user sudah dihapus |
 | Riwayat perubahan order | `OrderEvent` · `order_events` (`type` → `OrderEventType`; `changes` jsonb hanya field yang berubah `{field: {from, to}}`; `user_id` nullable; hanya `created_at`). Ditulis hanya lewat `Modules\Order\Actions\RecordOrderEvent`, tidak pernah diedit/dihapus |
 | Laba rugi | `Modules\Finance\Services\ProfitAndLoss` |
