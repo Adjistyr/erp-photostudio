@@ -42,7 +42,7 @@ Bagian ini yang paling perlu dibawa ke client. Selama belum terjawab, dokumen in
 | 1 | "POS di lokasi" — POS hanya dipakai di studio untuk transaksi walk-in, atau juga dipakai saat job outdoor? | Hanya di studio |
 | 2 | "Pendataan pos barang dan jasa" — maksudnya Point of Sale, atau pelacakan stok barang? | Point of Sale. Stok belum dilacak |
 | 3 | Aturan DP: persentase tetap (mis. 30%) atau nego per deal? | Nego per deal, nominal bebas |
-| 4 | Harga paket jasa: fixed dari katalog atau custom per deal? | Fixed untuk studio, custom untuk event |
+| 4 | Harga paket jasa: fixed dari katalog atau custom per deal? | Fixed dari katalog, plus **item custom** (nama + harga deal, tanpa HPP) untuk studio maupun event sejak spek 1.3. Retail (POS) tetap katalog saja |
 | 5 | Crew (fotografer, videografer, MUA): karyawan tetap atau freelance per job? | **Terjawab:** belum ada crew tetap. Freelance, transport, dan sewa lokasi/alat dicatat per job sebagai biaya langsung — ini inti yang client mau lihat, jadi Biaya Job diprioritaskan |
 | 6 | Kebijakan pembatalan & refund DP? | Belum ada. Order bisa dibatalkan, DP dicatat sebagai hangus. Diputuskan 2026-10-06: margin order batal = uang yang diterima − biaya job (bukan total order), dan biaya job yang sudah keluar boleh dicatat ke order batal |
 | 7 | Laporan pakai basis kas atau akrual? | Basis kas (lihat bagian 7) |
@@ -89,7 +89,7 @@ Entitas di blok bawah dijelaskan di bagian 8.
 
 **Order** — satu tabel untuk semua jenis transaksi, dibedakan oleh field `tipe`: `retail` / `studio` / `event`. Menyimpan customer, tanggal transaksi, jadwal (kalau ada), lokasi, total, diskon, link hasil foto, catatan.
 
-**OrderItem** — baris item: referensi ke katalog, qty, harga satuan saat itu.
+**OrderItem** — baris item: referensi ke katalog, qty, harga satuan saat itu. Item custom (harga nego di luar katalog) tidak punya referensi katalog dan tidak punya HPP — biaya nyatanya dicatat sebagai biaya job.
 
 **Payment** — tanggal, nominal, metode (tunai / transfer / QRIS), keterangan (DP / pelunasan / termin 2).
 

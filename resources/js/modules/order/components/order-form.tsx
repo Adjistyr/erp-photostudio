@@ -14,6 +14,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -59,8 +60,12 @@ export interface ItemRow {
     quantity: number;
     /** Harga tersimpan baris lama — dipakai, bukan harga katalog. */
     unit_price?: number;
-    /** Nama tersimpan baris lama (paket bisa sudah berganti nama/nonaktif). */
+    /** Nama tersimpan baris lama, atau nama yang diketik untuk item custom. */
     name?: string;
+    /** Item custom (spek 1.3): nama + harga bebas, tanpa paket katalog. */
+    custom?: boolean;
+    /** Harga item custom yang sedang diketik (string selama diedit). */
+    price?: string;
 }
 
 /** Field yang sama di Buat dan Ubah Order. */
@@ -83,6 +88,7 @@ const UNLOCKED: Locked = { schedule: false, items: false };
 /** Harga satu baris: tersimpan untuk baris lama, katalog untuk baris baru. */
 export function lineTotal(row: ItemRow, catalog: CatalogOption[]): number {
     if (row.unit_price !== undefined) return row.unit_price * row.quantity;
+    if (row.custom) return (Number(row.price) || 0) * row.quantity;
     const c = catalog.find((x) => String(x.id) === row.catalog_item_id);
     return c ? c.price * row.quantity : 0;
 }
@@ -95,9 +101,39 @@ export function lineName(
     row: ItemRow,
     catalog: CatalogOption[],
 ): string | null {
-    if (row.name !== undefined) return row.name;
+    if (row.name !== undefined) return row.name.trim() || null;
     return (
         catalog.find((x) => String(x.id) === row.catalog_item_id)?.name ?? null
+    );
+}
+
+/** Baris custom wajib nama & harga (harga 0 boleh — bonus). */
+export function rowsComplete(rows: ItemRow[]): boolean {
+    return rows.every(
+        (r) => !r.custom || ((r.name ?? '').trim() !== '' && r.price !== ''),
+    );
+}
+
+/**
+ * Bentuk `items[]` yang dikirim ke server. Baris katalog TIDAK membawa
+ * nama/harga (server menyalin dari katalog); baris custom tanpa
+ * `catalog_item_id`.
+ */
+export function toPayload(rows: ItemRow[]): Record<string, unknown>[] {
+    return rows.map((r) =>
+        r.custom
+            ? {
+                  id: r.id ?? null,
+                  catalog_item_id: null,
+                  name: (r.name ?? '').trim(),
+                  unit_price: Number(r.price) || 0,
+                  quantity: r.quantity,
+              }
+            : {
+                  id: r.id ?? null,
+                  catalog_item_id: r.catalog_item_id,
+                  quantity: r.quantity,
+              },
     );
 }
 
@@ -205,6 +241,8 @@ export function OrderFormFields({
                         const old = r.id !== undefined;
                         const rowError =
                             errors[`items.${i}.catalog_item_id`] ??
+                            errors[`items.${i}.name`] ??
+                            errors[`items.${i}.unit_price`] ??
                             errors[`items.${i}.quantity`];
                         // Baris lama: daftar memuat paket nonaktif supaya
                         // labelnya tetap tampil; select-nya dikunci.
@@ -213,48 +251,107 @@ export function OrderFormFields({
                         return (
                             <div key={r.key} className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <Select
-                                            items={options.map((s) => ({
-                                                value: String(s.id),
-                                                label: old
-                                                    ? `${r.name ?? s.name}${s.is_active === false ? ' (nonaktif)' : ''} · ${formatRp(r.unit_price ?? s.price)}`
-                                                    : `${s.name} · ${formatRp(s.price)}`,
-                                            }))}
-                                            value={r.catalog_item_id}
-                                            disabled={old || locked.items}
-                                            onValueChange={(v) =>
-                                                updateRow(r.key, {
-                                                    catalog_item_id: v ?? '',
-                                                })
+                                    {r.custom ? (
+                                        // Baris custom lama: nama & harga dikunci —
+                                        // ubah = hapus baris lalu tambah baru.
+                                        <div
+                                            className="flex min-w-0 flex-1 items-center gap-2"
+                                            title={
+                                                old
+                                                    ? 'Ubah item custom: hapus baris ini lalu tambah yang baru'
+                                                    : undefined
                                             }
                                         >
-                                            <SelectTrigger
-                                                className="w-full"
-                                                aria-invalid={Boolean(rowError)}
-                                                title={
-                                                    old
-                                                        ? 'Ganti paket: hapus baris ini lalu tambah yang baru'
-                                                        : undefined
+                                            <Badge variant="outline">
+                                                Custom
+                                            </Badge>
+                                            <Input
+                                                aria-label="Nama item custom"
+                                                placeholder="Nama item (mis. Drone 2 jam)"
+                                                className="min-w-0 flex-1"
+                                                disabled={old || locked.items}
+                                                aria-invalid={Boolean(
+                                                    errors[`items.${i}.name`],
+                                                )}
+                                                value={r.name ?? ''}
+                                                onChange={(e) =>
+                                                    updateRow(r.key, {
+                                                        name: e.target.value,
+                                                    })
+                                                }
+                                            />
+                                            <Input
+                                                aria-label="Harga item custom"
+                                                inputMode="numeric"
+                                                placeholder="Harga"
+                                                className="w-32 font-mono"
+                                                disabled={old || locked.items}
+                                                aria-invalid={Boolean(
+                                                    errors[
+                                                        `items.${i}.unit_price`
+                                                    ],
+                                                )}
+                                                value={r.price ?? ''}
+                                                onChange={(e) =>
+                                                    updateRow(r.key, {
+                                                        price: hanyaDigit(
+                                                            e.target.value,
+                                                        ),
+                                                    })
+                                                }
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="min-w-0 flex-1">
+                                            <Select
+                                                items={options.map((s) => ({
+                                                    value: String(s.id),
+                                                    label: old
+                                                        ? `${r.name ?? s.name}${s.is_active === false ? ' (nonaktif)' : ''} · ${formatRp(r.unit_price ?? s.price)}`
+                                                        : `${s.name} · ${formatRp(s.price)}`,
+                                                }))}
+                                                value={r.catalog_item_id}
+                                                disabled={old || locked.items}
+                                                onValueChange={(v) =>
+                                                    updateRow(r.key, {
+                                                        catalog_item_id:
+                                                            v ?? '',
+                                                    })
                                                 }
                                             >
-                                                <SelectValue placeholder="Pilih paket dari katalog" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {options.map((s) => (
-                                                        <SelectItem
-                                                            key={s.id}
-                                                            value={String(s.id)}
-                                                        >
-                                                            {s.name} ·{' '}
-                                                            {formatRp(s.price)}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                                <SelectTrigger
+                                                    className="w-full"
+                                                    aria-invalid={Boolean(
+                                                        rowError,
+                                                    )}
+                                                    title={
+                                                        old
+                                                            ? 'Ganti paket: hapus baris ini lalu tambah yang baru'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    <SelectValue placeholder="Pilih paket dari katalog" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {options.map((s) => (
+                                                            <SelectItem
+                                                                key={s.id}
+                                                                value={String(
+                                                                    s.id,
+                                                                )}
+                                                            >
+                                                                {s.name} ·{' '}
+                                                                {formatRp(
+                                                                    s.price,
+                                                                )}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                     <Input
                                         inputMode="numeric"
                                         aria-label="Qty"
@@ -301,27 +398,53 @@ export function OrderFormFields({
                         );
                     })}
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="self-start"
-                        disabled={locked.items}
-                        onClick={() =>
-                            onChange({
-                                items: [
-                                    ...data.items,
-                                    {
-                                        key: Date.now(),
-                                        catalog_item_id: '',
-                                        quantity: 1,
-                                    },
-                                ],
-                            })
-                        }
-                    >
-                        <Plus data-icon="inline-start" />
-                        Tambah item
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={locked.items}
+                            onClick={() =>
+                                onChange({
+                                    items: [
+                                        ...data.items,
+                                        {
+                                            key: Date.now(),
+                                            catalog_item_id: '',
+                                            quantity: 1,
+                                        },
+                                    ],
+                                })
+                            }
+                        >
+                            <Plus data-icon="inline-start" />
+                            Tambah item
+                        </Button>
+                        {/* Harga nego di luar katalog (spek 1.3) — tanpa HPP;
+                            biaya nyatanya dicatat sebagai biaya job. */}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={locked.items}
+                            onClick={() =>
+                                onChange({
+                                    items: [
+                                        ...data.items,
+                                        {
+                                            key: Date.now(),
+                                            catalog_item_id: '',
+                                            quantity: 1,
+                                            custom: true,
+                                            name: '',
+                                            price: '',
+                                        },
+                                    ],
+                                })
+                            }
+                        >
+                            <Plus data-icon="inline-start" />
+                            Item custom
+                        </Button>
+                    </div>
                     <InputError message={errors.items} />
                     {locked.items && (
                         <p className="text-xs text-muted-foreground">
@@ -332,9 +455,8 @@ export function OrderFormFields({
 
                     {line === 'event' && !locked.items && (
                         <p className="text-xs text-muted-foreground">
-                            Paket event sering dinegosiasi per deal. Harga
-                            custom di luar katalog belum bisa diisi — masih
-                            pertanyaan terbuka ke client.
+                            Paket event sering dinegosiasi per deal — pakai Item
+                            custom untuk harga di luar katalog.
                         </p>
                     )}
                 </div>

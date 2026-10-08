@@ -47,6 +47,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -324,6 +325,14 @@ function OrderDetail({
                                 <TableRow key={i.id}>
                                     <TableCell className="font-medium">
                                         {i.name}
+                                        {i.is_custom && (
+                                            <Badge
+                                                variant="outline"
+                                                className="ml-2"
+                                            >
+                                                Custom
+                                            </Badge>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-muted-foreground">
                                         {i.quantity} × {formatRp(i.unit_price)}

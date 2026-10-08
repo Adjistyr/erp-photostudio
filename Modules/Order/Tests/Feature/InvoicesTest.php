@@ -133,4 +133,14 @@ class InvoicesTest extends TestCase
                 ->where('orders.8.invoice_url', null)
             );
     }
+
+    public function test_invoice_items_carry_is_custom_flag()
+    {
+        $order = $this->order('ORD-0011');
+        $order->items()->create(['catalog_item_id' => null, 'name' => 'Drone', 'quantity' => 1, 'unit_price' => 500_000]);
+
+        $this->get($order->invoiceUrl())->assertInertia(fn (Assert $page) => $page
+            ->where('invoice.items.0.is_custom', false)
+            ->where('invoice.items.1.is_custom', true));
+    }
 }

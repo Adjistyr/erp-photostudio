@@ -53,6 +53,12 @@ interface Props {
         last_transaction: string | null;
     }[];
     walk_in: { count: number; value: number };
+    /** Item di luar katalog (harga nego); null = tidak ada. */
+    custom_items: {
+        order_count: number;
+        quantity: number;
+        value: number;
+    } | null;
 }
 
 export default function Sales({
@@ -61,6 +67,7 @@ export default function Sales({
     services,
     customers,
     walk_in,
+    custom_items,
 }: Props) {
     const total = products.reduce(
         (t, p) => ({
@@ -193,7 +200,7 @@ export default function Sales({
                     title="Jasa terlaris"
                     note="dihitung dari nilai order yang disepakati, order batal tidak dihitung"
                 >
-                    {services.length === 0 ? (
+                    {services.length === 0 && !custom_items ? (
                         <KosongTabel kalimat="Belum ada jasa terjual." />
                     ) : (
                         <TabelData>
@@ -224,6 +231,27 @@ export default function Sales({
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {/* Agregat, bukan per paket: tidak ada paketnya —
+                                    tapi nilainya tidak boleh hilang dari laporan. */}
+                                {custom_items && (
+                                    <TableRow>
+                                        <TableCell className="font-medium">
+                                            Item custom
+                                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                                {custom_items.order_count} order
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            —
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {custom_items.quantity}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {formatRp(custom_items.value)}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </TabelData>
                     )}
@@ -231,6 +259,8 @@ export default function Sales({
                         Kolom margin sengaja tidak ada: HPP jasa berbeda tiap
                         job dan tidak bisa dihitung per paket. Marginnya ada di
                         Margin per Lini.
+                        {custom_items &&
+                            ' Item custom = item di luar katalog (harga nego) — tidak dibandingkan per paket.'}
                     </p>
                 </Section>
 

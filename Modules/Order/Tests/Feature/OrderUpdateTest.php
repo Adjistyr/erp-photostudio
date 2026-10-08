@@ -271,4 +271,37 @@ class OrderUpdateTest extends TestCase
         $this->assertFalse($orders['ORD-0002']['editable']);
         $this->assertFalse($orders['ORD-0004']['editable']);
     }
+
+    public function test_update_can_add_custom_item_and_change_its_quantity_only()
+    {
+        $order = $this->order('ORD-0005');
+        $catalogRow = $order->items->sole();
+
+        $this->update($order, ['items' => [
+            ['id' => $catalogRow->id, 'catalog_item_id' => $catalogRow->catalog_item_id, 'quantity' => 1],
+            ['id' => null, 'catalog_item_id' => null, 'name' => 'Sewa kostum', 'unit_price' => 75_000, 'quantity' => 1],
+        ]])->assertSessionHasNoErrors();
+
+        $order = $this->order('ORD-0005');
+        $custom = $order->items->firstWhere('catalog_item_id', null);
+        $this->assertSame(['Sewa kostum', 75_000], [$custom?->name, $custom?->unit_price]);
+
+        $keep = fn (array $customRow) => ['items' => [
+            ['id' => $catalogRow->id, 'catalog_item_id' => $catalogRow->catalog_item_id, 'quantity' => 1],
+            ['id' => $custom?->id, 'catalog_item_id' => null, ...$customRow],
+        ]];
+        $this->update($order, $keep(['name' => 'Sewa kostum', 'unit_price' => 75_000, 'quantity' => 2]))->assertSessionHasNoErrors();
+        $this->assertSame(2, $custom?->refresh()->quantity);
+
+        // Ubah harga/nama baris custom lama = hapus + tambah, bukan diedit.
+        $order = $this->order('ORD-0005');
+        $this->update($order, $keep(['name' => 'Sewa kostum', 'unit_price' => 50_000, 'quantity' => 2]))->assertSessionHasErrors('items.1.name');
+        $this->update($order, $keep(['name' => 'Kostum', 'unit_price' => 75_000, 'quantity' => 2]))->assertSessionHasErrors('items.1.name');
+        // Baris custom lama tidak bisa "diubah" jadi paket katalog.
+        $this->update($order, ['items' => [
+            ['id' => $catalogRow->id, 'catalog_item_id' => $catalogRow->catalog_item_id, 'quantity' => 1],
+            ['id' => $custom?->id, 'catalog_item_id' => $catalogRow->catalog_item_id, 'quantity' => 2],
+        ]])->assertSessionHasErrors('items.1.name');
+        $this->assertSame(75_000, $custom?->refresh()->unit_price);
+    }
 }

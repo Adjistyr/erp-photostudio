@@ -61,13 +61,14 @@ class PosController extends Controller
                 'discount' => $discount,
             ]);
 
-            foreach ($request->lines() as ['item' => $item, 'quantity' => $quantity]) {
+            // POS selalu baris katalog — rule mewajibkan catalog_item_id.
+            foreach ($request->lines() as $line) {
                 $order->items()->create([
-                    'catalog_item_id' => $item->id,
-                    'name' => $item->name,
-                    'quantity' => $quantity,
-                    'unit_price' => $item->price,
-                    'unit_cost' => $item->unit_cost,
+                    'catalog_item_id' => $line['item']?->id,
+                    'name' => $line['name'],
+                    'quantity' => $line['quantity'],
+                    'unit_price' => $line['unit_price'],
+                    'unit_cost' => $line['unit_cost'],
                 ]);
             }
 

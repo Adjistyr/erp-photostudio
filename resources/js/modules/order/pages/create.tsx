@@ -25,6 +25,8 @@ import {
     OrderFormFields,
     SummaryLines,
     orderTotal,
+    rowsComplete,
+    toPayload,
 } from '@/modules/order/components/order-form';
 import type {
     CatalogOption,
@@ -68,7 +70,10 @@ export default function OrdersCreate({
     const total = orderTotal(data.items, catalog);
     const deposit = Number(data.dp) || 0;
     const complete =
-        data.customer_id !== '' && data.service_date !== '' && total > 0;
+        data.customer_id !== '' &&
+        data.service_date !== '' &&
+        total > 0 &&
+        rowsComplete(data.items);
 
     return (
         <>
@@ -238,9 +243,14 @@ export default function OrdersCreate({
                         <Button
                             className="flex-1"
                             disabled={!complete || processing}
-                            onClick={() =>
-                                form.post(OrderController.store().url)
-                            }
+                            onClick={() => {
+                                // transform() mendaftarkan pengubah, tidak mengembalikan form.
+                                form.transform((d) => ({
+                                    ...d,
+                                    items: toPayload(d.items),
+                                }));
+                                form.post(OrderController.store().url);
+                            }}
                         >
                             Simpan
                         </Button>

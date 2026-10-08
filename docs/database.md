@@ -9,14 +9,14 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Istilah bisnis (dokumen/UI) | Kode (model · tabel) |
 |---|---|
 | Katalog (produk / jasa) | `CatalogItem` · `catalog_items` (`type`: product / service; `category` produk teks bebas, jasa wajib `ServiceCategory` Studio/Event/Add-on) |
-| HPP bahan per unit | `unit_cost` (null untuk jasa) |
+| HPP bahan per unit | `unit_cost` (null untuk jasa **dan** item custom) |
 | Customer | `Customer` · `customers` (`phone` disimpan ternormalisasi `62…` lewat `Modules\Customer\Support\Phone::normalise()` sejak spek 2.1; data lama `08…` tetap valid — pencocokan dari POS: HP → nama, HP yang sudah ada tidak ditimpa) |
 | Order | `Order` · `orders` |
 | Lini (retail / studio / event) | `business_line` → `BusinessLine` |
 | Status kerja | `work_status` → `WorkStatus` (booking, scheduled, in_progress, done, delivered, cancelled) |
 | Status bayar | `Order::paymentStatus()` — **tidak disimpan** |
 | Tanggal sesi / acara / transaksi (sekaligus jatuh tempo) | `service_date` + `service_time` |
-| Item order | `OrderItem` · `order_items` |
+| Item order | `OrderItem` · `order_items` (`catalog_item_id` null = item custom: nama & harga deal dari input, spek 1.3; props `is_custom`) |
 | Pembayaran (DP / termin / pelunasan) | `Payment` · `payments` |
 | Biaya job (biaya langsung) | `JobCost` · `job_costs` |
 | Biaya operasional | `OperatingExpense` · `operating_expenses` |

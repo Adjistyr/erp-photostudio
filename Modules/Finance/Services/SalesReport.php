@@ -80,6 +80,37 @@ class SalesReport
     }
 
     /**
+     * Item custom (tanpa katalog, harga nego — spek 1.3) dari order yang tidak
+     * batal, dengan cakupan yang sama dengan topServices(). Tidak masuk
+     * ranking per paket (tidak ada paketnya), tapi nilainya tidak boleh hilang
+     * dari laporan. null = tidak ada.
+     *
+     * ponytail: array, bukan DTO — tiga angka satu baris; buat kelas kalau
+     * mulai dipakai di layar lain.
+     *
+     * @return array{order_count: int, quantity: int, value: int}|null
+     */
+    public function customItems(): ?array
+    {
+        $items = OrderItem::query()
+            ->whereNull('catalog_item_id')
+            ->whereHas('order', fn ($q) => $q
+                ->where('work_status', '!=', WorkStatus::Cancelled)
+                ->where('business_line', '!=', BusinessLine::Retail))
+            ->get();
+
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'order_count' => $items->pluck('order_id')->unique()->count(),
+            'quantity' => (int) $items->sum('quantity'),
+            'value' => (int) $items->sum(fn (OrderItem $i) => $i->quantity * $i->unit_price),
+        ];
+    }
+
+    /**
      * Ringkasan per customer. Order Batal dikeluarkan dari nilai & jumlah
      * order, tapi tetap di riwayat. Customer TANPA order tetap tampil — lead
      * yang kontaknya masuk sebelum transaksi.

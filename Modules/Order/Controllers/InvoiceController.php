@@ -66,6 +66,7 @@ class InvoiceController extends Controller
             'location' => $o->location,
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
+                'is_custom' => $i->catalog_item_id === null,
             ])->values()->all(),
             'discount' => $o->discount,
             'total' => $o->total(),

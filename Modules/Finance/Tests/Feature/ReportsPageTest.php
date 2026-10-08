@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Modules\Order\Models\Order;
 use Tests\TestCase;
 
 /**
@@ -108,5 +109,17 @@ class ReportsPageTest extends TestCase
                 ->has('orders', 4)
                 ->where('orders.0.number', 'ORD-0011')
             );
+    }
+
+    public function test_sales_page_carries_custom_items_aggregate()
+    {
+        $this->get(route('reports.sales'))->assertInertia(fn (Assert $page) => $page->where('custom_items', null));
+
+        Order::where('number', 'ORD-0011')->sole()
+            ->items()->create(['catalog_item_id' => null, 'name' => 'Drone', 'quantity' => 1, 'unit_price' => 500_000]);
+
+        $this->get(route('reports.sales'))->assertInertia(fn (Assert $page) => $page
+            ->where('custom_items.order_count', 1)
+            ->where('custom_items.value', 500_000));
     }
 }

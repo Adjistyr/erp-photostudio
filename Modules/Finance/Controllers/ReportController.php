@@ -130,6 +130,8 @@ class ReportController extends Controller
                 'quantity' => $s->quantity,
                 'value' => $s->value,
             ], $sales->topServices()),
+            // Item di luar katalog (harga nego) — satu baris agregat di bawah jasa.
+            'custom_items' => $sales->customItems(),
             // Lead tanpa order tidak dirangking — tabel ini untuk menentukan
             // siapa yang layak di-follow up.
             'customers' => array_values(array_map(fn (CustomerSummary $c) => [

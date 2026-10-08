@@ -44,7 +44,14 @@ export interface Invoice {
     service_date: string;
     service_time: string | null;
     location: string | null;
-    items: { id: number; name: string; quantity: number; unit_price: number }[];
+    items: {
+        id: number;
+        name: string;
+        quantity: number;
+        unit_price: number;
+        /** Dikirim agar tipe sama dengan detail order; tidak ditampilkan ke customer. */
+        is_custom: boolean;
+    }[];
     discount: number;
     total: number;
     payments: {
