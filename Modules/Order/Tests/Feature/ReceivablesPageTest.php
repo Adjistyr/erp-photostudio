@@ -51,6 +51,24 @@ class ReceivablesPageTest extends TestCase
             );
     }
 
+    public function test_rows_carry_phone_signed_invoice_url_and_studio()
+    {
+        $order = Order::where('number', 'ORD-0011')->sole();
+        $order->customer?->update(['phone' => null]);
+
+        $page = $this->get(route('receivables.index'))->inertiaPage()['props'];
+        $row = collect($page['orders'])->firstWhere('number', 'ORD-0011');
+
+        // Customer tanpa HP → null (tombol WA dinonaktifkan di layar).
+        $this->assertArrayHasKey('customer_phone', $row);
+        $this->assertNull($row['customer_phone']);
+        $this->assertSame($order->invoiceUrl(), $row['invoice_url']);
+        $this->assertArrayHasKey('bank_account', $page['studio']);
+
+        auth()->logout();
+        $this->get($row['invoice_url'])->assertOk();
+    }
+
     public function test_paid_off_order_leaves_the_list()
     {
         $order = Order::where('number', 'ORD-0012')->sole();

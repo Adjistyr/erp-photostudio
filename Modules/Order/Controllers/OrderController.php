@@ -47,6 +47,8 @@ class OrderController extends Controller
 
         return Inertia::render('order::index', [
             'orders' => $orders->map($this->orderProps(...))->values()->all(),
+            // Nama & rekening studio untuk pesan bukti bayar.
+            'studio' => config('studio'),
         ]);
     }
 

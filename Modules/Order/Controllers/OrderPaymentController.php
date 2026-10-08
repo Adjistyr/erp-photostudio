@@ -34,7 +34,7 @@ class OrderPaymentController extends Controller
             default => 'Termin',
         };
 
-        DB::transaction(function () use ($order, $request, $amount, $note, $events) {
+        $payment = DB::transaction(function () use ($order, $request, $amount, $note, $events) {
             $payment = $order->payments()->create([
                 'paid_on' => $request->validated('paid_on'),
                 'amount' => $amount,
@@ -42,9 +42,30 @@ class OrderPaymentController extends Controller
                 'note' => $note,
             ]);
             $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
+
+            return $payment;
         });
+        // Saldo & status di bukti bayar harus SETELAH pembayaran ini.
+        $order->payments->push($payment);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$note} ".Money::format($amount)." untuk {$order->number} tercatat."]);
+        // Bukti untuk customer = link invoice yang sama (sudah memuat pembayaran
+        // ini), ditawarkan di ReceiptSheet layar asal. Tiga field terakhir hanya
+        // ada di jalur pembayaran — POS tidak mengirimnya.
+        Inertia::flash('receipt', [
+            'order_id' => $order->id,
+            'number' => $order->number,
+            'total' => $order->total(),
+            'balance' => $order->balance(),
+            'payment_status' => $order->paymentStatus()->value,
+            'invoice_url' => $order->invoiceUrl(),
+            'print_url' => $order->invoiceUrl(print: true),
+            'customer_phone' => $order->customer?->phone,
+            'business_line' => $order->business_line->value,
+            'paid_amount' => $amount,
+            'paid_on' => $request->validated('paid_on'),
+            'due_on' => $order->service_date->toDateString(),
+        ]);
 
         // Kembali ke layar asal: dialog ini dipakai Detail Order DAN layar
         // Pembayaran — owner yang menagih dari daftar piutang tidak boleh

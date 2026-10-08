@@ -27,6 +27,8 @@ class ReceivableController extends Controller
                 'id' => $o->id,
                 'number' => $o->number,
                 'customer_name' => $o->customer?->name,
+                'customer_phone' => $o->customer?->phone,
+                'invoice_url' => $o->invoiceUrl(),
                 'business_line' => $o->business_line->value,
                 // Tanggal layanan = jatuh tempo tagihan (docs/database.md).
                 'service_date' => $o->service_date->toDateString(),
@@ -42,6 +44,8 @@ class ReceivableController extends Controller
                 'overdue' => $overdue->sum(fn (Order $o) => $o->balance()),
                 'overdue_count' => $overdue->count(),
             ],
+            // Nama & rekening studio untuk pesan bukti bayar.
+            'studio' => config('studio'),
         ]);
     }
 }

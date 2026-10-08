@@ -25,7 +25,10 @@ import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { PageActions } from '@/components/page-actions';
 import { RecordedBy } from '@/components/recorded-by';
+import { useFlash } from '@/hooks/use-flash';
+import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
+import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import {
     LineMark,
     PaymentBadge,
@@ -82,11 +85,19 @@ import {
     describeEvent,
     scheduleOf,
 } from '@/modules/order/types';
-import type { OrderRow } from '@/modules/order/types';
+import type { OrderRow, Receipt } from '@/modules/order/types';
 
 type Filter = 'all' | BusinessLine;
 
-export default function OrdersIndex({ orders }: { orders: OrderRow[] }) {
+export default function OrdersIndex({
+    orders,
+    studio,
+}: {
+    orders: OrderRow[];
+    studio: Studio;
+}) {
+    // Bukti bayar setelah PaymentDialog sukses — tampil di atas Sheet detail.
+    const [receipt, clearReceipt] = useFlash<Receipt>('receipt');
     const [filter, setFilter] = useState<Filter>('all');
     // Simpan id, bukan objek: setelah aksi, Sheet membaca data terbaru dari props.
     const [detailId, setDetailId] = useState<number | null>(null);
@@ -238,6 +249,11 @@ export default function OrdersIndex({ orders }: { orders: OrderRow[] }) {
                     onClose={() => setPayingId(null)}
                 />
             )}
+            <ReceiptSheet
+                receipt={receipt}
+                studio={studio}
+                onClose={clearReceipt}
+            />
         </>
     );
 }

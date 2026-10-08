@@ -86,6 +86,38 @@ export function receiptMessage(
     );
 }
 
+/**
+ * Pesan WA bukti bayar (DP/termin/pelunasan). Flash tidak membawa nama
+ * customer — sapaan "Kak", sama dengan fallback whatsappMessage().
+ */
+export function paymentReceiptMessage(
+    receipt: Pick<
+        Receipt,
+        | 'number'
+        | 'balance'
+        | 'invoice_url'
+        | 'paid_amount'
+        | 'paid_on'
+        | 'due_on'
+    >,
+    studio: Pick<Studio, 'bank_account'>,
+): string {
+    const tanggal = receipt.paid_on ? ` ${formatTanggal(receipt.paid_on)}` : '';
+    const diterima = `Halo Kak, pembayaran ${formatRp(receipt.paid_amount ?? 0)} untuk ${receipt.number} sudah kami terima${tanggal}.`;
+    const sisa =
+        receipt.balance > 0
+            ? ` Sisa ${formatRp(receipt.balance)}` +
+              // Jatuh tempo yang sudah lewat tidak disebut — tanggal lampau di
+              // chat customer terbaca seperti salah ketik.
+              (receipt.due_on &&
+              (!receipt.paid_on || receipt.due_on >= receipt.paid_on)
+                  ? `, jatuh tempo ${formatTanggal(receipt.due_on)}`
+                  : '') +
+              `. Pembayaran ke ${studio.bank_account}.`
+            : ' Lunas, terima kasih!';
+    return `${diterima}${sisa}\nRincian: ${receipt.invoice_url}`;
+}
+
 /** Tautan chat WhatsApp berisi pesan — nomor lewat keNomorWa (data lama `08…`). */
 export function waLink(phone: string, text: string): string {
     return `https://wa.me/${keNomorWa(phone)}?text=${encodeURIComponent(text)}`;
