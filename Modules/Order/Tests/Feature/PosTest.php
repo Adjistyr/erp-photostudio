@@ -230,4 +230,13 @@ class PosTest extends TestCase
     {
         $this->sell(['items' => [], 'method' => 'utang'])->assertSessionHasErrors(['items', 'method']);
     }
+
+    public function test_pos_rejects_rows_without_catalog_item()
+    {
+        // Retail = katalog saja: tanpa HPP katalog, margin retail bohong.
+        $this->post(route('pos.store'), [
+            'items' => [['name' => 'Gantungan custom', 'unit_price' => 10_000, 'quantity' => 1]],
+            'method' => 'cash',
+        ])->assertSessionHasErrors('items.0.catalog_item_id');
+    }
 }

@@ -169,4 +169,47 @@ class OrderCreateTest extends TestCase
         $this->store(['items' => [['catalog_item_id' => $this->catalog('Paket Studio 1 Jam')->id, 'quantity' => 0]]])
             ->assertSessionHasErrors('items.0.quantity');
     }
+
+    public function test_store_with_custom_item_saves_name_and_price_without_catalog()
+    {
+        $this->store([
+            'business_line' => 'event',
+            'items' => [
+                ['catalog_item_id' => $this->catalog('Paket Prewedding Outdoor')->id, 'quantity' => 1],
+                ['catalog_item_id' => null, 'name' => 'Drone 2 jam (nego)', 'unit_price' => 1_250_000, 'quantity' => 1],
+            ],
+            'dp' => 3_000_000,
+        ])->assertSessionHasNoErrors();
+
+        $order = $this->newest();
+        $custom = $order->items->firstWhere('catalog_item_id', null);
+        $this->assertSame(['Drone 2 jam (nego)', 1_250_000, null], [$custom?->name, $custom?->unit_price, $custom?->unit_cost]);
+        $this->assertSame(2_500_000 + 1_250_000, $order->total());
+        // DP dibandingkan dengan total termasuk item custom.
+        $this->assertSame(PaymentStatus::Partial, $order->paymentStatus());
+    }
+
+    public function test_custom_item_requires_name_and_price()
+    {
+        $this->store(['items' => [['catalog_item_id' => null, 'unit_price' => 100_000, 'quantity' => 1]]])
+            ->assertSessionHasErrors('items.0.name');
+        $this->store(['items' => [['catalog_item_id' => null, 'name' => 'Bonus', 'quantity' => 1]]])
+            ->assertSessionHasErrors('items.0.unit_price');
+
+        // Harga 0 boleh: bonus yang tetap tercetak di invoice.
+        $this->store(['items' => [
+            ['catalog_item_id' => $this->catalog('Paket Studio 1 Jam')->id, 'quantity' => 1],
+            ['catalog_item_id' => null, 'name' => 'Bonus cetak 4R', 'unit_price' => 0, 'quantity' => 2],
+        ]])->assertSessionHasNoErrors();
+    }
+
+    public function test_catalog_row_ignores_client_name_and_price()
+    {
+        $this->store(['items' => [[
+            'catalog_item_id' => $this->catalog('Paket Studio 1 Jam')->id, 'name' => 'Murah', 'unit_price' => 1, 'quantity' => 1,
+        ]]])->assertSessionHasNoErrors();
+
+        $line = $this->newest()->items->sole();
+        $this->assertSame(['Paket Studio 1 Jam', 350_000], [$line->name, $line->unit_price]);
+    }
 }

@@ -92,4 +92,19 @@ class SalesReportTest extends DemoDataTestCase
         $this->assertSame(Customer::count(), $names->count());
         $this->assertSame($names->unique()->count(), $names->count());
     }
+
+    public function test_custom_items_are_aggregated_and_exclude_cancelled_orders()
+    {
+        $this->assertNull($this->sales()->customItems());
+
+        $this->order('ORD-0011')->items()->create(['catalog_item_id' => null, 'name' => 'Drone', 'quantity' => 2, 'unit_price' => 500_000]);
+        // Order batal tidak dihitung.
+        $this->order('ORD-0004')->items()->create(['catalog_item_id' => null, 'name' => 'Drone', 'quantity' => 1, 'unit_price' => 900_000]);
+
+        $this->assertSame(['order_count' => 1, 'quantity' => 2, 'value' => 1_000_000], $this->sales()->customItems());
+        // Ranking per paket tidak memuat baris tanpa katalog.
+        foreach ($this->sales()->topServices() as $service) {
+            $this->assertNotSame('Drone', $service->item->name);
+        }
+    }
 }

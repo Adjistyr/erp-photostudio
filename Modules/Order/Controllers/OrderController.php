@@ -119,13 +119,14 @@ class OrderController extends Controller
                 'notes' => trim((string) ($data['notes'] ?? '')) ?: null,
             ]);
 
-            foreach ($request->lines() as ['item' => $item, 'quantity' => $quantity]) {
+            foreach ($request->lines() as $line) {
                 $order->items()->create([
-                    'catalog_item_id' => $item->id,
-                    'name' => $item->name,
-                    'quantity' => $quantity,
-                    'unit_price' => $item->price,
-                    'unit_cost' => $item->unit_cost,
+                    // null = item custom (spek 1.3).
+                    'catalog_item_id' => $line['item']?->id,
+                    'name' => $line['name'],
+                    'quantity' => $line['quantity'],
+                    'unit_price' => $line['unit_price'],
+                    'unit_cost' => $line['unit_cost'],
                 ]);
             }
 
@@ -204,22 +205,22 @@ class OrderController extends Controller
             $order->items()->whereNotIn('id', $keep)->delete();
 
             $stored = $order->items()->get()->keyBy('id');
-            foreach ($request->lines() as $i => ['item' => $catalog, 'quantity' => $qty]) {
+            foreach ($request->lines() as $i => $line) {
                 $id = $rows[$i]['id'];
-                $line = $id !== null ? $stored->get($id) : null;
-                if ($line !== null) {
-                    if ($line->quantity !== $qty) {
-                        $line->update(['quantity' => $qty]);
+                $kept = $id !== null ? $stored->get($id) : null;
+                if ($kept !== null) {
+                    if ($kept->quantity !== $line['quantity']) {
+                        $kept->update(['quantity' => $line['quantity']]);
                     }
 
                     continue;
                 }
                 $order->items()->create([
-                    'catalog_item_id' => $catalog->id,
-                    'name' => $catalog->name,
-                    'quantity' => $qty,
-                    'unit_price' => $catalog->price,
-                    'unit_cost' => $catalog->unit_cost,
+                    'catalog_item_id' => $line['item']?->id,
+                    'name' => $line['name'],
+                    'quantity' => $line['quantity'],
+                    'unit_price' => $line['unit_price'],
+                    'unit_cost' => $line['unit_cost'],
                 ]);
             }
 
@@ -334,6 +335,8 @@ class OrderController extends Controller
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
                 'catalog_item_id' => $i->catalog_item_id, 'unit_cost' => $i->unit_cost,
+                // Item custom (spek 1.3) — harga nego di luar katalog.
+                'is_custom' => $i->catalog_item_id === null,
             ])->values()->all(),
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,

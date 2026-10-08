@@ -60,8 +60,11 @@ class UpdateOrderRequest extends FormRequest
             // TANPA is_active: baris lama boleh merujuk paket yang sudah
             // dinonaktifkan supaya order lama tetap bisa diubah. Baris baru
             // dicek aktif di after().
-            'items.*.catalog_item_id' => ['required', 'integer', Rule::exists('catalog_items', 'id')
+            'items.*.catalog_item_id' => ['nullable', 'integer', Rule::exists('catalog_items', 'id')
                 ->where('type', CatalogItemType::Service->value)],
+            // Item custom (spek 1.3): nama + harga bila tanpa paket.
+            'items.*.name' => ['required_without:items.*.catalog_item_id', 'nullable', 'string', 'max:255'],
+            'items.*.unit_price' => ['required_without:items.*.catalog_item_id', 'nullable', 'integer', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
         ];
     }
@@ -87,10 +90,10 @@ class UpdateOrderRequest extends FormRequest
 
                 return;
             }
-            foreach ($this->lines() as $i => ['item' => $catalog]) {
+            foreach ($this->lines() as $i => ['item' => $catalog, 'name' => $name, 'unit_price' => $price]) {
                 $id = $this->rows()[$i]['id'];
                 if ($id === null) {
-                    if (! $catalog->is_active) {
+                    if ($catalog !== null && ! $catalog->is_active) {
                         $validator->errors()->add("items.{$i}.catalog_item_id", "{$catalog->name} sudah nonaktif.");
 
                         return;
@@ -104,9 +107,16 @@ class UpdateOrderRequest extends FormRequest
 
                     return;
                 }
-                // Ganti paket = hapus baris lalu tambah baru — aturan snapshot
-                // harga tetap sederhana: baris lama tidak pernah berganti isi.
-                if ($line->catalog_item_id !== $catalog->id) {
+                // Baris lama tidak pernah berganti isi — hanya qty. Ganti paket
+                // atau ubah nama/harga custom = hapus baris lalu tambah baru,
+                // supaya aturan snapshot harga tetap sederhana.
+                if ($line->catalog_item_id === null) {
+                    if ($catalog !== null || $name !== $line->name || $price !== $line->unit_price) {
+                        $validator->errors()->add("items.{$i}.name", 'Ubah item custom dengan menghapus baris lalu menambah yang baru.');
+
+                        return;
+                    }
+                } elseif ($catalog?->id !== $line->catalog_item_id) {
                     $validator->errors()->add("items.{$i}.catalog_item_id", 'Ganti paket dengan menghapus baris lalu menambah yang baru.');
 
                     return;
@@ -160,17 +170,17 @@ class UpdateOrderRequest extends FormRequest
 
     /**
      * Total setelah diubah: baris lama × harga TERSIMPAN, baris baru × harga
-     * katalog. Bukan subtotal() trait — itu memakai harga katalog untuk semua
-     * baris, salah untuk harga deal lama.
+     * katalog (atau harga custom). Bukan subtotal() trait — itu memakai harga
+     * katalog saat ini untuk baris lama juga, salah untuk harga deal lama.
      */
     public function newTotal(): int
     {
         $stored = $this->order()->items->keyBy('id');
         $total = 0;
-        foreach ($this->lines() as $i => ['item' => $catalog, 'quantity' => $qty]) {
+        foreach ($this->lines() as $i => $line) {
             $id = $this->rows()[$i]['id'];
-            $price = $id !== null ? ($stored->get($id)->unit_price ?? $catalog->price) : $catalog->price;
-            $total += $price * $qty;
+            $price = $id !== null ? ($stored->get($id)->unit_price ?? $line['unit_price']) : $line['unit_price'];
+            $total += $price * $line['quantity'];
         }
 
         return $total;
@@ -256,9 +266,9 @@ class UpdateOrderRequest extends FormRequest
     {
         $stored = $this->order()->items->keyBy('id');
         $parts = [];
-        foreach ($this->lines() as $i => ['item' => $catalog, 'quantity' => $qty]) {
+        foreach ($this->lines() as $i => ['name' => $lineName, 'quantity' => $qty]) {
             $id = $this->rows()[$i]['id'];
-            $name = $id !== null ? ($stored->get($id)->name ?? $catalog->name) : $catalog->name;
+            $name = $id !== null ? ($stored->get($id)->name ?? $lineName) : $lineName;
             $parts[] = $qty > 1 ? "{$name} ×{$qty}" : $name;
         }
 
@@ -293,6 +303,8 @@ class UpdateOrderRequest extends FormRequest
             'items' => 'item',
             'items.*.id' => 'item',
             'items.*.catalog_item_id' => 'paket',
+            'items.*.name' => 'nama item',
+            'items.*.unit_price' => 'harga item',
             'items.*.quantity' => 'qty',
         ];
     }

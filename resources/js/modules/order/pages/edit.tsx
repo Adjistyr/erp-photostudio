@@ -18,6 +18,8 @@ import {
     OrderFormFields,
     SummaryLines,
     orderTotal,
+    rowsComplete,
+    toPayload,
 } from '@/modules/order/components/order-form';
 import type {
     CatalogOption,
@@ -56,6 +58,8 @@ export default function OrdersEdit({
             quantity: i.quantity,
             unit_price: i.unit_price,
             name: i.name,
+            custom: i.is_custom,
+            price: String(i.unit_price),
         })),
     });
     const { data, setData, errors, processing } = form;
@@ -68,7 +72,10 @@ export default function OrdersEdit({
     const total = orderTotal(data.items, catalog);
     const belowPaid = total < order.paid;
     const complete =
-        data.customer_id !== '' && data.service_date !== '' && total > 0;
+        data.customer_id !== '' &&
+        data.service_date !== '' &&
+        total > 0 &&
+        rowsComplete(data.items);
 
     return (
         <>
@@ -149,9 +156,14 @@ export default function OrdersEdit({
                         <Button
                             className="flex-1"
                             disabled={!complete || belowPaid || processing}
-                            onClick={() =>
-                                form.put(OrderController.update(order.id).url)
-                            }
+                            onClick={() => {
+                                // transform() mendaftarkan pengubah, tidak mengembalikan form.
+                                form.transform((d) => ({
+                                    ...d,
+                                    items: toPayload(d.items),
+                                }));
+                                form.put(OrderController.update(order.id).url);
+                            }}
                         >
                             Simpan perubahan
                         </Button>

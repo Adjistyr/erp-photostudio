@@ -74,6 +74,8 @@ export interface OrderRow {
         unit_price: number;
         catalog_item_id: number | null;
         unit_cost: number | null;
+        /** Item custom (harga nego di luar katalog, spek 1.3). */
+        is_custom: boolean;
     }[];
     payments: {
         id: number;
