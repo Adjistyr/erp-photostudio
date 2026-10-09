@@ -24,7 +24,7 @@ Kode di bawah mengikuti struktur yang sudah ada (`Modules/<Domain>/…`, `resour
 | **2** | Bukti ke customer | 2.1 HP di POS · 2.2 Struk setelah POS · 2.3 Bukti bayar setelah catat bayar · 2.4 Tagih via WA · 2.5 Transaksi hari ini | M | — (paralel dengan Fase 1) |
 | **3** | Skala & jalan pintas harian | 3.1 Pencarian + paginasi · 3.2 Filter piutang · 3.3 Kas harian per metode · 3.4 Customer baru dari form order · 3.5 Jadwal besok + ingatkan · 3.6 Margin % katalog | M–L | Fase 1 (3.4 butuh 1.2 pola form) |
 | **4** | Kenyamanan transaksi | 4.1 Diskon persen · 4.2 Retur/void retail · 4.3 Hold keranjang · 4.4 Split payment · 4.5 Ekspor CSV · 4.6 Layar sempit | L | Fase 2 |
-| **5** | Saat admin mulai input | 5.1 Peran & hak akses · 5.2 Shift kasir | L | Fase 0; owner memastikan ada staf yang akan input |
+| **5** | Saat admin mulai input | 5.1 Peran & hak akses · ~~5.2 Shift kasir~~ (tidak dikerjakan, 9 Okt 2026) | L | Fase 0; owner memastikan ada staf yang akan input |
 | **6** | Aset & lainnya (P3) | 6.1 Serial + garansi · 6.2 Proyeksi penggantian · 6.3 Bundel · 6.4 Termin · 6.5 Riwayat harga · 6.6 Sumber lead · 6.7 Lampiran bukti transfer | per item S–L | sesuai kebutuhan |
 
 Fase 1 dan 2 bisa dikerjakan paralel (modul berbeda, tidak saling menyentuh). Fase 5 **jangan** dimulai sebelum owner memastikan ada staf yang akan input.
@@ -333,6 +333,8 @@ Tanpa framework baru: breakpoint `md`. POS → grid produk 2 kolom, keranjang ja
 **Test minimal.** Admin `GET reports/profit-loss` → 403; props order untuk admin tanpa `margin`; admin hapus pembayaran → 403; owner semua OK; sidebar admin tanpa "Laporan" (Vitest).
 
 ### 5.2 Shift kasir
+
+> **Tidak dikerjakan** — keputusan 9 Oktober 2026: POS tidak memakai shift kasir (tidak ada buka/tutup laci).
 
 **Backend**
 - Tabel `cash_shifts`: `opened_by`, `opened_at`, `opening_cash`, `closed_at` nullable, `closed_by`, `expected_cash` (opening + tunai masuk − tunai refund), `counted_cash`, `difference`, `note`. Satu shift terbuka per waktu (unique partial index `closed_at IS NULL`).

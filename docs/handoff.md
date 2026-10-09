@@ -82,7 +82,8 @@ DB lokal berisi data hasil verifikasi manual: ORD-0013 s.d. ORD-0017 (penjualan 
 
 Fase 0–4 selesai. Sisa di `docs/specs/README.md`:
 
-- **5.1 Peran & hak akses, 5.2 Shift kasir** — hanya setelah owner memastikan ada staf admin yang akan input.
+- **5.1 Peran & hak akses** — hanya setelah owner memastikan ada staf admin yang akan input.
+- **5.2 Shift kasir tidak dikerjakan** — keputusan 9 Okt 2026: POS tidak memakai shift (tidak ada buka/tutup laci). Pencocokan laci tetap lewat Kas Harian (3.3) kolom Tunai.
 - **6.x** (serial + garansi, proyeksi penggantian, bundel, termin, riwayat harga, sumber lead, lampiran bukti transfer) — sesuai kebutuhan owner.
 
 Per item: branch dari `develop` (`feat/<modul>-<item>`), kerjakan sesuai spek (test ditulis bersamaan), checklist spek dipindah ke body PR, PR ke `develop`, setelah merge ubah status di `docs/specs/README.md` → ✅ + nomor PR. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.
