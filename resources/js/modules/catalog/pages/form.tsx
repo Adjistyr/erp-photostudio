@@ -33,7 +33,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
 import { PhotoGallery } from '@/modules/catalog/components/photo-gallery';
+import {
+    VariantRows,
+    toVariantRows,
+    variantRowComplete,
+} from '@/modules/catalog/components/variant-rows';
+import type { VariantRow } from '@/modules/catalog/components/variant-rows';
 import { isLowMargin } from '@/modules/catalog/lib/filter';
+import { priceRange } from '@/modules/catalog/lib/variants';
 import type {
     CatalogItem,
     CatalogItemType,
@@ -52,6 +59,8 @@ interface ItemForm {
     category: string;
     description: string;
     is_public: boolean;
+    /** Varian produk (spek 7.3) — ikut tombol Simpan. */
+    variants: VariantRow[];
 }
 
 /** Satu halaman untuk tambah DAN edit — `item` null = tambah. */
@@ -73,19 +82,32 @@ export default function CatalogForm({
         category: item?.category ?? '',
         description: item?.description ?? '',
         is_public: item?.is_public ?? false,
+        variants: toVariantRows(item?.variants ?? []),
     });
-    const { data, setData, errors, processing } = form;
+    const { data, setData, processing } = form;
+    // Error baris varian berkunci "variants.0.name" — tidak ada di tipe form.
+    const errors: Record<string, string | undefined> = form.errors;
 
     const price = Number(data.price) || 0;
     const unitCost = Number(data.unit_cost) || 0;
     const editing = item !== null;
+    // Produk bervarian: harga & HPP diatur per varian; harga item disalin
+    // server dari varian aktif termurah (spek 7.3).
+    const hasVariants = data.type === 'product' && data.variants.length > 0;
+    // Varian tersimpan tidak bisa dihapus → produk ini tidak bisa jadi jasa.
+    const savedVariants = (item?.variants.length ?? 0) > 0;
+    const activeRows = data.variants.filter((v) => v.is_active);
+    const range = priceRange(activeRows.map((v) => Number(v.price) || 0));
     const complete =
         data.name.trim() !== '' &&
-        price > 0 &&
-        (data.type === 'service'
-            ? data.category !== ''
-            : data.unit_cost !== '');
+        (hasVariants
+            ? data.variants.every(variantRowComplete)
+            : price > 0 &&
+              (data.type === 'service'
+                  ? data.category !== ''
+                  : data.unit_cost !== ''));
     const lowMargin =
+        !hasVariants &&
         data.type === 'product' &&
         price > 0 &&
         isLowMargin(price, unitCost, low_margin_ratio);
@@ -94,7 +116,20 @@ export default function CatalogForm({
         // Jasa tidak membawa HPP sama sekali — server menolaknya.
         form.transform((d) => ({
             ...d,
-            unit_cost: d.type === 'service' ? null : d.unit_cost,
+            unit_cost: d.type === 'service' || hasVariants ? null : d.unit_cost,
+            price: hasVariants ? null : d.price,
+            // Jasa tidak pernah membawa varian — server menolaknya.
+            variants:
+                d.type === 'product'
+                    ? d.variants.map((v) => ({
+                          id: v.id,
+                          name: v.name,
+                          price: Number(v.price),
+                          unit_cost: Number(v.unit_cost),
+                          catalog_item_photo_id: v.catalog_item_photo_id,
+                          is_active: v.is_active,
+                      }))
+                    : [],
         }));
         if (editing) {
             // Server kembali ke daftar Katalog.
@@ -133,13 +168,23 @@ export default function CatalogForm({
                                             type: t,
                                             unit_cost: '',
                                             category: '',
+                                            // Varian baru (belum tersimpan) ikut dibuang.
+                                            variants: [],
                                         }));
                                     }}
                                 >
                                     <ToggleGroupItem value="product">
                                         Produk fisik
                                     </ToggleGroupItem>
-                                    <ToggleGroupItem value="service">
+                                    <ToggleGroupItem
+                                        value="service"
+                                        disabled={savedVariants}
+                                        title={
+                                            savedVariants
+                                                ? 'Produk bervarian tidak bisa diubah jadi jasa'
+                                                : undefined
+                                        }
+                                    >
                                         Jasa
                                     </ToggleGroupItem>
                                 </ToggleGroup>
@@ -225,71 +270,107 @@ export default function CatalogForm({
                                 </Field>
                             )}
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <Field>
-                                    <FieldLabel htmlFor="price">
-                                        Harga jual
-                                    </FieldLabel>
-                                    <Input
-                                        id="price"
-                                        inputMode="numeric"
-                                        className="font-mono"
-                                        placeholder="0"
-                                        value={data.price}
-                                        aria-invalid={Boolean(errors.price)}
-                                        onChange={(e) =>
-                                            setData(
-                                                'price',
-                                                hanyaDigit(e.target.value),
-                                            )
-                                        }
-                                    />
-                                    <InputError message={errors.price} />
-                                </Field>
+                            {hasVariants ? (
+                                <p className="text-sm text-muted-foreground">
+                                    Harga jual & HPP diatur per varian di bawah.
+                                    Harga item mengikuti varian aktif termurah.
+                                </p>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <Field>
+                                        <FieldLabel htmlFor="price">
+                                            Harga jual
+                                        </FieldLabel>
+                                        <Input
+                                            id="price"
+                                            inputMode="numeric"
+                                            className="font-mono"
+                                            placeholder="0"
+                                            value={data.price}
+                                            aria-invalid={Boolean(errors.price)}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'price',
+                                                    hanyaDigit(e.target.value),
+                                                )
+                                            }
+                                        />
+                                        <InputError message={errors.price} />
+                                    </Field>
 
-                                {/*
+                                    {/*
                                     HPP hanya untuk produk. Untuk jasa field-nya
                                     DIHILANGKAN dengan penjelasan pengganti, bukan
                                     di-disable — field disabled mengundang pertanyaan
                                     "kenapa tidak boleh diisi".
                                 */}
-                                {data.type === 'product' ? (
-                                    <Field>
-                                        <FieldLabel htmlFor="unit_cost">
-                                            HPP bahan / unit
-                                        </FieldLabel>
-                                        <Input
-                                            id="unit_cost"
-                                            inputMode="numeric"
-                                            className="font-mono"
-                                            placeholder="0"
-                                            value={data.unit_cost}
-                                            aria-invalid={Boolean(
-                                                errors.unit_cost,
-                                            )}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'unit_cost',
-                                                    hanyaDigit(e.target.value),
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.unit_cost}
-                                        />
-                                    </Field>
-                                ) : (
-                                    <div className="flex flex-col justify-center">
-                                        <p className="text-xs text-muted-foreground">
-                                            Jasa tidak punya HPP tetap. Biaya
-                                            crew, transport, dan sewa dicatat
-                                            per order lewat menu Biaya.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
+                                    {data.type === 'product' ? (
+                                        <Field>
+                                            <FieldLabel htmlFor="unit_cost">
+                                                HPP bahan / unit
+                                            </FieldLabel>
+                                            <Input
+                                                id="unit_cost"
+                                                inputMode="numeric"
+                                                className="font-mono"
+                                                placeholder="0"
+                                                value={data.unit_cost}
+                                                aria-invalid={Boolean(
+                                                    errors.unit_cost,
+                                                )}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'unit_cost',
+                                                        hanyaDigit(
+                                                            e.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={errors.unit_cost}
+                                            />
+                                        </Field>
+                                    ) : (
+                                        <div className="flex flex-col justify-center">
+                                            <p className="text-xs text-muted-foreground">
+                                                Jasa tidak punya HPP tetap.
+                                                Biaya crew, transport, dan sewa
+                                                dicatat per order lewat menu
+                                                Biaya.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </FieldGroup>
                     </section>
+
+                    {data.type === 'product' && (
+                        <section className="flex flex-col gap-4 rounded-lg border p-5">
+                            <div className="flex flex-col gap-0.5">
+                                <h2 className="font-heading text-base font-semibold">
+                                    Varian{' '}
+                                    <span className="text-sm font-normal text-muted-foreground">
+                                        — opsional
+                                    </span>
+                                </h2>
+                                <p className="text-xs text-muted-foreground">
+                                    Pilihan dengan harga & HPP sendiri, mis.
+                                    ukuran atau warna. Kosongkan bila produk
+                                    dijual satu harga. Di POS, produk bervarian
+                                    minta pilih varian dulu.
+                                </p>
+                            </div>
+                            <VariantRows
+                                rows={data.variants}
+                                photos={item?.photos ?? []}
+                                errors={errors}
+                                lowMarginRatio={low_margin_ratio}
+                                onChange={(rows) => setData('variants', rows)}
+                            />
+                        </section>
+                    )}
 
                     <section className="flex flex-col gap-4 rounded-lg border p-5">
                         <div className="flex flex-col gap-0.5">
@@ -378,54 +459,90 @@ export default function CatalogForm({
                         </p>
                     </div>
 
-                    <div className="flex flex-col gap-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                                Harga jual
-                            </span>
-                            <span className="font-mono">{formatRp(price)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                                HPP bahan
-                            </span>
-                            <span className="font-mono text-muted-foreground">
-                                {data.type === 'product'
-                                    ? formatRp(unitCost)
-                                    : '—'}
-                            </span>
-                        </div>
-                        <Separator />
-                        <div className="flex items-baseline justify-between">
-                            <span className="font-medium">Margin</span>
-                            {data.type === 'product' && price > 0 ? (
-                                <span
-                                    className={`font-mono font-semibold ${lowMargin ? 'text-destructive' : ''}`}
-                                >
-                                    {formatRp(price - unitCost)} (
-                                    {formatPersen((price - unitCost) / price)})
+                    {hasVariants ? (
+                        <div className="flex flex-col gap-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    Varian aktif
                                 </span>
-                            ) : (
+                                <span className="font-mono">
+                                    {activeRows.length} dari{' '}
+                                    {data.variants.length}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    Harga jual
+                                </span>
+                                <span className="font-mono">
+                                    {range
+                                        ? range.min === range.max
+                                            ? formatRp(range.min)
+                                            : `${formatRp(range.min)} – ${formatRp(range.max)}`
+                                        : '—'}
+                                </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Margin per varian tertulis di bawah tiap baris
+                                varian.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    Harga jual
+                                </span>
+                                <span className="font-mono">
+                                    {formatRp(price)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    HPP bahan
+                                </span>
                                 <span className="font-mono text-muted-foreground">
-                                    —
+                                    {data.type === 'product'
+                                        ? formatRp(unitCost)
+                                        : '—'}
                                 </span>
-                            )}
-                        </div>
-                        {data.type === 'product' &&
-                            price > 0 &&
-                            data.unit_cost === '' && (
-                                <p className="text-xs text-muted-foreground">
-                                    Isi HPP bahan supaya margin mencerminkan
-                                    biaya sebenarnya.
+                            </div>
+                            <Separator />
+                            <div className="flex items-baseline justify-between">
+                                <span className="font-medium">Margin</span>
+                                {data.type === 'product' && price > 0 ? (
+                                    <span
+                                        className={`font-mono font-semibold ${lowMargin ? 'text-destructive' : ''}`}
+                                    >
+                                        {formatRp(price - unitCost)} (
+                                        {formatPersen(
+                                            (price - unitCost) / price,
+                                        )}
+                                        )
+                                    </span>
+                                ) : (
+                                    <span className="font-mono text-muted-foreground">
+                                        —
+                                    </span>
+                                )}
+                            </div>
+                            {data.type === 'product' &&
+                                price > 0 &&
+                                data.unit_cost === '' && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Isi HPP bahan supaya margin mencerminkan
+                                        biaya sebenarnya.
+                                    </p>
+                                )}
+                            {lowMargin && data.unit_cost !== '' && (
+                                <p className="text-xs text-destructive">
+                                    Margin di bawah{' '}
+                                    {formatPersen(low_margin_ratio)} — ambang di
+                                    konfigurasi studio.
                                 </p>
                             )}
-                        {lowMargin && data.unit_cost !== '' && (
-                            <p className="text-xs text-destructive">
-                                Margin di bawah {formatPersen(low_margin_ratio)}{' '}
-                                — ambang di konfigurasi studio.
-                            </p>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     <div className="flex gap-2">
                         <Button

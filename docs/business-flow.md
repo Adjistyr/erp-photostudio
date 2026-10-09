@@ -86,6 +86,7 @@ Entitas di blok bawah dijelaskan di bagian 8.
 **Katalog** — dua jenis dalam satu daftar:
 - *Produk* (keychain, cetak 4R, bingkai): punya HPP bahan per unit yang diisi manual. Katalog menandai merah produk bermargin di bawah 20% (ambang bisa diubah lewat `STUDIO_LOW_MARGIN_RATIO`).
 - *Jasa* (paket studio 1 jam, paket prewed, paket wedding): punya harga jual, tapi HPP-nya tidak tetap — dicatat per job lewat BiayaJob. Kategorinya **tiga nilai tetap** — Studio (muncul di order sesi studio), Event (order event), Add-on (keduanya) — karena kategori inilah yang menentukan paket mana yang ditawarkan form Buat Order. Kategori produk tetap bebas.
+- *Produk* bisa punya **varian** (mis. Bingkai Kayu A4 / A3): satu daftar pilihan bernama bebas, masing-masing dengan harga jual dan HPP sendiri, dan boleh memakai salah satu foto galeri. Varian tidak dihapus — dinonaktifkan bila tidak dijual lagi. Jasa tidak punya varian; paket jasa tetap item terpisah.
 - Setiap item (produk maupun jasa) bisa punya **galeri foto** (maksimal 8; foto pertama = sampul yang tampil di POS dan daftar Katalog), **deskripsi**, dan penanda **Tampil di company profile**. Ketiganya disiapkan untuk website company profile (produk terpisah) — yang nanti hanya boleh menampilkan item aktif bertanda itu, tanpa HPP.
 
 **Order** — satu tabel untuk semua jenis transaksi, dibedakan oleh field `tipe`: `retail` / `studio` / `event`. Menyimpan customer, tanggal transaksi, jadwal (kalau ada), lokasi, total, diskon, link hasil foto, catatan.
@@ -161,7 +162,7 @@ Dibuat turunan supaya tidak mungkin terjadi status "Lunas" padahal pembayarannya
 Transaksi paling sederhana dan paling sering. Target: selesai di bawah 30 detik.
 
 1. Customer datang dan pilih barang.
-2. Owner buka layar POS, pilih item dari katalog, isi qty.
+2. Owner buka layar POS, pilih item dari katalog, isi qty. Produk bervarian minta pilih varian dulu; keranjang, struk, dan laporan menulisnya "Produk – Varian" dengan harga varian.
 3. Total dihitung otomatis. Owner bisa isi diskon kalau ada.
 4. **Customer bersifat opsional.** Kalau customer mau nomornya dicatat (misal untuk dikirimi file foto), isi nama + HP (HP hanya tersimpan bersama nama; nama yang sudah ada dicocokkan lewat HP dulu, lalu nama). Kalau tidak, transaksi tetap bisa disimpan sebagai walk-in tanpa customer.
 5. Pilih metode bayar → simpan. Kalau customer membayar dengan dua metode (mis. sebagian tunai, sebagian QRIS), pakai **+ Bagi pembayaran**: ketik nominal metode kedua, sisanya otomatis ke metode pertama. Jumlah keduanya harus sama dengan total; tiap metode tercatat sebagai pembayaran sendiri supaya Kas Harian per metode tetap cocok dengan laci dan rekening.

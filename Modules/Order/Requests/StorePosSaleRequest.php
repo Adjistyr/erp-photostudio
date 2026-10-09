@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Catalog\Enums\CatalogItemType;
+use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Customer\Support\Phone;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
@@ -32,6 +33,8 @@ class StorePosSaleRequest extends FormRequest
             'items.*.catalog_item_id' => ['required', 'integer', Rule::exists('catalog_items', 'id')
                 ->where('is_active', true)
                 ->where('type', CatalogItemType::Product->value)],
+            // Varian produk (spek 7.3) — wajib/terlarang tergantung produknya, di after().
+            'items.*.catalog_item_variant_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'discount' => ['nullable', 'integer', 'min:0'],
             // 1–2 pembayaran (split tunai + QRIS, spek 4.4) — satu jalur saja;
@@ -52,6 +55,9 @@ class StorePosSaleRequest extends FormRequest
     {
         return [function (Validator $validator) {
             if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+            if ($this->rejectWrongVariants($validator)) {
                 return;
             }
             // Diskon sebesar subtotal = transaksi nol rupiah — hampir pasti
@@ -75,6 +81,39 @@ class StorePosSaleRequest extends FormRequest
                 $validator->errors()->add('payments.1.method', 'Dua pembayaran dengan metode sama — gabungkan saja.');
             }
         }];
+    }
+
+    /**
+     * Produk bervarian wajib varian aktif miliknya; produk tanpa varian tidak
+     * boleh membawa varian (spek 7.3). true = ada error.
+     */
+    private function rejectWrongVariants(Validator $validator): bool
+    {
+        /** @var list<array{catalog_item_id: int|string, catalog_item_variant_id?: int|string|null}> $items */
+        $items = $this->input('items', []);
+        $ids = array_map(fn (array $i) => (int) $i['catalog_item_id'], $items);
+        $variantsByItem = CatalogItemVariant::whereIn('catalog_item_id', $ids)->get()->groupBy('catalog_item_id');
+
+        foreach ($items as $n => $i) {
+            $variants = $variantsByItem->get((int) $i['catalog_item_id']);
+            $chosen = isset($i['catalog_item_variant_id']) && $i['catalog_item_variant_id'] !== '' ? (int) $i['catalog_item_variant_id'] : null;
+            $key = "items.{$n}.catalog_item_variant_id";
+            if ($variants === null) {
+                if ($chosen !== null) {
+                    $validator->errors()->add($key, 'Produk ini tidak punya varian.');
+                }
+
+                continue;
+            }
+            $variant = $chosen === null ? null : $variants->firstWhere('id', $chosen);
+            if ($variant === null) {
+                $validator->errors()->add($key, 'Pilih varian produk ini.');
+            } elseif (! $variant->is_active) {
+                $validator->errors()->add($key, "Varian {$variant->name} sudah tidak dijual.");
+            }
+        }
+
+        return $validator->errors()->isNotEmpty();
     }
 
     /** HP ternormalisasi (`62…`); null kalau kosong atau tanpa digit. */

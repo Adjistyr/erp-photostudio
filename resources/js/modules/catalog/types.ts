@@ -20,6 +20,19 @@ export interface CatalogItem {
     is_public: boolean;
     /** Galeri, sampul dulu. */
     photos: CatalogPhoto[];
+    /** Varian produk (spek 7.3), aktif & nonaktif; kosong untuk jasa. */
+    variants: CatalogVariant[];
+}
+
+/** Varian produk — harga & HPP sendiri; tidak dihapus, hanya dinonaktifkan. */
+export interface CatalogVariant {
+    id: number;
+    name: string;
+    price: number;
+    unit_cost: number;
+    /** Foto dari galeri item; null = sampul item. */
+    catalog_item_photo_id: number | null;
+    is_active: boolean;
 }
 
 export interface ServiceCategoryOption {

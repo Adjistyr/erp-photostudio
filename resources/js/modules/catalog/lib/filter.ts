@@ -4,7 +4,13 @@
  * POS" dan jawabannya badge Nonaktif.
  */
 export function filterCatalog<
-    T extends { name: string; category: string; type: 'product' | 'service' },
+    T extends {
+        name: string;
+        category: string;
+        type: 'product' | 'service';
+        /** Nama varian ikut dicari (spek 7.3) — "A4" menemukan Bingkai Kayu. */
+        variants?: { name: string }[];
+    },
 >(items: T[], f: { type: 'all' | 'product' | 'service'; q: string }): T[] {
     const q = f.q.trim().toLowerCase();
     return items.filter(
@@ -12,7 +18,10 @@ export function filterCatalog<
             (f.type === 'all' || i.type === f.type) &&
             (q === '' ||
                 i.name.toLowerCase().includes(q) ||
-                i.category.toLowerCase().includes(q)),
+                i.category.toLowerCase().includes(q) ||
+                (i.variants ?? []).some((v) =>
+                    v.name.toLowerCase().includes(q),
+                )),
     );
 }
 

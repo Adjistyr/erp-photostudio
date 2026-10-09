@@ -16,8 +16,8 @@ import type { CartFields, HeldCart } from '@/modules/order/lib/held-carts';
 
 const fields: CartFields = {
     items: [
-        { catalog_item_id: 1, quantity: 2 },
-        { catalog_item_id: 2, quantity: 1 },
+        { catalog_item_id: 1, catalog_item_variant_id: null, quantity: 2 },
+        { catalog_item_id: 2, catalog_item_variant_id: null, quantity: 1 },
     ],
     discount: '10',
     payments: [{ method: 'cash', amount: '' }],
@@ -72,9 +72,11 @@ test('holdCart: terbaru di atas; daftar berisi 5 → full', () => {
 });
 
 test('restoreCart: item yang hilang dari katalog dilewati, sisanya utuh', () => {
-    const { form, skipped } = restoreCart(cart(), [{ id: 1 }]);
+    const { form, skipped } = restoreCart(cart(), [{ id: 1, price: 5000 }]);
     assert.equal(skipped, 1);
-    assert.deepEqual(form.items, [{ catalog_item_id: 1, quantity: 2 }]);
+    assert.deepEqual(form.items, [
+        { catalog_item_id: 1, catalog_item_variant_id: null, quantity: 2 },
+    ]);
     assert.equal(form.discount, '10');
     assert.deepEqual(form.payments, fields.payments);
 });
@@ -93,4 +95,33 @@ test('label default & total perkiraan dari harga sekarang', () => {
     assert.equal(makeHeldCart(fields, 'rp', '  ', at).label, 'Keranjang 14:05');
     // (2 × 5.000 + 0 untuk item hilang) − 10% = 9.000
     assert.equal(heldTotal(cart(), [{ id: 1, price: 5000 }]), 9000);
+});
+
+test('varian: entri lama tanpa field = tanpa varian; varian hilang dilewati', () => {
+    const old = { ...cart(), items: [{ catalog_item_id: 1, quantity: 1 }] };
+    assert.deepEqual(loadHeld(memory(JSON.stringify([old])))[0].items, [
+        { catalog_item_id: 1, catalog_item_variant_id: null, quantity: 1 },
+    ]);
+
+    const withVariant: HeldCart = {
+        ...cart(),
+        discount: '',
+        items: [
+            { catalog_item_id: 3, catalog_item_variant_id: 30, quantity: 2 },
+            { catalog_item_id: 3, catalog_item_variant_id: 31, quantity: 1 },
+            // Produk kini bervarian — baris tanpa varian tidak bisa dijual.
+            { catalog_item_id: 3, catalog_item_variant_id: null, quantity: 1 },
+        ],
+    };
+    const products = [
+        { id: 3, price: 60000, variants: [{ id: 30, price: 60000 }] },
+    ];
+    const { form, skipped } = restoreCart(withVariant, products);
+    assert.equal(skipped, 2);
+    assert.deepEqual(form.items, [withVariant.items[0]]);
+    // Total memakai harga varian: 2 × 60.000 (varian hilang = 0).
+    assert.equal(
+        heldTotal({ ...withVariant, discountMode: 'rp' }, products),
+        120000,
+    );
 });

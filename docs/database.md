@@ -11,6 +11,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Katalog (produk / jasa) | `CatalogItem` · `catalog_items` (`type`: product / service; `category` produk teks bebas, jasa wajib `ServiceCategory` Studio/Event/Add-on) |
 | HPP bahan per unit | `unit_cost` (null untuk jasa **dan** item custom) |
 | Profil publik item (company profile, spek 7.1) | `catalog_items.description` (nullable, ≤ 2000) · `catalog_items.is_public` (default false; tidak memengaruhi POS/form order) |
+| Varian produk (spek 7.3) | `CatalogItemVariant` · `catalog_item_variants` (`name`, `price`, `unit_cost`, `catalog_item_photo_id` nullable → foto galeri, `is_active`, `position`; produk saja, maks 30, tidak dihapus). Produk bervarian: `catalog_items.price/unit_cost` disalin dari varian aktif termurah. `order_items.catalog_item_variant_id` (nullable) + snapshot nama "Produk – Varian" |
 | Galeri foto item | `CatalogItemPhoto` · `catalog_item_photos` (`path` WebP ≤ 1600 px, `thumb_path` WebP 400×400, `position` terkecil = sampul, maks 8 per item; file di disk `public`, `catalog/{item}/`) |
 | Customer | `Customer` · `customers` (index pencarian `customers_name_lower_idx` = `LOWER(name)` dan `customers_phone_idx`; `phone` disimpan ternormalisasi `62…` lewat `Modules\Customer\Support\Phone::normalise()` sejak spek 2.1; data lama `08…` tetap valid — pencocokan dari POS: HP → nama, HP yang sudah ada tidak ditimpa) |
 | Order | `Order` · `orders` |

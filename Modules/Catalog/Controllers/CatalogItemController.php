@@ -4,11 +4,13 @@ namespace Modules\Catalog\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Catalog\Models\CatalogItemPhoto;
+use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Catalog\Requests\CatalogItemRequest;
 
 /**
@@ -26,7 +28,7 @@ class CatalogItemController extends Controller
         return Inertia::render('catalog::index', [
             // 'product' < 'service' — produk tampil lebih dulu, lalu urut input.
             'items' => CatalogItem::query()
-                ->with('photos')
+                ->with(['photos', 'variants'])
                 ->orderBy('type')
                 ->orderBy('id')
                 ->get()
@@ -48,14 +50,19 @@ class CatalogItemController extends Controller
 
     public function edit(CatalogItem $catalogItem): Response
     {
-        $catalogItem->load('photos');
+        $catalogItem->load(['photos', 'variants']);
 
         return Inertia::render('catalog::form', ['item' => $this->itemProps($catalogItem), ...$this->formProps()]);
     }
 
     public function store(CatalogItemRequest $request): RedirectResponse
     {
-        $item = CatalogItem::create($request->catalogData());
+        $item = DB::transaction(function () use ($request) {
+            $item = CatalogItem::create($request->catalogData());
+            $this->saveVariants($item, $request);
+
+            return $item;
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$item->name} ditambahkan ke katalog. Tambahkan foto di bawah."]);
 
@@ -66,7 +73,10 @@ class CatalogItemController extends Controller
 
     public function update(CatalogItemRequest $request, CatalogItem $catalogItem): RedirectResponse
     {
-        $catalogItem->update($request->catalogData());
+        DB::transaction(function () use ($request, $catalogItem) {
+            $catalogItem->update($request->catalogData());
+            $this->saveVariants($catalogItem, $request);
+        });
 
         // Order lama tidak ikut berubah — item order menyimpan harga saat transaksi.
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$catalogItem->name} diperbarui. Harga baru berlaku untuk transaksi berikutnya."]);
@@ -87,6 +97,30 @@ class CatalogItemController extends Controller
     }
 
     /**
+     * Varian (spek 7.3): yang ber-id diperbarui, yang baru dibuat. Varian lama
+     * yang tidak dikirim dibiarkan — varian tidak dihapus (dirujuk order).
+     */
+    private function saveVariants(CatalogItem $item, CatalogItemRequest $request): void
+    {
+        $rows = $request->variantsData();
+        if ($rows === []) {
+            return;
+        }
+        $offset = (int) $item->variants()->max('position');
+        foreach ($rows as $i => $row) {
+            $attributes = ['name' => $row['name'], 'price' => $row['price'], 'unit_cost' => $row['unit_cost'],
+                'catalog_item_photo_id' => $row['catalog_item_photo_id'], 'is_active' => $row['is_active']];
+            if ($row['id'] !== null) {
+                // Rule exists sudah memastikan varian milik item ini.
+                $item->variants()->whereKey($row['id'])->update([...$attributes, 'position' => $i + 1]);
+            } else {
+                $item->variants()->create([...$attributes, 'position' => $offset + $i + 1]);
+            }
+        }
+        $item->syncPriceFromVariants();
+    }
+
+    /**
      * Bentuk satu item untuk daftar dan halaman form — satu sumber.
      *
      * @return array<string, mixed>
@@ -101,6 +135,8 @@ class CatalogItemController extends Controller
             // Profil publik + galeri (spek 7.1), sampul dulu.
             'description' => $i->description, 'is_public' => $i->is_public,
             'photos' => $i->photos->map(fn (CatalogItemPhoto $p) => $p->toProps())->values()->all(),
+            // Varian produk (spek 7.3), aktif maupun nonaktif.
+            'variants' => $i->variants->map(fn (CatalogItemVariant $v) => $v->toProps())->values()->all(),
         ];
     }
 
