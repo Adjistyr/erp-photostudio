@@ -24,6 +24,7 @@ use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderEvent;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\Payment;
+use Modules\Order\Models\Refund;
 use Modules\Order\Requests\CancelOrderRequest;
 use Modules\Order\Requests\OrderResultLinkRequest;
 use Modules\Order\Requests\StoreOrderRequest;
@@ -55,7 +56,7 @@ class OrderController extends Controller
             'from' => 'date',
             'to' => 'date',
         ]);
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user'])
             ->search($list)
             ->orderByDesc('id')
             ->paginate(ListQuery::PER_PAGE)
@@ -79,7 +80,7 @@ class OrderController extends Controller
         $month = Periods::orCurrent($request->query('month'));
         $start = Periods::start($month);
 
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
             ->whereBetween('service_date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ->orderBy('service_date')
@@ -184,7 +185,7 @@ class OrderController extends Controller
     public function edit(Order $order): Response
     {
         abort_unless($order->isEditable(), 404);
-        $order->load(['customer', 'items', 'payments.creator', 'jobCosts.creator', 'creator', 'events.user']);
+        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user']);
         $kept = $order->items->pluck('catalog_item_id')->filter()->all();
 
         return Inertia::render('order::edit', [
@@ -398,6 +399,13 @@ class OrderController extends Controller
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,
                 'method' => $p->method->value, 'note' => $p->note, 'created_by_name' => $p->creator?->name,
             ])->values()->all(),
+            // Pengembalian uang (spek 4.2) — sisa tagihan & status bayar tetap bruto.
+            'refunds' => $o->refunds->sortBy('refunded_on')->map(fn (Refund $r) => [
+                'id' => $r->id, 'refunded_on' => $r->refunded_on->toDateString(), 'amount' => $r->amount,
+                'method' => $r->method->value, 'reason' => $r->reason, 'created_by_name' => $r->creator?->name,
+            ])->values()->all(),
+            'total_refunded' => $o->totalRefunded(),
+            'refundable' => $o->netPaid(),
             'events' => $o->events->map(fn (OrderEvent $e) => [
                 'id' => $e->id, 'type' => $e->type->value, 'changes' => $e->changes,
                 'user_name' => $e->user?->name, 'at' => $e->created_at->toIso8601String(),

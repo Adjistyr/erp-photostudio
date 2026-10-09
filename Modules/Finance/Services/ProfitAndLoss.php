@@ -7,6 +7,7 @@ use Modules\Expense\Models\JobCost;
 use Modules\Expense\Models\OperatingExpense;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\Payment;
+use Modules\Order\Models\Refund;
 use Modules\Shared\Enums\BusinessLine;
 
 /**
@@ -18,12 +19,20 @@ class ProfitAndLoss
 {
     public function __construct(private readonly AssetMaintenance $assets) {}
 
+    /**
+     * Uang masuk bulan ini dikurangi pengembalian bulan ini (spek 4.2) —
+     * refund mengurangi omzet bulan REFUND, bukan bulan pembayaran asli,
+     * supaya bulan yang sudah tutup buku tidak berubah.
+     */
     public function revenue(string $month, ?BusinessLine $line = null): int
     {
-        return (int) Payment::query()
-            ->whereBetween('paid_on', [Periods::start($month), Periods::end($month)])
-            ->when($line, fn ($q) => $q->whereHas('order', fn ($o) => $o->where('business_line', $line)))
-            ->sum('amount');
+        $range = [Periods::start($month), Periods::end($month)];
+        $byLine = fn ($q) => $q->whereHas('order', fn ($o) => $o->where('business_line', $line));
+
+        $in = (int) Payment::query()->whereBetween('paid_on', $range)->when($line, $byLine)->sum('amount');
+        $out = (int) Refund::query()->whereBetween('refunded_on', $range)->when($line, $byLine)->sum('amount');
+
+        return $in - $out;
     }
 
     public function jobCosts(string $month, ?BusinessLine $line = null): int

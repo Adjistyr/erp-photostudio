@@ -95,6 +95,18 @@ export interface OrderRow {
         amount: number;
         created_by_name: string | null;
     }[];
+    /** Pengembalian uang (spek 4.2). */
+    refunds: {
+        id: number;
+        refunded_on: string;
+        amount: number;
+        method: PaymentMethod;
+        reason: string;
+        created_by_name: string | null;
+    }[];
+    total_refunded: number;
+    /** Uang yang masih bisa dikembalikan (diterima − dikembalikan). */
+    refundable: number;
     /** Riwayat perubahan, terbaru dulu. */
     events: OrderEvent[];
 }

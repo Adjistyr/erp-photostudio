@@ -2,7 +2,9 @@
 
 namespace Modules\Finance\Tests\Feature;
 
+use Modules\Finance\Services\CashReceipts;
 use Modules\Finance\Services\ProfitAndLoss;
+use Modules\Order\Models\Refund;
 use Modules\Shared\Enums\BusinessLine;
 
 /** Porting web/app/lib/dummy.test.ts + bagi-hasil.test.ts (laba rugi). */
@@ -103,5 +105,30 @@ class ProfitAndLossTest extends DemoDataTestCase
         $this->assertSame(2_695_500, $b->grossProfit);
         $this->assertSame(2_894_950, $b->shortfall);
         $this->assertSame(48, (int) round($b->ratio * 100));
+    }
+
+    public function test_revenue_subtracts_refunds_in_refund_month_only()
+    {
+        $aug = $this->pnl()->revenue('2026-08');
+        $augRetail = $this->pnl()->revenue('2026-08', BusinessLine::Retail);
+
+        // ORD-0003 (retail, dibayar Agustus) direfund September.
+        Refund::create(['order_id' => $this->order('ORD-0003')->id, 'refunded_on' => '2026-09-02',
+            'amount' => 30_000, 'method' => 'cash', 'reason' => 'Retur']);
+
+        $this->assertSame($aug, $this->pnl()->revenue('2026-08'));
+        $this->assertSame(-30_000, $this->pnl()->revenue('2026-09', BusinessLine::Retail) - 0);
+        $this->assertSame($augRetail, $this->pnl()->revenue('2026-08', BusinessLine::Retail));
+        $this->assertSame(0, $this->pnl()->revenue('2026-09', BusinessLine::Studio));
+    }
+
+    public function test_material_costs_ignore_refunds()
+    {
+        $before = $this->pnl()->materialCosts('2026-08');
+        Refund::create(['order_id' => $this->order('ORD-0003')->id, 'refunded_on' => '2026-08-26',
+            'amount' => 30_000, 'method' => 'cash', 'reason' => 'Retur']);
+
+        $this->assertSame($before, $this->pnl()->materialCosts('2026-08'));
+        $this->assertSame($this->pnl()->revenue('2026-08'), app(CashReceipts::class)->forMonth('2026-08')->total);
     }
 }

@@ -13,6 +13,7 @@ import { ArrowRight, CalendarDays, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
+import OrderRefundController from '@/actions/Modules/Order/Controllers/OrderRefundController';
 import {
     KELAS_DENSITY,
     KepalaUang,
@@ -37,6 +38,7 @@ import { useFlash } from '@/hooks/use-flash';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
+import { RefundDialog } from '@/modules/order/components/refund-dialog';
 import {
     LineMark,
     PaymentBadge,
@@ -295,10 +297,15 @@ export default function OrdersIndex({
                                         <WorkProgress status={o.work_status} />
                                     </TableCell>
                                     <TableCell>
-                                        <PaymentBadge
-                                            status={o.payment_status}
-                                            paidPercent={o.paid_percent}
-                                        />
+                                        <span className="flex items-center gap-1">
+                                            <PaymentBadge
+                                                status={o.payment_status}
+                                                paidPercent={o.paid_percent}
+                                            />
+                                            <RefundBadge
+                                                amount={o.total_refunded}
+                                            />
+                                        </span>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -374,6 +381,8 @@ function OrderDetail({
     order: OrderRow;
     onPay: (o: OrderRow) => void;
 }) {
+    const [refunding, setRefunding] = useState(false);
+
     return (
         <>
             <SheetHeader>
@@ -383,6 +392,7 @@ function OrderDetail({
                         status={order.payment_status}
                         paidPercent={order.paid_percent}
                     />
+                    <RefundBadge amount={order.total_refunded} />
                 </SheetTitle>
                 <SheetDescription>
                     {order.customer_name ?? 'Walk-in'} ·{' '}
@@ -470,6 +480,48 @@ function OrderDetail({
                             </TableBody>
                         </Table>
                     )}
+                    {/* Pengembalian (spek 4.2): uang keluar, merah. Tidak
+                        mengubah sisa tagihan — customer tidak berutang lagi. */}
+                    {order.refunds.length > 0 && (
+                        <Table className={KELAS_DENSITY}>
+                            <TableBody>
+                                {order.refunds.map((r) => (
+                                    <TableRow
+                                        key={r.id}
+                                        className="text-destructive"
+                                    >
+                                        <TableCell>Retur</TableCell>
+                                        <TableCell>
+                                            {formatTanggal(r.refunded_on)} ·{' '}
+                                            {PAYMENT_METHOD_LABEL[r.method]} ·{' '}
+                                            {r.reason}
+                                            <RecordedBy
+                                                name={r.created_by_name}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            −{formatRp(r.amount)}
+                                        </TableCell>
+                                        <TableCell className="w-10">
+                                            <ConfirmDelete
+                                                url={
+                                                    OrderRefundController.destroy(
+                                                        {
+                                                            order: order.id,
+                                                            refund: r.id,
+                                                        },
+                                                    ).url
+                                                }
+                                                label={`retur ${formatRp(r.amount)}`}
+                                                title={`Hapus retur ${formatRp(r.amount)}?`}
+                                                description="Omzet bulan pengembalian dan margin order ini dihitung ulang."
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                     <div className="flex flex-col gap-1 px-3 pt-2 text-sm">
                         <Line
                             label="Total order"
@@ -479,6 +531,12 @@ function OrderDetail({
                             label="Sudah dibayar"
                             value={formatRp(order.paid)}
                         />
+                        {order.total_refunded > 0 && (
+                            <Line
+                                label="Dikembalikan"
+                                value={`−${formatRp(order.total_refunded)}`}
+                            />
+                        )}
                         <div className="flex justify-between font-medium">
                             {order.work_status === 'cancelled' ? (
                                 <span className="text-muted-foreground">
@@ -532,6 +590,15 @@ function OrderDetail({
                         angka ini yang membuat owner memutuskan paket sejenis
                         masih layak dijual dengan harga yang sama.
                     */}
+                    {/* Retur mengurangi omzet riil order → margin (spek 4.2). */}
+                    {order.total_refunded > 0 && (
+                        <div className="flex justify-between px-3 pt-2 text-sm text-muted-foreground">
+                            <span>Pengembalian</span>
+                            <span className="font-mono">
+                                −{formatRp(order.total_refunded)}
+                            </span>
+                        </div>
+                    )}
                     <div className="flex justify-between px-3 pt-2 text-sm font-medium">
                         <span>Margin job</span>
                         <span className={`font-mono ${kelasRp(order.margin)}`}>
@@ -592,6 +659,15 @@ function OrderDetail({
                     >
                         Catat Pembayaran
                     </Button>
+                    {/* Hanya bila ada uang yang bisa dikembalikan. */}
+                    {order.refundable > 0 && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setRefunding(true)}
+                        >
+                            Catat Retur
+                        </Button>
+                    )}
                     {order.invoice_url && (
                         <Button
                             variant="outline"
@@ -624,6 +700,12 @@ function OrderDetail({
                     )}
                 </div>
             </div>
+            {refunding && (
+                <RefundDialog
+                    order={order}
+                    onClose={() => setRefunding(false)}
+                />
+            )}
         </>
     );
 }
@@ -862,5 +944,20 @@ function Line({ label, value }: { label: string; value: string }) {
             <span className="text-muted-foreground">{label}</span>
             <span className="font-mono">{value}</span>
         </div>
+    );
+}
+
+/** Tanda ada pengembalian uang (spek 4.2) — status bayar sendiri tidak berubah. */
+function RefundBadge({ amount }: { amount: number }) {
+    if (amount <= 0) return null;
+
+    return (
+        <Badge
+            variant="outline"
+            className="border-destructive text-destructive"
+            title={`Dikembalikan ${formatRp(amount)}`}
+        >
+            Retur
+        </Badge>
     );
 }

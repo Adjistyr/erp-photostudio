@@ -11,6 +11,7 @@ use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
 use Modules\Order\Models\Payment;
+use Modules\Order\Models\Refund;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Http\ListQuery;
 
@@ -28,7 +29,7 @@ class InvoiceController extends Controller
             'line' => BusinessLine::values(),
             'pay' => ['unpaid', 'partial', 'paid'],
         ]);
-        $orders = Order::with(['customer', 'items', 'payments'])
+        $orders = Order::with(['customer', 'items', 'payments', 'refunds'])
             ->where('work_status', '!=', WorkStatus::Cancelled)
             ->search($list)
             ->orderByDesc('id')
@@ -53,7 +54,7 @@ class InvoiceController extends Controller
         abort_if($order->isCancelled(), 404);
 
         return Inertia::render('order::invoice-public', [
-            'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments'])),
+            'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments', 'refunds'])),
             'studio' => config('studio'),
             // Hanya dari `print_url` (ditandatangani dengan print=1) — lihat Order::invoiceUrl().
             'auto_print' => $request->boolean('print'),
@@ -84,6 +85,12 @@ class InvoiceController extends Controller
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'method' => $p->method->value,
                 'note' => $p->note, 'amount' => $p->amount,
             ])->values()->all(),
+            // Pengembalian tampil di invoice; Sisa/Lunas tetap dari balance() (bruto).
+            'refunds' => $o->refunds->sortBy('refunded_on')->map(fn (Refund $r) => [
+                'id' => $r->id, 'refunded_on' => $r->refunded_on->toDateString(), 'method' => $r->method->value,
+                'reason' => $r->reason, 'amount' => $r->amount,
+            ])->values()->all(),
+            'total_refunded' => $o->totalRefunded(),
             'paid' => $o->totalPaid(),
             'balance' => $o->balance(),
             'payment_status' => $o->paymentStatus()->value,

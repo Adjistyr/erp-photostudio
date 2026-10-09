@@ -90,7 +90,7 @@ export default function Sales({
 
                 <Section
                     title="Produk terlaris"
-                    note="dihitung dari uang yang diterima bulan ini (basis kas)"
+                    note="dihitung dari uang yang diterima bulan ini (basis kas) · qty dan omzet produk belum dikurangi retur"
                 >
                     {products.length === 0 ? (
                         <KosongTabel kalimat="Belum ada produk di katalog." />

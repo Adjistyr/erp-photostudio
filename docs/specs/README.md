@@ -45,7 +45,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 3.4 Customer baru dari form order | `3.4-customer-dari-form-order.md` | S | 1.2, 2.1 | ✅ #44 |
 | 3.5 Jadwal besok + ingatkan | `3.5-jadwal-besok.md` | S | 2.4 (`personalise`) | ✅ #45 |
 | 3.6 Katalog: margin % + cari | `3.6-katalog-margin-cari.md` | S | 3.1 (toolbar) | ✅ #46 |
-| 4.1 Diskon persen | `4.1-diskon-persen.md` | S | — | ⬜ |
+| 4.1 Diskon persen | `4.1-diskon-persen.md` | S | — | ✅ #47 |
 | 4.2 Retur / refund | `4.2-retur-refund.md` | M | 0.1, 0.2, 3.3 | ⬜ |
 | 4.3 Hold keranjang | `4.3-hold-keranjang.md` | S | — | ⬜ |
 | 4.4 Split payment | `4.4-split-payment.md` | M | 2.2 | ⬜ |

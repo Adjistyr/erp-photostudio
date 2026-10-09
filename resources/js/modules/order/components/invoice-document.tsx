@@ -61,6 +61,15 @@ export interface Invoice {
         note: string;
         amount: number;
     }[];
+    /** Pengembalian uang (spek 4.2) — Sisa/Lunas tetap dari balance (bruto). */
+    refunds: {
+        id: number;
+        refunded_on: string;
+        method: PaymentMethod;
+        reason: string;
+        amount: number;
+    }[];
+    total_refunded: number;
     paid: number;
     balance: number;
     payment_status: PaymentStatus;
@@ -314,6 +323,29 @@ export function InvoiceDocument({
                         {formatRp(invoice.balance)}
                     </span>
                 </div>
+                {/* Pengembalian di bawah, bukan di antara pembayaran: tidak
+                    mengubah Sisa/Lunas — customer tidak berutang lagi. */}
+                {invoice.refunds.length > 0 && (
+                    <div className="flex flex-col gap-1 rounded-md bg-muted p-3 text-xs">
+                        <span className="text-muted-foreground">
+                            Dikembalikan ke customer
+                        </span>
+                        {invoice.refunds.map((r) => (
+                            <div
+                                key={r.id}
+                                className="flex justify-between gap-2"
+                            >
+                                <span>
+                                    {formatTanggal(r.refunded_on)} · {r.reason}{' '}
+                                    · {PAYMENT_METHOD_LABEL[r.method]}
+                                </span>
+                                <span className="font-mono whitespace-nowrap">
+                                    {formatRp(r.amount)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {invoice.balance > 0 && (
