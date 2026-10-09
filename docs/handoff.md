@@ -53,7 +53,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | #38 | 1.3 Item custom | #50 | 4.4 Split payment POS |
 | #39 | 1.4 Status kerja mundur | #51 | 4.3 Tahan keranjang |
 | #40 | 2.5 Transaksi hari ini di POS | #52 | 4.6 Layar sempit POS & Pembayaran |
-| #41 | 3.1 Cari + filter + paginasi server | | |
+| #41 | 3.1 Cari + filter + paginasi server | #54 | 7.1 Galeri foto + profil publik katalog |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 
@@ -73,10 +73,11 @@ Kode yang menang bila spek tidak cocok — speknya tidak ditulis ulang, alasanny
 - **#49** ekspor melebihi batas → kembali dengan toast error, bukan halaman 422.
 - **#51** keranjang tertahan menyimpan `payments[]` (setelah 4.4); ID tanpa `crypto.randomUUID()` (hanya ada di secure context).
 - **#52** keranjang POS dirender sekali lewat `useMinWidth(1024)`, bukan render ganda dengan kelas CSS (id input dobel); `PosCart` tidak diekstrak.
+- **#54** (spek 7.1, permintaan tambahan): badge "Profil" di kolom Status dan nama item boleh terlipat, supaya tabel Katalog tetap muat di 1280 px.
 
 ### Data uji lokal (bukan seed)
 
-DB lokal berisi data hasil verifikasi manual: ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed`.
+DB lokal berisi data hasil verifikasi manual: foto di "Cetak 10R + Bingkai" (bertanda Profil) dan item baru "Gantungan Kunci Foto Kayu", ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` (file foto tidak ikut terhapus oleh reset DB).
 
 ## 4. Langkah berikutnya
 
@@ -84,6 +85,7 @@ Fase 0–4 selesai. Sisa di `docs/specs/README.md`:
 
 - **5.1 Peran & hak akses** — hanya setelah owner memastikan ada staf admin yang akan input.
 - **5.2 Shift kasir tidak dikerjakan** — keputusan 9 Okt 2026: POS tidak memakai shift (tidak ada buka/tutup laci). Pencocokan laci tetap lewat Kas Harian (3.3) kolom Tunai.
+- **7.1 Galeri foto katalog** selesai (#54). Endpoint publik untuk company profile belum dibuat — aturan field yang boleh keluar ada di speknya.
 - **6.x** (serial + garansi, proyeksi penggantian, bundel, termin, riwayat harga, sumber lead, lampiran bukti transfer) — sesuai kebutuhan owner.
 
 Per item: branch dari `develop` (`feat/<modul>-<item>`), kerjakan sesuai spek (test ditulis bersamaan), checklist spek dipindah ke body PR, PR ke `develop`, setelah merge ubah status di `docs/specs/README.md` → ✅ + nomor PR. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.
