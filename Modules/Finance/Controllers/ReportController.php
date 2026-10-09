@@ -171,7 +171,10 @@ class ReportController extends Controller
                 'by_method' => $d->byMethod,
                 'total' => $d->total,
                 'count' => $d->count,
+                // Uang keluar per metode hari itu (spek 4.2); by_method sudah bersih.
+                'refunds' => $d->refunds,
             ], $r->days),
+            'refund_totals' => $r->refunds,
             'totals' => $r->totals,
             'total' => $r->total,
             'count' => $r->count,

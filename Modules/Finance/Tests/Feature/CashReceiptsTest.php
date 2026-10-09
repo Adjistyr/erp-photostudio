@@ -7,6 +7,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Finance\Services\CashReceipts;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Order\Models\Payment;
+use Modules\Order\Models\Refund;
 
 /** Kas Harian — penerimaan per hari × metode (docs/specs/3.3). */
 class CashReceiptsTest extends DemoDataTestCase
@@ -97,5 +98,20 @@ class CashReceiptsTest extends DemoDataTestCase
         auth()->logout();
 
         $this->get(route('reports.cash'))->assertRedirect(route('login'));
+    }
+
+    public function test_refunds_reduce_their_method_on_refund_day_and_total_still_matches_revenue()
+    {
+        // 26 Agu: tunai 80 rb + transfer 150 rb (data demo); refund tunai 30 rb hari itu.
+        Refund::create(['order_id' => $this->order('ORD-0010')->id, 'refunded_on' => '2026-08-26',
+            'amount' => 30_000, 'method' => 'cash', 'reason' => 'Retur']);
+
+        $props = $this->props(['month' => self::AUG]);
+        $day = collect($props['days'])->firstWhere('date', '2026-08-26');
+
+        $this->assertSame(80_000 - 30_000, $day['by_method']['cash']);
+        $this->assertSame(['cash' => 30_000, 'transfer' => 0, 'qris' => 0], $day['refunds']);
+        $this->assertSame(30_000, $props['refund_totals']['cash']);
+        $this->assertSame(app(ProfitAndLoss::class)->revenue(self::AUG), $props['total']);
     }
 }

@@ -41,8 +41,11 @@ interface Props {
         by_method: Record<PaymentMethod, number>;
         total: number;
         count: number;
+        /** Uang keluar per metode hari itu (spek 4.2); by_method sudah bersih. */
+        refunds: Record<PaymentMethod, number>;
     }[];
     totals: Record<PaymentMethod, number>;
+    refund_totals: Record<PaymentMethod, number>;
     total: number;
     count: number;
     /** 0..1 per metode; semua 0 bila belum ada penerimaan. */
@@ -58,7 +61,9 @@ export default function CashReport({
     total,
     count,
     shares,
+    refund_totals,
 }: Props) {
+    const anyRefund = methods.some((m) => refund_totals[m] > 0);
     return (
         <>
             <Head title="Kas Harian" />
@@ -120,10 +125,20 @@ export default function CashReport({
                                         )}
                                     </TableCell>
                                     {methods.map((m) => (
-                                        <SelUang
+                                        <TableCell
                                             key={m}
-                                            nominal={d.by_method[m]}
-                                        />
+                                            className="text-right font-mono"
+                                        >
+                                            {formatRp(d.by_method[m])}
+                                            {/* Bersih = masuk − retur; returnya disebut supaya
+                                                angka laci/rekening tetap bisa ditelusuri. */}
+                                            {d.refunds[m] > 0 && (
+                                                <span className="block text-xs text-destructive">
+                                                    retur −
+                                                    {formatRp(d.refunds[m])}
+                                                </span>
+                                            )}
+                                        </TableCell>
                                     ))}
                                     <SelUang
                                         nominal={d.total}
@@ -163,6 +178,8 @@ export default function CashReport({
                     Penerimaan berdasarkan tanggal bayar (basis kas) — totalnya
                     sama dengan omzet di Laba Rugi. Pembayaran order batal ikut
                     dihitung: uangnya sudah masuk.
+                    {anyRefund &&
+                        ' Angka per metode sudah dikurangi retur (uang dikembalikan) pada tanggal pengembaliannya.'}
                 </p>
             </div>
         </>

@@ -122,6 +122,8 @@ const invoice = (balance: number): Invoice => ({
     discount: 0,
     total: 350000,
     payments: [],
+    refunds: [],
+    total_refunded: 0,
     paid: 350000 - balance,
     balance,
     payment_status: balance > 0 ? 'partial' : 'paid',

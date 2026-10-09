@@ -43,6 +43,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property-read Customer|null $customer
  * @property-read Collection<int, OrderItem> $items
  * @property-read Collection<int, Payment> $payments
+ * @property-read Collection<int, Refund> $refunds
  * @property-read Collection<int, JobCost> $jobCosts
  * @property-read Collection<int, OrderEvent> $events
  */
@@ -117,6 +118,12 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /** @return HasMany<Refund, $this> */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
     /** @return HasMany<JobCost, $this> */
     public function jobCosts(): HasMany
     {
@@ -144,6 +151,23 @@ class Order extends Model
         return (int) $this->payments->sum('amount');
     }
 
+    /** Uang yang dikembalikan ke customer (spek 4.2). */
+    public function totalRefunded(): int
+    {
+        return (int) $this->refunds->sum('amount');
+    }
+
+    /** Uang yang benar-benar tinggal di kas: diterima − dikembalikan. */
+    public function netPaid(): int
+    {
+        return $this->totalPaid() - $this->totalRefunded();
+    }
+
+    /**
+     * Sisa tagihan — SENGAJA bruto (totalPaid, bukan netPaid): refund tidak
+     * membuat customer berutang lagi. Memakai netPaid() membuat order yang
+     * direfund penuh muncul lagi di daftar piutang. Jangan "diperbaiki".
+     */
     public function balance(): int
     {
         return $this->total() - $this->totalPaid();
@@ -189,10 +213,16 @@ class Order extends Model
      * (DP hangus), bukan total order — sisanya tidak akan pernah ditagih,
      * sama dengan basis kas di Laba Rugi. Diputuskan owner 2026-10-06; tanpa
      * ini, order batal yang biaya job-nya melebihi DP tampil untung.
+     *
+     * Refund (spek 4.2) mengurangi omzet riil order: non-batal → total −
+     * dikembalikan; batal → uang yang tinggal di kas (netPaid). Relasi
+     * `refunds` ikut di-eager-load bersama `payments`.
      */
     public function margin(): int
     {
-        return ($this->isCancelled() ? $this->totalPaid() : $this->total()) - $this->directCost();
+        $revenue = $this->isCancelled() ? $this->netPaid() : $this->total() - $this->totalRefunded();
+
+        return $revenue - $this->directCost();
     }
 
     /**

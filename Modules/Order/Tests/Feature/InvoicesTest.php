@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Customer\Models\MessageTemplate;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\Refund;
 use Tests\TestCase;
 
 /** Invoice digenerate dari order (business-flow 5.5) — tidak diketik ulang. */
@@ -152,5 +153,17 @@ class InvoicesTest extends TestCase
         $this->assertSame(['INV-0009', 'INV-0001'], array_column($props['invoices']['data'], 'number'));
         $this->assertSame(['q' => 'budi', 'pay' => 'paid'], $props['filters']);
         $this->assertSame(1, $props['invoices']['last_page']);
+    }
+
+    public function test_public_invoice_carries_refunds()
+    {
+        $order = $this->order('ORD-0003');
+        Refund::create(['order_id' => $order->id, 'refunded_on' => '2026-08-26', 'amount' => 30_000, 'method' => 'cash', 'reason' => 'Cetak salah']);
+
+        $this->get($order->invoiceUrl())->assertInertia(fn (Assert $page) => $page
+            ->where('invoice.total_refunded', 30_000)
+            ->where('invoice.refunds.0.reason', 'Cetak salah')
+            // Sisa tagihan tetap bruto: lunas.
+            ->where('invoice.balance', 0));
     }
 }
