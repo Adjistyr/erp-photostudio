@@ -30,7 +30,9 @@ use Modules\Order\Requests\OrderResultLinkRequest;
 use Modules\Order\Requests\StoreOrderRequest;
 use Modules\Order\Requests\UpdateOrderRequest;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Http\CsvResponse;
 use Modules\Shared\Http\ListQuery;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Order & Booking — satu tabel untuk retail, studio, event (business-flow 3).
@@ -49,13 +51,7 @@ class OrderController extends Controller
      */
     public function index(Request $request): Response
     {
-        $list = ListQuery::fromRequest($request, [
-            'line' => BusinessLine::values(),
-            'status' => WorkStatus::values(),
-            'pay' => ['unpaid', 'partial', 'paid'],
-            'from' => 'date',
-            'to' => 'date',
-        ]);
+        $list = $this->listQuery($request);
         $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user'])
             ->search($list)
             ->orderByDesc('id')
@@ -67,6 +63,81 @@ class OrderController extends Controller
             'filters' => $list->toArray(),
             // Nama & rekening studio untuk pesan bukti bayar.
             'studio' => config('studio'),
+        ]);
+    }
+
+    /**
+     * Ekspor CSV dengan filter yang SAMA dengan daftar (spek 4.5) — yang
+     * terlihat = yang diekspor. Satu baris = satu order (item diringkas)
+     * supaya total per baris bisa langsung dijumlahkan.
+     *
+     * ponytail: batas jumlah baris, bukan antrean ekspor — melindungi DB dari
+     * query tanpa filter; pindah ke job + email kalau order mulai puluhan ribu.
+     *
+     * Setelah peran (spek 5.1): butuh `view-finance` — memuat HPP & margin.
+     */
+    public function export(Request $request): RedirectResponse|StreamedResponse
+    {
+        $list = $this->listQuery($request);
+        $limit = (int) config('studio.export_limit');
+        if (Order::query()->search($list)->count() > $limit) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => "Lebih dari {$limit} order — persempit rentang tanggal atau filter dulu."]);
+
+            return back();
+        }
+
+        $rows = function () use ($list) {
+            $orders = Order::with(['customer', 'items', 'payments', 'refunds', 'jobCosts', 'creator'])
+                ->search($list)
+                ->orderByDesc('id')
+                ->lazy(500);
+            foreach ($orders as $o) {
+                $status = $o->paymentStatus();
+                yield [
+                    $o->number,
+                    $o->service_date->toDateString(),
+                    $o->service_time === null ? null : substr($o->service_time, 0, 5),
+                    $o->business_line->value,
+                    $o->business_line->label(),
+                    $o->customer?->name,
+                    $o->customer?->phone,
+                    $o->itemsSummary(),
+                    $o->total(),
+                    $o->totalPaid(),
+                    $o->totalRefunded(),
+                    $o->balance(),
+                    $status->value,
+                    $status->label(),
+                    $o->work_status->value,
+                    $o->work_status->label(),
+                    $o->materialCost(),
+                    $o->directCost() - $o->materialCost(),
+                    $o->margin(),
+                    $o->location,
+                    $o->notes,
+                    $o->creator?->name,
+                    $o->created_at?->toDateTimeString(),
+                ];
+            }
+        };
+
+        return CsvResponse::stream('potrait-time-order-'.today()->toDateString().'.csv', $rows(), [
+            'nomor', 'tanggal_layanan', 'jam', 'lini', 'lini_label', 'customer', 'hp', 'item',
+            'total', 'dibayar', 'dikembalikan', 'sisa', 'status_bayar', 'status_bayar_label',
+            'status_kerja', 'status_kerja_label', 'hpp_bahan', 'biaya_job', 'margin',
+            'lokasi', 'catatan', 'dicatat_oleh', 'dibuat_pada',
+        ]);
+    }
+
+    /** Filter daftar & ekspor order — satu definisi supaya keduanya tidak bisa berbeda. */
+    private function listQuery(Request $request): ListQuery
+    {
+        return ListQuery::fromRequest($request, [
+            'line' => BusinessLine::values(),
+            'status' => WorkStatus::values(),
+            'pay' => ['unpaid', 'partial', 'paid'],
+            'from' => 'date',
+            'to' => 'date',
         ]);
     }
 

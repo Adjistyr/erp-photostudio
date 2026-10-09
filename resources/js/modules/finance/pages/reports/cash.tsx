@@ -8,13 +8,16 @@
  */
 
 import { Head } from '@inertiajs/react';
+import { Download } from 'lucide-react';
 import {
     KepalaUang,
     KosongTabel,
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import { PageActions } from '@/components/page-actions';
 import { SummaryCard } from '@/components/summary-card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
     TableBody,
@@ -29,6 +32,7 @@ import { ReportNav } from '@/modules/finance/components/report-nav';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order';
 import type { PaymentMethod } from '@/modules/order';
 import { profitLoss } from '@/routes/reports';
+import { exportMethod as cashExport } from '@/routes/reports/cash';
 
 interface Props {
     month: string;
@@ -68,6 +72,17 @@ export default function CashReport({
         <>
             <Head title="Kas Harian" />
             <h1 className="sr-only">Kas Harian</h1>
+            <PageActions>
+                {/* <a href>, bukan Link: Inertia tidak menangani unduhan. */}
+                <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<a href={cashExport({ query: { month } }).url} />}
+                >
+                    <Download data-icon="inline-start" />
+                    Ekspor CSV
+                </Button>
+            </PageActions>
 
             <div className="flex flex-col gap-6 p-6">
                 <ReportNav current="cash" month={month} />

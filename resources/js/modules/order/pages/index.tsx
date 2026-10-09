@@ -9,7 +9,7 @@
  */
 
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowRight, CalendarDays, Pencil, Plus } from 'lucide-react';
+import { ArrowRight, CalendarDays, Download, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
@@ -87,6 +87,7 @@ import {
     calendar as ordersCalendar,
     create as ordersCreate,
     edit as ordersEdit,
+    exportMethod as ordersExport,
     index as ordersIndex,
 } from '@/routes/orders';
 import {
@@ -168,6 +169,23 @@ export default function OrdersIndex({
             <h1 className="sr-only">Order & Booking</h1>
 
             <PageActions>
+                {/* <a href>, bukan Link: Inertia tidak menangani unduhan.
+                    Filter yang terlihat = yang diekspor. */}
+                <Button
+                    variant="outline"
+                    nativeButton={false}
+                    title="Mengekspor sesuai filter yang aktif"
+                    render={
+                        <a
+                            href={
+                                ordersExport({ query: cleanQuery(filters) }).url
+                            }
+                        />
+                    }
+                >
+                    <Download data-icon="inline-start" />
+                    Ekspor CSV
+                </Button>
                 <Button
                     variant="outline"
                     nativeButton={false}

@@ -13,4 +13,6 @@ return [
     // Penanda produk bermargin tipis di Katalog (spek 3.6) — satu ambang untuk
     // seluruh katalog, bukan aturan validasi.
     'low_margin_ratio' => (float) env('STUDIO_LOW_MARGIN_RATIO', 0.2),
+    // Batas baris ekspor CSV order (spek 4.5) — melindungi DB dari query tanpa filter.
+    'export_limit' => (int) env('STUDIO_EXPORT_LIMIT', 10000),
 ];

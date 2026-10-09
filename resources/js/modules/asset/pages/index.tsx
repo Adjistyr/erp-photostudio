@@ -11,7 +11,7 @@
  */
 
 import { Head, router, useForm } from '@inertiajs/react';
-import { Plus, TriangleAlert, Wrench } from 'lucide-react';
+import { Download, Plus, TriangleAlert, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
@@ -81,7 +81,10 @@ import {
     hanyaDigit,
 } from '@/lib/format';
 import { filterAssets } from '@/modules/asset/lib/filter';
-import { index as assetsIndex } from '@/routes/assets';
+import {
+    index as assetsIndex,
+    exportMethod as assetsExport,
+} from '@/routes/assets';
 
 type MaintenanceType = 'routine' | 'repair';
 type AssetStatus = 'active' | 'broken' | 'disposed';
@@ -173,6 +176,15 @@ export default function AssetsIndex(props: Props) {
             <h1 className="sr-only">Aset & Maintenance</h1>
 
             <PageActions>
+                {/* <a href>, bukan Link: Inertia tidak menangani unduhan. */}
+                <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<a href={assetsExport().url} />}
+                >
+                    <Download data-icon="inline-start" />
+                    Ekspor CSV
+                </Button>
                 <Button onClick={() => setAdding(true)}>
                     <Plus data-icon="inline-start" />
                     Tambah Aset
