@@ -20,8 +20,10 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useFlash } from '@/hooks/use-flash';
+import { useMinWidth } from '@/hooks/use-mobile';
 import {
     nominalKePersen,
     persenKeNominal,
@@ -173,6 +175,9 @@ export default function Pos({
     // Keranjang tertahan (spek 4.3). Lazy initializer, bukan useEffect: app
     // tanpa SSR (tidak ada ssr.tsx); `loadHeld` tetap aman tanpa `window`.
     const [held, setHeld] = useState<HeldCart[]>(() => loadHeld());
+    // Layar sempit (spek 4.6): breakpoint lg = grid dua kolom POS pecah.
+    const isDesktop = useMinWidth(1024);
+    const [cartOpen, setCartOpen] = useState(false);
     const persistHeld = (next: HeldCart[]) => {
         setHeld(next);
         saveHeld(next);
@@ -187,6 +192,7 @@ export default function Pos({
         if (next === 'full') return;
         persistHeld(next);
         clearCart();
+        setCartOpen(false);
     };
     const restore = (cart: HeldCart, holdCurrent: boolean) => {
         const rest = dropCart(held, cart.id);
@@ -256,6 +262,8 @@ export default function Pos({
         form.post(PosController.store().url, {
             preserveScroll: true,
             onSuccess: () => {
+                // Sheet keranjang ditutup; Sheet struk dibuka oleh flash.
+                setCartOpen(false);
                 form.reset();
                 setSearch('');
             },
@@ -278,6 +286,328 @@ export default function Pos({
         );
     }
 
+    // Keranjang dirender SEKALI: kolom kanan di lg+, Sheet bawah di bawahnya
+    // (spek 4.6) — lihat useMinWidth.
+    const cart = (
+        <aside
+            className={`flex min-w-0 flex-col gap-4 ${isDesktop ? 'rounded-lg border p-5' : 'p-4 pt-12'}`}
+        >
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="font-heading text-base font-semibold">
+                    Keranjang
+                </h2>
+                <HoldCartButton
+                    empty={lines.length === 0}
+                    full={held.length >= MAX_HELD}
+                    defaultLabel={defaultLabel(data.customer_name)}
+                    onHold={hold}
+                />
+            </div>
+
+            {lines.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                    Klik item di kiri untuk menambahkan.
+                </p>
+            ) : (
+                <div className="flex flex-col gap-3">
+                    {lines.map((l) => (
+                        <div
+                            key={l.catalog_item_id}
+                            className="flex items-center gap-2"
+                        >
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">
+                                    {l.product.name}
+                                </p>
+                                <p className="font-mono text-xs text-muted-foreground">
+                                    {formatRp(l.product.price)} × {l.quantity}
+                                </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label={`Kurangi ${l.product.name}`}
+                                    onClick={() =>
+                                        changeQty(l.catalog_item_id, -1)
+                                    }
+                                >
+                                    {l.quantity === 1 ? <Trash2 /> : <Minus />}
+                                </Button>
+                                <span className="w-6 text-center font-mono text-sm">
+                                    {l.quantity}
+                                </span>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label={`Tambah ${l.product.name}`}
+                                    onClick={() =>
+                                        changeQty(l.catalog_item_id, 1)
+                                    }
+                                >
+                                    <Plus />
+                                </Button>
+                            </div>
+                            <span className="w-24 shrink-0 text-right font-mono text-sm">
+                                {formatRp(l.quantity * l.product.price)}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
+            <InputError message={errors.items ?? itemError} />
+
+            <Separator />
+
+            <div className="flex flex-col gap-2 text-sm">
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-mono">{formatRp(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                    <label htmlFor="discount" className="text-muted-foreground">
+                        Diskon
+                    </label>
+                    <div className="flex items-center gap-1">
+                        <ToggleGroup
+                            size="sm"
+                            aria-label="Satuan diskon"
+                            value={[discountMode]}
+                            onValueChange={(v) => {
+                                if (v[0] === 'rp' || v[0] === 'pct')
+                                    switchDiscountMode(v[0]);
+                            }}
+                        >
+                            <ToggleGroupItem value="rp">Rp</ToggleGroupItem>
+                            <ToggleGroupItem value="pct">%</ToggleGroupItem>
+                        </ToggleGroup>
+                        {/* Rp: non-digit dibuang — rupiah selalu integer (R5). */}
+                        <Input
+                            id="discount"
+                            inputMode={
+                                discountMode === 'pct' ? 'decimal' : 'numeric'
+                            }
+                            placeholder="0"
+                            className="h-8 w-24 text-right font-mono"
+                            value={data.discount}
+                            aria-invalid={Boolean(errors.discount ?? pctError)}
+                            onChange={(e) =>
+                                setData(
+                                    'discount',
+                                    discountMode === 'pct'
+                                        ? rapikanPersen(e.target.value)
+                                        : hanyaDigit(e.target.value),
+                                )
+                            }
+                        />
+                    </div>
+                </div>
+                {subtotal > 0 && discountNominal > 0 && !pctError && (
+                    <p className="text-right text-xs text-muted-foreground">
+                        {discountMode === 'pct'
+                            ? `${persen}% = ${formatRp(discountNominal)}`
+                            : `= ${nominalKePersen(subtotal, discountNominal)}% dari subtotal`}
+                    </p>
+                )}
+                <InputError message={pctError ?? errors.discount} />
+                <Separator />
+                <div className="flex items-baseline justify-between">
+                    <span className="font-medium">Total</span>
+                    <span className="font-mono text-2xl font-semibold">
+                        {formatRp(total)}
+                    </span>
+                </div>
+                {/*
+                            HPP tercatat otomatis dari katalog (5.1) — yang paling
+                            sering bocor: produk terlihat untung karena harga
+                            bahannya tidak pernah dihitung. Metadata, bukan angka
+                            yang diisi owner.
+                        */}
+                {lines.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                        HPP bahan {formatRp(materialCost)} · margin{' '}
+                        {formatRp(total - materialCost)}
+                    </p>
+                )}
+            </div>
+
+            <Separator />
+
+            {/*
+                        Customer OPSIONAL tanpa tanda wajib, dengan hint
+                        konsekuensinya. Bukan Select yang harus dipilih.
+                    */}
+            <div className="flex flex-col gap-1.5">
+                <label htmlFor="customer_name" className="text-sm">
+                    Customer{' '}
+                    <span className="text-muted-foreground">— opsional</span>
+                </label>
+                <Input
+                    id="customer_name"
+                    placeholder="Kosongkan kalau tidak perlu dicatat"
+                    value={data.customer_name}
+                    onChange={(e) => setData('customer_name', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                    Tanpa nama, transaksi dicatat sebagai walk-in. Nama yang
+                    sudah ada di Customer dipakai ulang.
+                </p>
+                <InputError message={errors.customer_name} />
+            </div>
+
+            {/* HP hanya bersama nama (aturan server) — disabled, bukan
+                        disembunyikan, supaya owner tahu field-nya ada. Yang
+                        dikirim ketikan mentah; server yang menormalkan. */}
+            <div className="flex flex-col gap-1.5">
+                <label htmlFor="customer_phone" className="text-sm">
+                    No HP{' '}
+                    <span className="text-muted-foreground">
+                        — opsional, untuk kirim struk
+                    </span>
+                </label>
+                <Input
+                    id="customer_phone"
+                    inputMode="tel"
+                    autoComplete="off"
+                    placeholder="08…"
+                    disabled={data.customer_name.trim() === ''}
+                    title={
+                        data.customer_name.trim() === ''
+                            ? 'Isi nama dulu'
+                            : undefined
+                    }
+                    value={data.customer_phone}
+                    onChange={(e) => setData('customer_phone', e.target.value)}
+                />
+                <InputError message={errors.customer_phone} />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+                <span className="text-sm">Metode bayar</span>
+                <ToggleGroup
+                    aria-label="Metode bayar"
+                    value={[first.method]}
+                    onValueChange={(v) => setMethod(0, v)}
+                >
+                    {METHODS.map((m) => (
+                        <ToggleGroupItem
+                            key={m}
+                            value={m}
+                            disabled={second?.method === m}
+                        >
+                            {PAYMENT_METHOD_LABEL[m]}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+                {second ? (
+                    <div className="flex flex-col gap-2 rounded-lg border p-3">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">
+                                {PAYMENT_METHOD_LABEL[first.method]} (sisa)
+                            </span>
+                            <span className="font-mono">
+                                {split ? formatRp(split[0]) : '—'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <ToggleGroup
+                                size="sm"
+                                aria-label="Metode pembayaran kedua"
+                                value={[second.method]}
+                                onValueChange={(v) => setMethod(1, v)}
+                            >
+                                {METHODS.map((m) => (
+                                    <ToggleGroupItem
+                                        key={m}
+                                        value={m}
+                                        disabled={first.method === m}
+                                    >
+                                        {PAYMENT_METHOD_LABEL[m]}
+                                    </ToggleGroupItem>
+                                ))}
+                            </ToggleGroup>
+                            <div className="flex items-center gap-1">
+                                <Input
+                                    aria-label="Nominal pembayaran kedua"
+                                    inputMode="numeric"
+                                    placeholder="0"
+                                    className="h-8 min-w-0 flex-1 text-right font-mono"
+                                    value={second.amount}
+                                    aria-invalid={Boolean(splitError)}
+                                    onChange={(e) =>
+                                        setData('payments', [
+                                            first,
+                                            {
+                                                ...second,
+                                                amount: hanyaDigit(
+                                                    e.target.value,
+                                                ),
+                                            },
+                                        ])
+                                    }
+                                />
+                                <Button
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    aria-label="Hapus pembayaran kedua"
+                                    onClick={() => setData('payments', [first])}
+                                >
+                                    <Trash2 />
+                                </Button>
+                            </div>
+                        </div>
+                        <InputError
+                            message={
+                                splitError ??
+                                errors['payments.1.method'] ??
+                                errors['payments.1.amount']
+                            }
+                        />
+                    </div>
+                ) : (
+                    <Button
+                        variant="link"
+                        size="sm"
+                        className="self-start px-0"
+                        disabled={total < 2}
+                        onClick={() =>
+                            setData('payments', [
+                                first,
+                                {
+                                    // Kasus nyata: tunai + QRIS.
+                                    method:
+                                        first.method === 'qris'
+                                            ? 'cash'
+                                            : 'qris',
+                                    amount: '',
+                                },
+                            ])
+                        }
+                    >
+                        + Bagi pembayaran
+                    </Button>
+                )}
+                <InputError
+                    message={errors.payments ?? errors['payments.0.method']}
+                />
+            </div>
+
+            <Button
+                size="lg"
+                disabled={
+                    lines.length === 0 ||
+                    processing ||
+                    Boolean(pctError) ||
+                    // Baris kedua dibuka tapi nominalnya belum valid.
+                    (Boolean(second) && !split)
+                }
+                onClick={submit}
+            >
+                Simpan & Bayar {total > 0 ? formatRp(total) : ''}
+            </Button>
+        </aside>
+    );
+
     return (
         <>
             <Head title="POS" />
@@ -288,9 +618,10 @@ export default function Pos({
                 berpindah langkah. Item, keranjang, dan tombol bayar harus
                 terlihat serentak.
             */}
-            <div className="grid min-w-0 flex-1 grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr_22rem]">
+            <div className="grid min-w-0 flex-1 grid-cols-1 gap-6 p-6 pb-24 lg:grid-cols-[1fr_22rem] lg:pb-6">
                 <section className="flex min-w-0 flex-col gap-4">
-                    <div className="relative">
+                    {/* Tetap terlihat saat menggulir grid di layar sempit. */}
+                    <div className="sticky top-0 z-10 bg-background lg:relative lg:z-auto">
                         <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             autoFocus
@@ -309,7 +640,7 @@ export default function Pos({
                                 onClick={() => add(p)}
                                 className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
-                                <span className="text-sm font-medium">
+                                <span className="line-clamp-2 text-sm font-medium">
                                     {p.name}
                                 </span>
                                 <span className="font-mono text-sm text-muted-foreground">
@@ -334,373 +665,7 @@ export default function Pos({
                         onRestore={restore}
                         onDrop={(id) => persistHeld(dropCart(held, id))}
                     />
-                    <aside className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-                        <div className="flex items-center justify-between gap-2">
-                            <h2 className="font-heading text-base font-semibold">
-                                Keranjang
-                            </h2>
-                            <HoldCartButton
-                                empty={lines.length === 0}
-                                full={held.length >= MAX_HELD}
-                                defaultLabel={defaultLabel(data.customer_name)}
-                                onHold={hold}
-                            />
-                        </div>
-
-                        {lines.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Klik item di kiri untuk menambahkan.
-                            </p>
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                {lines.map((l) => (
-                                    <div
-                                        key={l.catalog_item_id}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-medium">
-                                                {l.product.name}
-                                            </p>
-                                            <p className="font-mono text-xs text-muted-foreground">
-                                                {formatRp(l.product.price)} ×{' '}
-                                                {l.quantity}
-                                            </p>
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-1">
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                aria-label={`Kurangi ${l.product.name}`}
-                                                onClick={() =>
-                                                    changeQty(
-                                                        l.catalog_item_id,
-                                                        -1,
-                                                    )
-                                                }
-                                            >
-                                                {l.quantity === 1 ? (
-                                                    <Trash2 />
-                                                ) : (
-                                                    <Minus />
-                                                )}
-                                            </Button>
-                                            <span className="w-6 text-center font-mono text-sm">
-                                                {l.quantity}
-                                            </span>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                aria-label={`Tambah ${l.product.name}`}
-                                                onClick={() =>
-                                                    changeQty(
-                                                        l.catalog_item_id,
-                                                        1,
-                                                    )
-                                                }
-                                            >
-                                                <Plus />
-                                            </Button>
-                                        </div>
-                                        <span className="w-24 shrink-0 text-right font-mono text-sm">
-                                            {formatRp(
-                                                l.quantity * l.product.price,
-                                            )}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        <InputError message={errors.items ?? itemError} />
-
-                        <Separator />
-
-                        <div className="flex flex-col gap-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                    Subtotal
-                                </span>
-                                <span className="font-mono">
-                                    {formatRp(subtotal)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <label
-                                    htmlFor="discount"
-                                    className="text-muted-foreground"
-                                >
-                                    Diskon
-                                </label>
-                                <div className="flex items-center gap-1">
-                                    <ToggleGroup
-                                        size="sm"
-                                        aria-label="Satuan diskon"
-                                        value={[discountMode]}
-                                        onValueChange={(v) => {
-                                            if (v[0] === 'rp' || v[0] === 'pct')
-                                                switchDiscountMode(v[0]);
-                                        }}
-                                    >
-                                        <ToggleGroupItem value="rp">
-                                            Rp
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="pct">
-                                            %
-                                        </ToggleGroupItem>
-                                    </ToggleGroup>
-                                    {/* Rp: non-digit dibuang — rupiah selalu integer (R5). */}
-                                    <Input
-                                        id="discount"
-                                        inputMode={
-                                            discountMode === 'pct'
-                                                ? 'decimal'
-                                                : 'numeric'
-                                        }
-                                        placeholder="0"
-                                        className="h-8 w-24 text-right font-mono"
-                                        value={data.discount}
-                                        aria-invalid={Boolean(
-                                            errors.discount ?? pctError,
-                                        )}
-                                        onChange={(e) =>
-                                            setData(
-                                                'discount',
-                                                discountMode === 'pct'
-                                                    ? rapikanPersen(
-                                                          e.target.value,
-                                                      )
-                                                    : hanyaDigit(
-                                                          e.target.value,
-                                                      ),
-                                            )
-                                        }
-                                    />
-                                </div>
-                            </div>
-                            {subtotal > 0 &&
-                                discountNominal > 0 &&
-                                !pctError && (
-                                    <p className="text-right text-xs text-muted-foreground">
-                                        {discountMode === 'pct'
-                                            ? `${persen}% = ${formatRp(discountNominal)}`
-                                            : `= ${nominalKePersen(subtotal, discountNominal)}% dari subtotal`}
-                                    </p>
-                                )}
-                            <InputError message={pctError ?? errors.discount} />
-                            <Separator />
-                            <div className="flex items-baseline justify-between">
-                                <span className="font-medium">Total</span>
-                                <span className="font-mono text-2xl font-semibold">
-                                    {formatRp(total)}
-                                </span>
-                            </div>
-                            {/*
-                            HPP tercatat otomatis dari katalog (5.1) — yang paling
-                            sering bocor: produk terlihat untung karena harga
-                            bahannya tidak pernah dihitung. Metadata, bukan angka
-                            yang diisi owner.
-                        */}
-                            {lines.length > 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                    HPP bahan {formatRp(materialCost)} · margin{' '}
-                                    {formatRp(total - materialCost)}
-                                </p>
-                            )}
-                        </div>
-
-                        <Separator />
-
-                        {/*
-                        Customer OPSIONAL tanpa tanda wajib, dengan hint
-                        konsekuensinya. Bukan Select yang harus dipilih.
-                    */}
-                        <div className="flex flex-col gap-1.5">
-                            <label htmlFor="customer_name" className="text-sm">
-                                Customer{' '}
-                                <span className="text-muted-foreground">
-                                    — opsional
-                                </span>
-                            </label>
-                            <Input
-                                id="customer_name"
-                                placeholder="Kosongkan kalau tidak perlu dicatat"
-                                value={data.customer_name}
-                                onChange={(e) =>
-                                    setData('customer_name', e.target.value)
-                                }
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Tanpa nama, transaksi dicatat sebagai walk-in.
-                                Nama yang sudah ada di Customer dipakai ulang.
-                            </p>
-                            <InputError message={errors.customer_name} />
-                        </div>
-
-                        {/* HP hanya bersama nama (aturan server) — disabled, bukan
-                        disembunyikan, supaya owner tahu field-nya ada. Yang
-                        dikirim ketikan mentah; server yang menormalkan. */}
-                        <div className="flex flex-col gap-1.5">
-                            <label htmlFor="customer_phone" className="text-sm">
-                                No HP{' '}
-                                <span className="text-muted-foreground">
-                                    — opsional, untuk kirim struk
-                                </span>
-                            </label>
-                            <Input
-                                id="customer_phone"
-                                inputMode="tel"
-                                autoComplete="off"
-                                placeholder="08…"
-                                disabled={data.customer_name.trim() === ''}
-                                title={
-                                    data.customer_name.trim() === ''
-                                        ? 'Isi nama dulu'
-                                        : undefined
-                                }
-                                value={data.customer_phone}
-                                onChange={(e) =>
-                                    setData('customer_phone', e.target.value)
-                                }
-                            />
-                            <InputError message={errors.customer_phone} />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-sm">Metode bayar</span>
-                            <ToggleGroup
-                                aria-label="Metode bayar"
-                                value={[first.method]}
-                                onValueChange={(v) => setMethod(0, v)}
-                            >
-                                {METHODS.map((m) => (
-                                    <ToggleGroupItem
-                                        key={m}
-                                        value={m}
-                                        disabled={second?.method === m}
-                                    >
-                                        {PAYMENT_METHOD_LABEL[m]}
-                                    </ToggleGroupItem>
-                                ))}
-                            </ToggleGroup>
-                            {second ? (
-                                <div className="flex flex-col gap-2 rounded-lg border p-3">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-muted-foreground">
-                                            {PAYMENT_METHOD_LABEL[first.method]}{' '}
-                                            (sisa)
-                                        </span>
-                                        <span className="font-mono">
-                                            {split ? formatRp(split[0]) : '—'}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <ToggleGroup
-                                            size="sm"
-                                            aria-label="Metode pembayaran kedua"
-                                            value={[second.method]}
-                                            onValueChange={(v) =>
-                                                setMethod(1, v)
-                                            }
-                                        >
-                                            {METHODS.map((m) => (
-                                                <ToggleGroupItem
-                                                    key={m}
-                                                    value={m}
-                                                    disabled={
-                                                        first.method === m
-                                                    }
-                                                >
-                                                    {PAYMENT_METHOD_LABEL[m]}
-                                                </ToggleGroupItem>
-                                            ))}
-                                        </ToggleGroup>
-                                        <div className="flex items-center gap-1">
-                                            <Input
-                                                aria-label="Nominal pembayaran kedua"
-                                                inputMode="numeric"
-                                                placeholder="0"
-                                                className="h-8 min-w-0 flex-1 text-right font-mono"
-                                                value={second.amount}
-                                                aria-invalid={Boolean(
-                                                    splitError,
-                                                )}
-                                                onChange={(e) =>
-                                                    setData('payments', [
-                                                        first,
-                                                        {
-                                                            ...second,
-                                                            amount: hanyaDigit(
-                                                                e.target.value,
-                                                            ),
-                                                        },
-                                                    ])
-                                                }
-                                            />
-                                            <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                aria-label="Hapus pembayaran kedua"
-                                                onClick={() =>
-                                                    setData('payments', [first])
-                                                }
-                                            >
-                                                <Trash2 />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <InputError
-                                        message={
-                                            splitError ??
-                                            errors['payments.1.method'] ??
-                                            errors['payments.1.amount']
-                                        }
-                                    />
-                                </div>
-                            ) : (
-                                <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="self-start px-0"
-                                    disabled={total < 2}
-                                    onClick={() =>
-                                        setData('payments', [
-                                            first,
-                                            {
-                                                // Kasus nyata: tunai + QRIS.
-                                                method:
-                                                    first.method === 'qris'
-                                                        ? 'cash'
-                                                        : 'qris',
-                                                amount: '',
-                                            },
-                                        ])
-                                    }
-                                >
-                                    + Bagi pembayaran
-                                </Button>
-                            )}
-                            <InputError
-                                message={
-                                    errors.payments ??
-                                    errors['payments.0.method']
-                                }
-                            />
-                        </div>
-
-                        <Button
-                            size="lg"
-                            disabled={
-                                lines.length === 0 ||
-                                processing ||
-                                Boolean(pctError) ||
-                                // Baris kedua dibuka tapi nominalnya belum valid.
-                                (Boolean(second) && !split)
-                            }
-                            onClick={submit}
-                        >
-                            Simpan & Bayar {total > 0 ? formatRp(total) : ''}
-                        </Button>
-                    </aside>
+                    {isDesktop && cart}
                     <TodaySales
                         sales={today_sales}
                         total={today_total}
@@ -708,6 +673,33 @@ export default function Pos({
                     />
                 </div>
             </div>
+
+            {!isDesktop && (
+                <>
+                    {/* Tidak menutupi grid saat tertutup — produk tetap target
+                        sentuh pertama; pb-24 di grid memberi ruang. */}
+                    <Button
+                        size="lg"
+                        className="fixed inset-x-4 bottom-4 z-40 h-12 shadow-lg"
+                        disabled={lines.length === 0}
+                        onClick={() => setCartOpen(true)}
+                    >
+                        Keranjang ({lines.reduce((n, l) => n + l.quantity, 0)})
+                        {lines.length > 0 && ` · ${formatRp(total)}`}
+                    </Button>
+                    <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+                        <SheetContent
+                            side="bottom"
+                            className="max-h-[85svh] overflow-y-auto"
+                        >
+                            <SheetTitle className="sr-only">
+                                Keranjang
+                            </SheetTitle>
+                            {cart}
+                        </SheetContent>
+                    </Sheet>
+                </>
+            )}
 
             <ReceiptSheet
                 receipt={receipt}
