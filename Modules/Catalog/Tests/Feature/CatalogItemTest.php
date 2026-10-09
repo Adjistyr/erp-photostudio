@@ -30,6 +30,37 @@ class CatalogItemTest extends TestCase
         return ['name' => 'Keychain Foto Akrilik', 'type' => 'product', 'price' => 25_000, 'unit_cost' => 8_000, 'category' => 'Merchandise', ...$overrides];
     }
 
+    public function test_store_and_update_public_profile_fields()
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.store'), $this->product(['description' => '  Akrilik 5 cm, cetak dua sisi.  ', 'is_public' => true]))
+            ->assertSessionHasNoErrors()
+            // Dialog pindah ke mode Edit item baru (spek 7.1).
+            ->assertInertiaFlash('catalog_created', CatalogItem::sole()->id);
+
+        $item = CatalogItem::sole();
+        $this->assertSame(['Akrilik 5 cm, cetak dua sisi.', true], [$item->description, $item->is_public]);
+
+        // Deskripsi spasi saja = kosong; penanda bisa dicabut.
+        $this->put(route('catalog.update', $item), $this->product(['description' => '   ', 'is_public' => false]))->assertSessionHasNoErrors();
+        $this->assertSame([null, false], [$item->fresh()?->description, $item->fresh()?->is_public]);
+    }
+
+    public function test_public_profile_defaults_and_limits()
+    {
+        $this->actingAs(User::factory()->create());
+        $this->post(route('catalog.store'), $this->product())->assertSessionHasNoErrors();
+        $this->assertFalse(CatalogItem::sole()->is_public);
+
+        $this->post(route('catalog.store'), $this->product(['description' => str_repeat('a', 2001)]))->assertSessionHasErrors('description');
+        $this->post(route('catalog.store'), $this->product(['is_public' => 'ya']))->assertSessionHasErrors('is_public');
+
+        $this->get(route('catalog.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('items.0.description', null)
+            ->where('items.0.is_public', false)
+            ->where('items.0.photos', []));
+    }
+
     public function test_guest_is_redirected_to_login()
     {
         $this->get(route('catalog.index'))->assertRedirect(route('login'));

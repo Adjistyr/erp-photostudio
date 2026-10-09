@@ -5,9 +5,12 @@ namespace Modules\Order\Tests\Feature;
 use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Catalog\Models\CatalogItemPhoto;
 use Modules\Customer\Models\Customer;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Order\Enums\PaymentStatus;
@@ -78,6 +81,20 @@ class PosTest extends TestCase
                 ->where('products.0.name', 'Cetak 10R + Bingkai')
                 ->where('products.0.unit_cost', 32_000)
             );
+    }
+
+    public function test_products_carry_cover_thumbnail_url()
+    {
+        Storage::fake(CatalogItemPhoto::DISK);
+        $item = $this->item('Cetak 10R + Bingkai');
+        $this->post(route('catalog.photos.store', $item), ['photos' => [UploadedFile::fake()->image('a.jpg', 500, 500), UploadedFile::fake()->image('b.jpg', 500, 500)]]);
+        $cover = $item->photos()->first();
+
+        $products = collect($this->get(route('pos.index'))->inertiaPage()['props']['products'])->keyBy('name');
+
+        // Hanya thumbnail sampul — bukan seluruh galeri.
+        $this->assertSame($cover?->thumbUrl(), $products['Cetak 10R + Bingkai']['photo_url']);
+        $this->assertNull($products['Cetak 4R']['photo_url']);
     }
 
     public function test_walk_in_sale_is_delivered_paid_and_counted_as_revenue_today()

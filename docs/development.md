@@ -47,6 +47,7 @@ DB_PASSWORD=
 
 ```bash
 php artisan migrate --seed
+php artisan storage:link                 # foto katalog (disk public) bisa diakses di /storage
 php artisan db:seed --class=DemoSeeder   # opsional: dataset prototype (bukan produksi)
 composer dev        # php serve + queue + log + vite sekaligus
 ```
@@ -149,6 +150,7 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Layar per bulan | `?month=YYYY-MM` + `Periods::orCurrent()` di controller, `<MonthNav>` di halaman | Bulan di URL, difilter server; bulan tidak valid jatuh ke bulan berjalan. Total diambil dari service Finance (mis. `ProfitAndLoss`) supaya sama dengan laporan . Layar yang memakai pola ini: Biaya, Kalender, Laporan Laba Rugi / Margin / Penjualan / **Kas Harian** (`CashReceipts::forMonth()`) |
 | Pembayaran POS | `StorePosSaleRequest`: `payments[]` 1–2 baris `{method, amount}` (field lama `method` sudah dihapus); `payments()` helper | Σ amount harus **sama persis** dengan subtotal − diskon, metode tidak boleh dobel. Satu baris per metode, note `Pelunasan` / `Pelunasan (1/2)`, `(2/2)`. Klien hanya mengetik nominal baris kedua; baris pertama = sisa (`bagiPembayaran()`, `lib/split-payment.ts`) dan nominal dihitung saat submit — bukan disimpan di state, supaya ikut keranjang. Kembalian tidak dicatat (urusan laci) |
 | Layar sempit | Hanya POS & Pembayaran (spek 4.6). Kelas Tailwind (`md:hidden` / `hidden md:block`), bukan deteksi perangkat; kartu & baris tabel dipetakan dari array yang sama (`ReceivableCard`). Pengecualian: elemen berisi input ber-`id` yang harus dirender **sekali** (keranjang POS) memakai `useMinWidth()` (`hooks/use-mobile.tsx`) — render ganda dengan kelas CSS menggandakan id sehingga `<label for>` menunjuk input yang tersembunyi | Tombol di kartu tinggi 44 px (`size="lg"` + `h-11`); `WhatsAppButton wide`. Cek `document.documentElement.scrollWidth` ≤ 390 di Playwright. Elemen `sticky`/`absolute` yang diubah per breakpoint: ganti ke `lg:relative`, bukan `lg:static`, kalau anaknya berposisi absolut |
+| Unggah foto | Browser mengecilkan dulu (`resizeForUpload()`, `modules/catalog/lib/photo-resize.ts`), kirim `router.post(..., { forceFormData: true, preserveState: true })`; server menyandikan ulang dengan GD (`Catalog\Actions\StoreCatalogPhoto`) dan menyimpan di disk `public` | File asli tidak pernah disimpan — EXIF (lokasi GPS) terbuang dan isi file tidak dipercaya. `preserveState` wajib bila dialog harus tetap terbuka. Route anak memakai `scopeBindings()`. Test: `Storage::fake(CatalogItemPhoto::DISK)` + `UploadedFile::fake()->image()` |
 | Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
 | Test | `Modules/<Modul>/Tests/Feature/<Model>Test.php` (namespace `Modules\<Modul>\Tests\Feature`) | Auth, render Inertia + props, validasi, aturan bisnis |
 
@@ -177,6 +179,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 16. **Diskon persen hanya di klien.** POS mengonversi persen → nominal (`persenKeNominal()`, `modules/order/lib/discount.ts`) dan mengirim `discount` nominal lewat `transform` saat simpan; server tidak tahu ada mode persen. Jangan tambah field `discount_percent` di request.
 17. **`Order::balance()` sengaja bruto.** Sisa tagihan & status bayar memakai `totalPaid()`, bukan `netPaid()` — refund tidak membuat customer berutang lagi; memakai `netPaid()` membuat order yang direfund penuh muncul lagi di piutang. Yang memakai refund: `margin()`, `ProfitAndLoss::revenue()`, `CashReceipts`. Relasi `refunds` di-eager-load bersama `payments` di layar yang memanggil `margin()`.
 18. **Keranjang tertahan POS hanya di `localStorage` browser kasir** (`pos.held`, `lib/held-carts.ts`) — bukan data, tidak di-backup, tidak terlihat dari perangkat lain, hilang bila cache browser dibersihkan. Bentuknya divalidasi saat dimuat (versi 1); entri rusak dilewati, bukan error. ID tidak memakai `crypto.randomUUID()` karena fungsi itu hanya ada di secure context — POS lewat IP LAN `http://` akan error.
+19. **Foto katalog bergantung pada batas upload PHP dan folder persisten.** `upload_max_filesize` bawaan PHP 2 MB, `post_max_size` 8 MB — foto HP 3–8 MB gagal sebelum sampai ke Laravel bila tidak dikecilkan di browser dulu (itu tugas `resizeForUpload()`; jangan dilewati). File ada di `storage/app/public/catalog/{item}/` dan diakses lewat symlink `public/storage` (`php artisan storage:link`). Di hosting folder itu **harus persisten** (volume/backup), kalau tidak setiap deploy menghapus semua foto. URL foto dibentuk dari `APP_URL` — isi dengan domain sebenarnya.
 
 ---
 

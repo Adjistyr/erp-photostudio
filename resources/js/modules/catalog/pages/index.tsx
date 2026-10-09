@@ -22,9 +22,11 @@ import InputError from '@/components/input-error';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
+import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -64,13 +66,17 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useFlash } from '@/hooks/use-flash';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { PhotoGallery } from '@/modules/catalog/components/photo-gallery';
+import type { CatalogPhoto } from '@/modules/catalog/components/photo-gallery';
 import { filterCatalog, isLowMargin } from '@/modules/catalog/lib/filter';
 import { index as catalogIndex } from '@/routes/catalog';
 import type { ServiceCategory } from '@/types/domain';
@@ -89,6 +95,11 @@ export interface CatalogItem {
     is_active: boolean;
     /** Jasa berkategori di luar ServiceCategory — tidak muncul di Buat Order. */
     unknown_category: boolean;
+    /** Profil publik untuk company profile nanti (spek 7.1). */
+    description: string | null;
+    is_public: boolean;
+    /** Galeri, sampul dulu. */
+    photos: CatalogPhoto[];
 }
 
 interface ServiceCategoryOption {
@@ -110,8 +121,23 @@ export default function CatalogIndex({
     low_margin_ratio: number;
 }) {
     const [filter, setFilter] = useState<Filter>('all');
-    /** null = dialog tertutup · 'new' = tambah · CatalogItem = edit item itu. */
-    const [editing, setEditing] = useState<CatalogItem | 'new' | null>(null);
+    /**
+     * null = dialog tertutup · 'new' = tambah · angka = edit item itu. Id,
+     * bukan objek: setelah foto diunggah item dibaca ulang dari props.
+     */
+    const [editing, setEditing] = useState<number | 'new' | null>(null);
+    // Setelah Tambah berhasil dialog pindah ke Edit item baru — foto baru bisa
+    // diunggah setelah item punya id (spek 7.1).
+    const [created, clearCreated] = useFlash<number>('catalog_created');
+    const target = created ?? editing;
+    const targetItem =
+        typeof target === 'number'
+            ? (items.find((i) => i.id === target) ?? null)
+            : null;
+    const openDialog = (t: number | 'new' | null) => {
+        clearCreated();
+        setEditing(t);
+    };
 
     // Cari di klien (spek 3.6) — katalog kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
@@ -132,7 +158,7 @@ export default function CatalogIndex({
             <Head title="Katalog" />
             <h1 className="sr-only">Katalog</h1>
             <PageActions>
-                <Button onClick={() => setEditing('new')}>
+                <Button onClick={() => openDialog('new')}>
                     <Plus data-icon="inline-start" />
                     Tambah Item
                 </Button>
@@ -184,7 +210,7 @@ export default function CatalogIndex({
                         kalimat="Belum ada produk atau jasa. Tambahkan yang paling sering dijual dulu."
                         aksi={{
                             label: 'Tambah Item',
-                            onClick: () => setEditing('new'),
+                            onClick: () => openDialog('new'),
                         }}
                     />
                 ) : (
@@ -223,8 +249,16 @@ export default function CatalogIndex({
                                         item.is_active ? '' : 'opacity-60'
                                     }
                                 >
-                                    <TableCell className="font-medium whitespace-nowrap">
-                                        {item.name}
+                                    {/* Nama boleh terlipat: thumbnail + badge Profil membuat
+                                        tabel meluap di laptop 1280 px bila nama satu baris. */}
+                                    <TableCell className="min-w-40 font-medium whitespace-normal">
+                                        <span className="flex items-center gap-2">
+                                            <ProductPhoto
+                                                url={item.photos[0]?.thumb_url}
+                                                className="size-8 rounded-md"
+                                            />
+                                            {item.name}
+                                        </span>
                                     </TableCell>
                                     <TableCell>
                                         <Badge
@@ -295,15 +329,27 @@ export default function CatalogIndex({
                                         </>
                                     )}
                                     <TableCell>
-                                        {item.is_active ? (
-                                            <Badge variant="success">
-                                                Aktif
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="secondary">
-                                                Nonaktif
-                                            </Badge>
-                                        )}
+                                        <span className="flex gap-1">
+                                            {item.is_active ? (
+                                                <Badge variant="success">
+                                                    Aktif
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary">
+                                                    Nonaktif
+                                                </Badge>
+                                            )}
+                                            {/* Di kolom Status, bukan Nama: lebar Nama menentukan
+                                                apakah tabel muat di laptop 1280 px. */}
+                                            {item.is_public && (
+                                                <Badge
+                                                    variant="outline"
+                                                    title="Tampil di company profile"
+                                                >
+                                                    Profil
+                                                </Badge>
+                                            )}
+                                        </span>
                                     </TableCell>
                                     <TableCell>
                                         {/* Tidak ada Hapus — item yang pernah
@@ -325,7 +371,7 @@ export default function CatalogIndex({
                                                 <DropdownMenuGroup>
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            setEditing(item)
+                                                            openDialog(item.id)
                                                         }
                                                     >
                                                         <Pencil />
@@ -362,15 +408,15 @@ export default function CatalogIndex({
                 </p>
             </div>
 
-            {editing && (
+            {(target === 'new' || targetItem) && (
                 // key: remount saat target berganti. Tanpa itu, membuka Edit
                 // item lain menampilkan isian item sebelumnya dan owner bisa
                 // menimpa harga produk yang salah tanpa sadar.
                 <ItemDialog
-                    key={editing === 'new' ? 'new' : editing.id}
-                    item={editing === 'new' ? null : editing}
+                    key={targetItem ? targetItem.id : 'new'}
+                    item={targetItem}
                     serviceCategories={service_categories}
-                    onClose={() => setEditing(null)}
+                    onClose={() => openDialog(null)}
                 />
             )}
         </>
@@ -398,6 +444,8 @@ interface ItemForm {
     price: string;
     unit_cost: string;
     category: string;
+    description: string;
+    is_public: boolean;
 }
 
 /** Satu dialog untuk tambah DAN edit (R9: tambah/edit item katalog → Dialog). */
@@ -416,6 +464,8 @@ function ItemDialog({
         price: item ? String(item.price) : '',
         unit_cost: item?.unit_cost != null ? String(item.unit_cost) : '',
         category: item?.category ?? '',
+        description: item?.description ?? '',
+        is_public: item?.is_public ?? false,
     });
     const { data, setData, errors, processing } = form;
 
@@ -435,17 +485,24 @@ function ItemDialog({
             ...d,
             unit_cost: d.type === 'service' ? null : d.unit_cost,
         }));
-        const options = { preserveScroll: true, onSuccess: onClose };
         if (editing) {
-            form.put(CatalogItemController.update(item.id).url, options);
+            form.put(CatalogItemController.update(item.id).url, {
+                preserveScroll: true,
+                onSuccess: onClose,
+            });
         } else {
-            form.post(CatalogItemController.store().url, options);
+            // Tidak ditutup di sini: flash `catalog_created` memindahkan
+            // dialog ke mode Edit item baru (lihat CatalogIndex).
+            form.post(CatalogItemController.store().url, {
+                preserveScroll: true,
+            });
         }
     };
 
     return (
         <Dialog open onOpenChange={(o) => !o && onClose()}>
-            <DialogContent>
+            {/* Galeri membuat dialog tinggi — gulir di dalam dialog. */}
+            <DialogContent className="max-h-[90svh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         {editing ? 'Edit Item Katalog' : 'Tambah Item Katalog'}
@@ -620,6 +677,59 @@ function ItemDialog({
                             ({formatPersen((price - unitCost) / price)})
                             {data.unit_cost === '' &&
                                 ' — isi HPP bahan supaya margin mencerminkan biaya sebenarnya.'}
+                        </p>
+                    )}
+
+                    <Field>
+                        <FieldLabel htmlFor="description">
+                            Deskripsi{' '}
+                            <span className="text-muted-foreground">
+                                — opsional
+                            </span>
+                        </FieldLabel>
+                        <Textarea
+                            id="description"
+                            rows={3}
+                            maxLength={2000}
+                            placeholder={
+                                data.type === 'product'
+                                    ? 'Akrilik 5 cm, cetak dua sisi.'
+                                    : 'Sesi 1 jam, 2 background, 10 file edit.'
+                            }
+                            value={data.description}
+                            aria-invalid={Boolean(errors.description)}
+                            onChange={(e) =>
+                                setData('description', e.target.value)
+                            }
+                        />
+                        <InputError message={errors.description} />
+                    </Field>
+
+                    <Field orientation="horizontal">
+                        <Checkbox
+                            id="is_public"
+                            checked={data.is_public}
+                            onCheckedChange={(c) => setData('is_public', c)}
+                        />
+                        <FieldLabel htmlFor="is_public" className="font-normal">
+                            Tampil di company profile
+                        </FieldLabel>
+                    </Field>
+                    <FieldDescription className="-mt-4">
+                        Untuk website company profile nanti — nama, deskripsi,
+                        dan foto. HPP tidak pernah ikut tampil. Tidak mengubah
+                        POS atau form order.
+                    </FieldDescription>
+
+                    {editing ? (
+                        <PhotoGallery
+                            itemId={item.id}
+                            itemName={item.name}
+                            photos={item.photos}
+                        />
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            Foto bisa ditambahkan setelah item disimpan.
                         </p>
                     )}
                 </FieldGroup>
