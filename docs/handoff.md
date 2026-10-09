@@ -54,6 +54,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | #39 | 1.4 Status kerja mundur | #51 | 4.3 Tahan keranjang |
 | #40 | 2.5 Transaksi hari ini di POS | #52 | 4.6 Layar sempit POS & Pembayaran |
 | #41 | 3.1 Cari + filter + paginasi server | #54 | 7.1 Galeri foto + profil publik katalog |
+| | | #55 | 7.2 Tambah/Edit katalog jadi halaman |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 
@@ -77,7 +78,7 @@ Kode yang menang bila spek tidak cocok — speknya tidak ditulis ulang, alasanny
 
 ### Data uji lokal (bukan seed)
 
-DB lokal berisi data hasil verifikasi manual: foto di "Cetak 10R + Bingkai" (bertanda Profil) dan item baru "Gantungan Kunci Foto Kayu", ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` (file foto tidak ikut terhapus oleh reset DB).
+DB lokal berisi data hasil verifikasi manual: foto di "Cetak 10R + Bingkai" (bertanda Profil), item baru "Gantungan Kunci Foto Kayu" dan "Bingkai Kayu A4", ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` (file foto tidak ikut terhapus oleh reset DB).
 
 ## 4. Langkah berikutnya
 
@@ -85,7 +86,7 @@ Fase 0–4 selesai. Sisa di `docs/specs/README.md`:
 
 - **5.1 Peran & hak akses** — hanya setelah owner memastikan ada staf admin yang akan input.
 - **5.2 Shift kasir tidak dikerjakan** — keputusan 9 Okt 2026: POS tidak memakai shift (tidak ada buka/tutup laci). Pencocokan laci tetap lewat Kas Harian (3.3) kolom Tunai.
-- **7.1 Galeri foto katalog** selesai (#54). Endpoint publik untuk company profile belum dibuat — aturan field yang boleh keluar ada di speknya.
+- **7.1 Galeri foto katalog** (#54) dan **7.2 form katalog jadi halaman** (#55) selesai. Berikutnya yang diminta user: **varian produk** — bentuknya belum diputuskan (lihat pertanyaan terbuka di bawah). Endpoint publik untuk company profile belum dibuat — aturan field yang boleh keluar ada di speknya.
 - **6.x** (serial + garansi, proyeksi penggantian, bundel, termin, riwayat harga, sumber lead, lampiran bukti transfer) — sesuai kebutuhan owner.
 
 Per item: branch dari `develop` (`feat/<modul>-<item>`), kerjakan sesuai spek (test ditulis bersamaan), checklist spek dipindah ke body PR, PR ke `develop`, setelah merge ubah status di `docs/specs/README.md` → ✅ + nomor PR. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.
@@ -100,6 +101,7 @@ Keputusan K1–K5 di `docs/rencana-pengembangan-operasional.md` adalah **rekomen
 - Go-live: hosting, backup, data awal (katalog, aset, **modal awal per owner**), CI (billing GitHub Actions terkunci).
 - `docs/demo-client.md` masih naskah prototype.
 - RBAC (spek 5.1) menunggu kepastian staf admin.
+- Varian produk (permintaan user 9 Okt 2026) menunggu keputusan: apa yang berbeda per varian (harga/HPP/foto), produk saja atau juga jasa, satu daftar varian atau kombinasi dua dimensi, dan apakah laporan menghitung per varian.
 - Temuan kecil yang belum diubah: order retail berstatus Diserahkan masih menawarkan "Kembalikan ke Selesai Dikerjakan" dan "Batalkan Order"; halaman Aset punya komponen ringkasan lokal sendiri (bukan `SummaryCard`); `DESIGN.stitch.md` belum menyebut pengecualian breakpoint POS/Pembayaran (khusus generator Stitch).
 - `main` masih hanya berisi initial commit (13 Sep 2026); seluruh pekerjaan ada di `develop`. Rilis ke `main` menunggu keputusan go-live.
 
