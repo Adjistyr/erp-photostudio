@@ -7,7 +7,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 1. Buka spek, baca **Aturan bisnis** dan **Tidak termasuk** dulu — itu batas PR.
 2. Kerjakan berurutan: Perubahan data → Backend → Frontend → Test. Test ditulis bersamaan, bukan di akhir.
 3. **Checklist selesai** di bawah tiap spek dipindah ke body PR dan dicentang.
-4. Setelah merge, ubah Status di tabel bawah menjadi ✅ dan tulis nomor PR.
+4. Setelah merge, ubah Status di tabel bawah menjadi ✅ dan tulis nomor PR. ❌ = dibatalkan oleh keputusan owner; file speknya tetap ada sebagai arsip.
 
 ## Format spek (semua file sama)
 
@@ -52,7 +52,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 4.5 Ekspor CSV | `4.5-ekspor-csv.md` | S | 3.1, 3.3 | ✅ #49 |
 | 4.6 Layar sempit | `4.6-layar-sempit.md` | M | 2.4 | ✅ #52 |
 | 5.1 Peran & hak akses | `5.1-peran-hak-akses.md` | L | 0.1 | ⬜ |
-| 5.2 Shift kasir | `5.2-shift-kasir.md` | L | 5.1, 3.3 | ⬜ |
+| 5.2 Shift kasir | `5.2-shift-kasir.md` | L | 5.1, 3.3 | ❌ tidak dikerjakan (POS tanpa shift, 9 Okt 2026) |
 | 6.1 Serial + garansi | `6.1-serial-garansi.md` | S | — | ⬜ |
 | 6.2 Proyeksi penggantian | `6.2-proyeksi-penggantian.md` | M | — | ⬜ |
 | 6.3 Bundel katalog | `6.3-bundel-katalog.md` | L | 1.1 | ⬜ |
@@ -61,4 +61,4 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 6.6 Sumber lead | `6.6-sumber-lead.md` | S | 1.2 | ⬜ |
 | 6.7 Lampiran bukti transfer | `6.7-lampiran-bukti-transfer.md` | M | hosting diputuskan | ⬜ |
 
-Urutan pengerjaan yang disarankan: 0.1 → 0.2 → 1.1 → 2.1 → 2.2 → 2.3 → 2.4 → 1.2 → 1.3 → 1.4 → 2.5 → 3.1 → 3.3 → 3.2 → 3.4 → 3.5 → 3.6 → 4.1 → 4.2 → 4.5 → 4.4 → 4.3 → 4.6 → (saat admin ada) 5.1 → 5.2 → 6.x sesuai kebutuhan. Fase 2 ditaruh sebelum 1.2 karena kecil, tidak tergantung, dan langsung terasa oleh customer.
+Urutan pengerjaan yang disarankan: 0.1 → 0.2 → 1.1 → 2.1 → 2.2 → 2.3 → 2.4 → 1.2 → 1.3 → 1.4 → 2.5 → 3.1 → 3.3 → 3.2 → 3.4 → 3.5 → 3.6 → 4.1 → 4.2 → 4.5 → 4.4 → 4.3 → 4.6 → (saat admin ada) 5.1 → 6.x sesuai kebutuhan. Fase 2 ditaruh sebelum 1.2 karena kecil, tidak tergantung, dan langsung terasa oleh customer.
