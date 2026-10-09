@@ -5,6 +5,7 @@ namespace Modules\Finance\Services;
 use Illuminate\Support\Collection;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
@@ -20,6 +21,9 @@ class SalesReport
      * Omzet & HPP memakai harga katalog × qty, mengikuti prototype; order
      * dihitung kalau menerima pembayaran di bulan itu (basis kas).
      *
+     * Produk bervarian (spek 7.3) dipecah per varian dengan harga varian —
+     * varian aktif selalu tampil, varian nonaktif hanya bila terjual.
+     *
      * @return list<ProductSales>
      */
     public function topProducts(string $month): array
@@ -28,22 +32,36 @@ class SalesReport
             ->whereNotNull('catalog_item_id')
             ->whereHas('order.payments', fn ($q) => $q->whereBetween('paid_on', [Periods::start($month), Periods::end($month)]))
             ->get()
-            ->groupBy('catalog_item_id')
+            ->groupBy(fn (OrderItem $i) => $i->catalog_item_id.':'.($i->catalog_item_variant_id ?? 0))
             ->map(fn (Collection $items) => (int) $items->sum('quantity'));
 
-        $rows = CatalogItem::where('type', CatalogItemType::Product)->orderBy('id')->get()
-            ->map(function (CatalogItem $item) use ($sold) {
-                $qty = (int) $sold->get($item->id, 0);
-                $revenue = $qty * $item->price;
-                $cost = $qty * ($item->unit_cost ?? 0);
+        $rows = CatalogItem::where('type', CatalogItemType::Product)->with('variants')->orderBy('id')->get()
+            ->flatMap(function (CatalogItem $item) use ($sold) {
+                $rows = $item->variants
+                    ->filter(fn (CatalogItemVariant $v) => $v->is_active || $sold->has("{$item->id}:{$v->id}"))
+                    ->map(fn (CatalogItemVariant $v) => $this->productRow($item, (int) $sold->get("{$item->id}:{$v->id}", 0), $v->price, $v->unit_cost, $v))
+                    ->values();
+                // Produk tanpa varian, atau penjualan sebelum produk punya varian.
+                $plain = (int) $sold->get("{$item->id}:0", 0);
+                if ($item->variants->isEmpty() || $plain > 0) {
+                    $rows->push($this->productRow($item, $plain, $item->price, $item->unit_cost ?? 0));
+                }
 
-                return new ProductSales($item, $qty, $revenue, $cost, $revenue - $cost, $revenue === 0 ? 0.0 : ($revenue - $cost) / $revenue);
+                return $rows;
             })
             ->sortByDesc(fn (ProductSales $p) => $p->revenue)
             ->values()
             ->all();
 
         return array_values($rows);
+    }
+
+    private function productRow(CatalogItem $item, int $qty, int $price, int $unitCost, ?CatalogItemVariant $variant = null): ProductSales
+    {
+        $revenue = $qty * $price;
+        $cost = $qty * $unitCost;
+
+        return new ProductSales($item, $qty, $revenue, $cost, $revenue - $cost, $revenue === 0 ? 0.0 : ($revenue - $cost) / $revenue, $variant);
     }
 
     /**

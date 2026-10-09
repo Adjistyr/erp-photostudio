@@ -17,7 +17,12 @@ export const MAX_HELD = 5;
 
 /** Isian keranjang POS yang ikut ditahan — bentuknya sama dengan form POS. */
 export interface CartFields {
-    items: { catalog_item_id: number; quantity: number }[];
+    /** `catalog_item_variant_id` null = produk tanpa varian (spek 7.3). */
+    items: {
+        catalog_item_id: number;
+        catalog_item_variant_id: number | null;
+        quantity: number;
+    }[];
     /** Teks isian diskon apa adanya (rupiah atau persen, lihat `discountMode`). */
     discount: string;
     /** Split payment (4.4) ikut ditahan; spek awal hanya `method`. */
@@ -61,7 +66,11 @@ function isHeldCart(x: unknown): x is HeldCart {
             (i) =>
                 isRecord(i) &&
                 isPositiveInt(i.catalog_item_id) &&
-                isPositiveInt(i.quantity),
+                isPositiveInt(i.quantity) &&
+                // Entri sebelum varian (7.3) tidak punya field ini — tetap sah.
+                (i.catalog_item_variant_id === undefined ||
+                    i.catalog_item_variant_id === null ||
+                    isPositiveInt(i.catalog_item_variant_id)),
         ) &&
         Array.isArray(payments) &&
         payments.length >= 1 &&
@@ -82,7 +91,17 @@ export function loadHeld(storage?: Pick<Storage, 'getItem'>): HeldCart[] {
             (storage ?? window.localStorage).getItem(HELD_KEY) ?? '[]',
         );
         return Array.isArray(parsed)
-            ? parsed.filter(isHeldCart).slice(0, MAX_HELD)
+            ? parsed
+                  .filter(isHeldCart)
+                  .slice(0, MAX_HELD)
+                  .map((c) => ({
+                      ...c,
+                      items: c.items.map((i) => ({
+                          ...i,
+                          catalog_item_variant_id:
+                              i.catalog_item_variant_id ?? null,
+                      })),
+                  }))
             : [];
     } catch {
         return [];
@@ -140,16 +159,41 @@ export function dropCart(carts: HeldCart[], id: string): HeldCart[] {
     return carts.filter((c) => c.id !== id);
 }
 
+/** Bentuk produk yang dibutuhkan pulihkan & total — subset props POS. */
+interface ProductRef {
+    id: number;
+    price: number;
+    variants?: { id: number; price: number }[];
+}
+
 /**
- * Isian form dari keranjang tertahan. Item yang tidak lagi ada di katalog
- * aktif (`products`) dilewati — harga selalu dari katalog saat simpan.
+ * Harga baris dengan katalog SEKARANG; null bila produk/varian tidak lagi
+ * dijual. Produk bervarian wajib varian; produk tanpa varian tidak boleh.
+ */
+function linePrice(
+    i: CartFields['items'][number],
+    products: ProductRef[],
+): number | null {
+    const p = products.find((x) => x.id === i.catalog_item_id);
+    if (!p) return null;
+    const variants = p.variants ?? [];
+    if (i.catalog_item_variant_id === null) {
+        return variants.length === 0 ? p.price : null;
+    }
+    return (
+        variants.find((v) => v.id === i.catalog_item_variant_id)?.price ?? null
+    );
+}
+
+/**
+ * Isian form dari keranjang tertahan. Item atau varian yang tidak lagi ada
+ * di katalog aktif (`products`) dilewati — harga selalu dari katalog saat simpan.
  */
 export function restoreCart(
     cart: HeldCart,
-    products: { id: number }[],
+    products: ProductRef[],
 ): { form: CartFields; skipped: number } {
-    const ids = new Set(products.map((p) => p.id));
-    const items = cart.items.filter((i) => ids.has(i.catalog_item_id));
+    const items = cart.items.filter((i) => linePrice(i, products) !== null);
     return {
         form: {
             items,
@@ -162,16 +206,10 @@ export function restoreCart(
     };
 }
 
-/** Total perkiraan dengan harga katalog SEKARANG (item hilang = 0). */
-export function heldTotal(
-    cart: HeldCart,
-    products: { id: number; price: number }[],
-): number {
+/** Total perkiraan dengan harga katalog SEKARANG (item/varian hilang = 0). */
+export function heldTotal(cart: HeldCart, products: ProductRef[]): number {
     const subtotal = cart.items.reduce(
-        (s, i) =>
-            s +
-            i.quantity *
-                (products.find((p) => p.id === i.catalog_item_id)?.price ?? 0),
+        (s, i) => s + i.quantity * (linePrice(i, products) ?? 0),
         0,
     );
     const discount =

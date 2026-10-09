@@ -29,6 +29,8 @@ interface Props {
     month: string;
     products: {
         id: number;
+        /** Varian (spek 7.3); null = produk tanpa varian. */
+        variant_id: number | null;
         name: string;
         quantity: number;
         revenue: number;
@@ -111,7 +113,7 @@ export default function Sales({
                             <TableBody>
                                 {products.map((p) => (
                                     <TableRow
-                                        key={p.id}
+                                        key={`${p.id}-${p.variant_id ?? 0}`}
                                         className={
                                             p.quantity === 0 ? 'opacity-60' : ''
                                         }

@@ -57,3 +57,24 @@ test('isLowMargin: di bawah ambang; jasa (HPP null) tidak pernah', () => {
     assert.equal(isLowMargin(10000, 8000, 0.2), false); // tepat 20%
     assert.equal(isLowMargin(350000, null, 0.2), false);
 });
+
+test('nama varian ikut dicari (spek 7.3)', () => {
+    const withVariants = [
+        ...items,
+        {
+            name: 'Bingkai Kayu',
+            category: 'Bingkai',
+            type: 'product' as const,
+            is_active: true,
+            variants: [{ name: 'A4' }, { name: 'A3 Hitam' }],
+        },
+    ];
+    assert.deepEqual(
+        names(filterCatalog(withVariants, { type: 'all', q: 'hitam' })),
+        ['Bingkai Kayu'],
+    );
+    assert.deepEqual(
+        names(filterCatalog(withVariants, { type: 'service', q: 'a4' })),
+        [],
+    );
+});

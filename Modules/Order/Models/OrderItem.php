@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Catalog\Models\CatalogItemVariant;
 
 /**
  * @property int $id
  * @property int $order_id
  * @property int|null $catalog_item_id
+ * @property int|null $catalog_item_variant_id varian produk saat dijual (spek 7.3)
  * @property string $name
  * @property int $quantity
  * @property int $unit_price harga satuan SAAT transaksi
@@ -20,8 +22,9 @@ use Modules\Catalog\Models\CatalogItem;
  * @property Carbon|null $updated_at
  * @property-read Order $order
  * @property-read CatalogItem|null $catalogItem
+ * @property-read CatalogItemVariant|null $variant
  */
-#[Fillable(['order_id', 'catalog_item_id', 'name', 'quantity', 'unit_price', 'unit_cost'])]
+#[Fillable(['order_id', 'catalog_item_id', 'catalog_item_variant_id', 'name', 'quantity', 'unit_price', 'unit_cost'])]
 class OrderItem extends Model
 {
     protected function casts(): array
@@ -43,5 +46,11 @@ class OrderItem extends Model
     public function catalogItem(): BelongsTo
     {
         return $this->belongsTo(CatalogItem::class);
+    }
+
+    /** @return BelongsTo<CatalogItemVariant, $this> */
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(CatalogItemVariant::class, 'catalog_item_variant_id');
     }
 }

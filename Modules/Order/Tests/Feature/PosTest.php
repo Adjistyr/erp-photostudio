@@ -97,6 +97,69 @@ class PosTest extends TestCase
         $this->assertNull($products['Cetak 4R']['photo_url']);
     }
 
+    /** "Cetak 10R + Bingkai" diberi varian Kayu (aktif) & Hitam (nonaktif). */
+    private function framed(): CatalogItem
+    {
+        $item = $this->item('Cetak 10R + Bingkai');
+        $item->variants()->create(['name' => 'Kayu', 'price' => 95_000, 'unit_cost' => 40_000, 'position' => 1]);
+        $item->variants()->create(['name' => 'Hitam', 'price' => 90_000, 'unit_cost' => 36_000, 'position' => 2, 'is_active' => false]);
+
+        return $item;
+    }
+
+    public function test_sells_variant_with_its_own_name_price_and_cost()
+    {
+        $item = $this->framed();
+        $kayu = $item->variants()->where('name', 'Kayu')->sole();
+
+        $this->sell(['items' => [['catalog_item_id' => $item->id, 'catalog_item_variant_id' => $kayu->id, 'quantity' => 2]],
+            'payments' => [['method' => 'cash', 'amount' => 190_000]]])->assertSessionHasNoErrors();
+
+        $line = $this->newest()->items->sole();
+        $this->assertSame(['Cetak 10R + Bingkai – Kayu', 95_000, 40_000, $kayu->id],
+            [$line->name, $line->unit_price, $line->unit_cost, $line->catalog_item_variant_id]);
+    }
+
+    public function test_product_with_variants_requires_an_active_own_variant()
+    {
+        $item = $this->framed();
+        $hitam = $item->variants()->where('name', 'Hitam')->sole();
+        $foreign = $this->item('Cetak 4R')->variants()->create(['name' => 'Glossy', 'price' => 6_000, 'unit_cost' => 1_800, 'position' => 1]);
+        $pay = ['payments' => [['method' => 'cash', 'amount' => 95_000]]];
+
+        $this->sell(['items' => [['catalog_item_id' => $item->id, 'quantity' => 1]], ...$pay])
+            ->assertSessionHasErrors(['items.0.catalog_item_variant_id' => 'Pilih varian produk ini.']);
+        $this->sell(['items' => [['catalog_item_id' => $item->id, 'catalog_item_variant_id' => $hitam->id, 'quantity' => 1]], ...$pay])
+            ->assertSessionHasErrors(['items.0.catalog_item_variant_id' => 'Varian Hitam sudah tidak dijual.']);
+        $this->sell(['items' => [['catalog_item_id' => $item->id, 'catalog_item_variant_id' => $foreign->id, 'quantity' => 1]], ...$pay])
+            ->assertSessionHasErrors('items.0.catalog_item_variant_id');
+        $this->assertSame(12, Order::count());
+    }
+
+    public function test_product_without_variants_rejects_a_variant()
+    {
+        $item = $this->framed();
+        $kayu = $item->variants()->where('name', 'Kayu')->sole();
+
+        $this->sell(['items' => [['catalog_item_id' => $this->item('Keychain Foto Akrilik')->id, 'catalog_item_variant_id' => $kayu->id, 'quantity' => 1]]])
+            ->assertSessionHasErrors(['items.0.catalog_item_variant_id' => 'Produk ini tidak punya varian.']);
+    }
+
+    public function test_products_carry_active_variants_and_hide_products_without_any()
+    {
+        $item = $this->framed();
+        $album = $this->item('Album Mini 20 Halaman');
+        $album->variants()->create(['name' => '20 hal', 'price' => 175_000, 'unit_cost' => 70_000, 'position' => 1, 'is_active' => false]);
+
+        $products = collect($this->get(route('pos.index'))->inertiaPage()['props']['products'])->keyBy('name');
+
+        $this->assertSame(['Kayu'], array_column($products['Cetak 10R + Bingkai']['variants'], 'name'));
+        $this->assertSame([], $products['Cetak 4R']['variants']);
+        // Semua varian nonaktif → tidak ada yang bisa dijual.
+        $this->assertFalse($products->has('Album Mini 20 Halaman'));
+        $this->assertSame($item->id, $products['Cetak 10R + Bingkai']['id']);
+    }
+
     public function test_walk_in_sale_is_delivered_paid_and_counted_as_revenue_today()
     {
         $before = app(ProfitAndLoss::class)->revenue('2026-08');

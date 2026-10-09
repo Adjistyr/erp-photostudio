@@ -2,6 +2,7 @@
 
 namespace Modules\Finance\Tests\Feature;
 
+use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\Customer;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Finance\Services\SalesReport;
@@ -22,6 +23,22 @@ class SalesReportTest extends DemoDataTestCase
         $this->assertSame(['ORD-0012'], $this->sales()->bookingsToday()->pluck('number')->all());
         // ORD-0010 retail di tanggal yang sama, sudah diserahkan — tidak ikut.
         $this->assertTrue($this->order('ORD-0010')->service_date->isToday());
+    }
+
+    public function test_top_products_split_per_variant_with_variant_price()
+    {
+        $item = CatalogItem::where('name', 'Cetak 10R + Bingkai')->sole();
+        $kayu = $item->variants()->create(['name' => 'Kayu', 'price' => 95_000, 'unit_cost' => 40_000, 'position' => 1]);
+        $item->variants()->create(['name' => 'Hitam', 'price' => 90_000, 'unit_cost' => 36_000, 'position' => 2, 'is_active' => false]);
+        $order = $this->order('ORD-0010');
+        $order->items()->create(['catalog_item_id' => $item->id, 'catalog_item_variant_id' => $kayu->id, 'name' => 'Cetak 10R + Bingkai – Kayu', 'quantity' => 2, 'unit_price' => 95_000, 'unit_cost' => 40_000]);
+
+        $products = collect($this->sales()->topProducts(self::AUG))->keyBy(fn ($p) => $p->name());
+
+        $this->assertSame([2, 190_000, 80_000], [$products['Cetak 10R + Bingkai – Kayu']->quantity, $products['Cetak 10R + Bingkai – Kayu']->revenue, $products['Cetak 10R + Bingkai – Kayu']->cost]);
+        // Varian nonaktif yang tidak terjual tidak tampil; penjualan lama tanpa varian tetap terhitung.
+        $this->assertFalse($products->has('Cetak 10R + Bingkai – Hitam'));
+        $this->assertSame(1, $products['Cetak 10R + Bingkai']->quantity);
     }
 
     public function test_top_products_match_retail_revenue_and_material_cost()

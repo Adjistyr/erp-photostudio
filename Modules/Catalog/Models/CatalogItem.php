@@ -23,6 +23,7 @@ use Modules\Catalog\Enums\ServiceCategory;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Collection<int, CatalogItemPhoto> $photos sampul dulu
+ * @property-read Collection<int, CatalogItemVariant> $variants urut input (spek 7.3)
  */
 #[Fillable(['name', 'type', 'price', 'unit_cost', 'category', 'is_active', 'description', 'is_public'])]
 class CatalogItem extends Model
@@ -46,6 +47,33 @@ class CatalogItem extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(CatalogItemPhoto::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Varian produk (spek 7.3), urut input.
+     *
+     * @return HasMany<CatalogItemVariant, $this>
+     */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(CatalogItemVariant::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Produk bervarian: harga & HPP item disalin dari varian aktif termurah
+     * (semua nonaktif → termurah) supaya daftar & urutan tetap masuk akal.
+     * Penjualan SELALU memakai harga varian, bukan nilai ini (spek 7.3).
+     */
+    public function syncPriceFromVariants(): void
+    {
+        $variants = $this->variants()->get();
+        if ($variants->isEmpty()) {
+            return;
+        }
+        $active = $variants->where('is_active', true);
+        /** @var CatalogItemVariant $cheapest */
+        $cheapest = ($active->isNotEmpty() ? $active : $variants)->sortBy('price')->first();
+        $this->update(['price' => $cheapest->price, 'unit_cost' => $cheapest->unit_cost]);
     }
 
     /**

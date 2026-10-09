@@ -121,7 +121,9 @@ class ReportController extends Controller
             'month' => $month,
             'products' => array_map(fn (ProductSales $p) => [
                 'id' => $p->item->id,
-                'name' => $p->item->name,
+                // Varian (spek 7.3): satu baris per varian, nama "Produk – Varian".
+                'variant_id' => $p->variant?->id,
+                'name' => $p->name(),
                 'quantity' => $p->quantity,
                 'revenue' => $p->revenue,
                 'cost' => $p->cost,

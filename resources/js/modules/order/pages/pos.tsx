@@ -43,6 +43,7 @@ import {
 } from '@/modules/order/lib/held-carts';
 import type { HeldCart } from '@/modules/order/lib/held-carts';
 import { bagiPembayaran } from '@/modules/order/lib/split-payment';
+import { priceRange, variantLabel } from '@/modules/catalog';
 import { formatRp, hanyaDigit } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import {
@@ -50,6 +51,8 @@ import {
     HoldCartButton,
 } from '@/modules/order/components/held-carts';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
+import { VariantPicker } from '@/modules/order/components/variant-picker';
+import type { PosVariant } from '@/modules/order/components/variant-picker';
 import { TodaySales } from '@/modules/order/components/today-sales';
 import type { TodaySale } from '@/modules/order/components/today-sales';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
@@ -66,10 +69,17 @@ interface Product {
     unit_cost: number | null;
     /** Thumbnail sampul (spek 7.1); null tanpa foto. */
     photo_url: string | null;
+    /** Varian aktif (spek 7.3); kosong = dijual dengan harga item. */
+    variants: PosVariant[];
 }
 
 interface SaleForm {
-    items: { catalog_item_id: number; quantity: number }[];
+    /** Baris dikunci (item, varian) — varian null untuk produk tanpa varian. */
+    items: {
+        catalog_item_id: number;
+        catalog_item_variant_id: number | null;
+        quantity: number;
+    }[];
     discount: string;
     /**
      * 1–2 baris (spek 4.4). `amount` baris pertama tidak dipakai — dihitung
@@ -126,14 +136,28 @@ export default function Pos({
         p.name.toLowerCase().includes(search.toLowerCase()),
     );
 
+    // Baris → nama/harga/HPP dari produk atau variannya (spek 7.3); baris
+    // yang produk/variannya tidak lagi dijual tidak ikut dihitung.
     const lines = data.items.flatMap((l) => {
         const p = productOf(l.catalog_item_id);
-        return p ? [{ ...l, product: p }] : [];
+        if (!p) return [];
+        const v =
+            l.catalog_item_variant_id === null
+                ? null
+                : p.variants.find((x) => x.id === l.catalog_item_variant_id);
+        if (v === undefined) return [];
+        return [
+            {
+                ...l,
+                product: p,
+                key: `${p.id}-${v?.id ?? 0}`,
+                label: v ? variantLabel(p.name, v.name) : p.name,
+                price: v?.price ?? p.price,
+                unitCost: v ? v.unit_cost : p.unit_cost,
+            },
+        ];
     });
-    const subtotal = lines.reduce(
-        (s, l) => s + l.quantity * l.product.price,
-        0,
-    );
+    const subtotal = lines.reduce((s, l) => s + l.quantity * l.price, 0);
     // Diskon persen (spek 4.1): isian mentah di form, nominal diturunkan di
     // sini dan dikirim lewat transform saat simpan. Dalam mode % persen yang
     // dipertahankan — nominal ikut berubah bila keranjang berubah.
@@ -223,28 +247,47 @@ export default function Pos({
             toast.warning(`${skipped} item tidak lagi tersedia dan dilewati`);
     };
     const materialCost = lines.reduce(
-        (s, l) => s + l.quantity * (l.product.unit_cost ?? 0),
+        (s, l) => s + l.quantity * (l.unitCost ?? 0),
         0,
     );
 
-    const add = (p: Product) =>
+    const sameLine = (
+        l: SaleForm['items'][number],
+        id: number,
+        variantId: number | null,
+    ) => l.catalog_item_id === id && l.catalog_item_variant_id === variantId;
+
+    const add = (p: Product, v: PosVariant | null = null) => {
+        const vid = v?.id ?? null;
         setData(
             'items',
-            data.items.some((l) => l.catalog_item_id === p.id)
+            data.items.some((l) => sameLine(l, p.id, vid))
                 ? data.items.map((l) =>
-                      l.catalog_item_id === p.id
+                      sameLine(l, p.id, vid)
                           ? { ...l, quantity: l.quantity + 1 }
                           : l,
                   )
-                : [...data.items, { catalog_item_id: p.id, quantity: 1 }],
+                : [
+                      ...data.items,
+                      {
+                          catalog_item_id: p.id,
+                          catalog_item_variant_id: vid,
+                          quantity: 1,
+                      },
+                  ],
         );
+    };
+    // Produk bervarian → pilih varian dulu (satu ketukan tambahan).
+    const [picking, setPicking] = useState<Product | null>(null);
+    const tap = (p: Product) =>
+        p.variants.length > 0 ? setPicking(p) : add(p);
 
-    const changeQty = (id: number, delta: number) =>
+    const changeQty = (id: number, variantId: number | null, delta: number) =>
         setData(
             'items',
             data.items
                 .map((l) =>
-                    l.catalog_item_id === id
+                    sameLine(l, id, variantId)
                         ? { ...l, quantity: l.quantity + delta }
                         : l,
                 )
@@ -317,25 +360,29 @@ export default function Pos({
             ) : (
                 <div className="flex flex-col gap-3">
                     {lines.map((l) => (
-                        <div
-                            key={l.catalog_item_id}
-                            className="flex items-center gap-2"
-                        >
+                        <div key={l.key} className="flex items-center gap-2">
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
-                                    {l.product.name}
+                                <p
+                                    className="truncate text-sm font-medium"
+                                    title={l.label}
+                                >
+                                    {l.label}
                                 </p>
                                 <p className="font-mono text-xs text-muted-foreground">
-                                    {formatRp(l.product.price)} × {l.quantity}
+                                    {formatRp(l.price)} × {l.quantity}
                                 </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-1">
                                 <Button
                                     size="icon"
                                     variant="ghost"
-                                    aria-label={`Kurangi ${l.product.name}`}
+                                    aria-label={`Kurangi ${l.label}`}
                                     onClick={() =>
-                                        changeQty(l.catalog_item_id, -1)
+                                        changeQty(
+                                            l.catalog_item_id,
+                                            l.catalog_item_variant_id,
+                                            -1,
+                                        )
                                     }
                                 >
                                     {l.quantity === 1 ? <Trash2 /> : <Minus />}
@@ -346,16 +393,20 @@ export default function Pos({
                                 <Button
                                     size="icon"
                                     variant="ghost"
-                                    aria-label={`Tambah ${l.product.name}`}
+                                    aria-label={`Tambah ${l.label}`}
                                     onClick={() =>
-                                        changeQty(l.catalog_item_id, 1)
+                                        changeQty(
+                                            l.catalog_item_id,
+                                            l.catalog_item_variant_id,
+                                            1,
+                                        )
                                     }
                                 >
                                     <Plus />
                                 </Button>
                             </div>
                             <span className="w-24 shrink-0 text-right font-mono text-sm">
-                                {formatRp(l.quantity * l.product.price)}
+                                {formatRp(l.quantity * l.price)}
                             </span>
                         </div>
                     ))}
@@ -643,7 +694,7 @@ export default function Pos({
                             <button
                                 key={p.id}
                                 type="button"
-                                onClick={() => add(p)}
+                                onClick={() => tap(p)}
                                 className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
                                 {withPhotos && (
@@ -656,8 +707,15 @@ export default function Pos({
                                     {p.name}
                                 </span>
                                 <span className="font-mono text-sm text-muted-foreground">
-                                    {formatRp(p.price)}
+                                    {p.variants.length > 0
+                                        ? `mulai ${formatRp(priceRange(p.variants.map((v) => v.price))?.min ?? p.price)}`
+                                        : formatRp(p.price)}
                                 </span>
+                                {p.variants.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                        {p.variants.length} varian
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -712,6 +770,15 @@ export default function Pos({
                     </Sheet>
                 </>
             )}
+
+            <VariantPicker
+                product={picking}
+                onPick={(v) => {
+                    if (picking) add(picking, v);
+                    setPicking(null);
+                }}
+                onClose={() => setPicking(null)}
+            />
 
             <ReceiptSheet
                 receipt={receipt}

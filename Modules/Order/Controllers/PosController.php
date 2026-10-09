@@ -9,6 +9,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Customer\Actions\FindOrCreateCustomer;
 use Modules\Order\Actions\RecordOrderEvent;
 use Modules\Order\Enums\OrderEventType;
@@ -34,12 +35,19 @@ class PosController extends Controller
             'products' => CatalogItem::where('is_active', true)
                 ->where('type', CatalogItemType::Product)
                 // Sampul saja (spek 7.1) — limit per induk di eager load.
-                ->with(['photos' => fn ($q) => $q->limit(1)])
+                ->with(['photos' => fn ($q) => $q->limit(1), 'variants.photo'])
                 ->orderBy('name')
                 ->get()
+                // Produk bervarian tanpa varian aktif tidak bisa dijual (spek 7.3).
+                ->reject(fn (CatalogItem $p) => $p->variants->isNotEmpty() && $p->variants->where('is_active', true)->isEmpty())
                 ->map(fn (CatalogItem $p) => [
                     'id' => $p->id, 'name' => $p->name, 'price' => $p->price, 'unit_cost' => $p->unit_cost,
                     'photo_url' => $p->photos->first()?->thumbUrl(),
+                    'variants' => $p->variants->where('is_active', true)->map(fn (CatalogItemVariant $v) => [
+                        'id' => $v->id, 'name' => $v->name, 'price' => $v->price, 'unit_cost' => $v->unit_cost,
+                        // Foto varian, atau sampul item bila tidak dipilih.
+                        'photo_url' => $v->photo?->thumbUrl() ?? $p->photos->first()?->thumbUrl(),
+                    ])->values()->all(),
                 ])->values()->all(),
             // Nama studio untuk pesan WA struk.
             'studio' => config('studio'),
@@ -111,6 +119,7 @@ class PosController extends Controller
             foreach ($request->lines() as $line) {
                 $order->items()->create([
                     'catalog_item_id' => $line['item']?->id,
+                    'catalog_item_variant_id' => $line['variant']?->id,
                     'name' => $line['name'],
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
