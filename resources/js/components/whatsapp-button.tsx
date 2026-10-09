@@ -20,6 +20,7 @@ export function WhatsAppButton({
     message,
     label,
     urgent = false,
+    wide = false,
 }: {
     phone: string | null;
     message: string;
@@ -27,19 +28,41 @@ export function WhatsAppButton({
     label: string;
     /** Garis merah — prioritas (mis. tagihan lewat jatuh tempo). */
     urgent?: boolean;
+    /**
+     * Tombol berlabel penuh lebar, tinggi 44 px — untuk kartu di layar sempit
+     * (spek 4.6): jempol, bukan kursor.
+     */
+    wide?: boolean;
 }) {
+    const sizing = wide
+        ? ({ size: 'lg', className: 'h-11 w-full' } as const)
+        : ({ size: 'icon-sm', className: '' } as const);
+    const content = wide ? (
+        <>
+            <Send data-icon="inline-start" />
+            WhatsApp
+        </>
+    ) : (
+        <Send />
+    );
+
     if (!phone) {
         return (
             <Tooltip>
                 {/* Tombol disabled tidak memicu hover — tooltip di pembungkus. */}
-                <TooltipTrigger render={<span tabIndex={0} />}>
+                <TooltipTrigger
+                    render={
+                        <span tabIndex={0} className={wide ? 'flex-1' : ''} />
+                    }
+                >
                     <Button
-                        size="icon-sm"
+                        size={sizing.size}
+                        className={sizing.className}
                         variant="outline"
                         disabled
                         aria-label={`${label} — belum ada nomor HP`}
                     >
-                        <Send />
+                        {content}
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -51,9 +74,9 @@ export function WhatsAppButton({
 
     return (
         <Button
-            size="icon-sm"
+            size={sizing.size}
             variant="outline"
-            className={urgent ? 'border-destructive text-destructive' : ''}
+            className={`${sizing.className} ${wide ? 'flex-1' : ''} ${urgent ? 'border-destructive text-destructive' : ''}`}
             aria-label={label}
             title={label}
             nativeButton={false}
@@ -65,7 +88,7 @@ export function WhatsAppButton({
                 />
             }
         >
-            <Send />
+            {content}
         </Button>
     );
 }

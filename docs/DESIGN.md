@@ -422,7 +422,7 @@ Ditulis eksplisit supaya tidak ditambahkan "biar lengkap". Menuliskannya justru 
 
 - Skala shadow — shadcn berbasis border, bukan elevasi
 - Timing dan easing animasi
-- Breakpoint responsif — target desktop, mobile dibahas terpisah kalau jadi
+- Breakpoint responsif — target desktop. Pengecualian (spek 4.6): **POS** di bawah `lg` (keranjang jadi Sheet bawah + tombol melayang) dan **Pembayaran** di bawah `md` (tabel jadi kartu, tombol 44 px). Layar lain boleh menggulir tabel ke samping
 - Ilustrasi custom untuk empty state — ikon lucide cukup
 
 ---

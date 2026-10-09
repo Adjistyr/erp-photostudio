@@ -23,7 +23,6 @@ import { LineMark, PaymentBadge } from '@/components/status-order';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { SummaryCard } from '@/components/summary-card';
-import { WhatsAppButton } from '@/components/whatsapp-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,13 +37,15 @@ import {
     formatRp,
     formatTanggal,
     formatUmurPiutang,
-    personalise,
 } from '@/lib/format';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFlash } from '@/hooks/use-flash';
-import { billingValues } from '@/modules/order/components/invoice-document';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
+import {
+    BillButton,
+    ReceivableCard,
+} from '@/modules/order/components/receivable-card';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { filterReceivables } from '@/modules/order/lib/receivables-filter';
 import type { AgeTab } from '@/modules/order/lib/receivables-filter';
@@ -160,7 +161,9 @@ export default function Receivables({
                                 if (a) setAge(a);
                             }}
                         >
-                            <TabsList>
+                            {/* Tiga tab tidak muat di 390 px — gulir di dalam daftar tab,
+                                bukan halaman (spek 4.6). */}
+                            <TabsList className="max-w-full [scrollbar-width:none] justify-start overflow-x-auto">
                                 {AGE_TABS.map((a) => (
                                     <TabsTrigger key={a} value={a}>
                                         {AGE_LABEL[a]} ({count(a)})
@@ -202,81 +205,103 @@ export default function Receivables({
                         }}
                     />
                 ) : (
-                    <TabelData>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>No</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Lini</TableHead>
-                                <TableHead>Jatuh tempo</TableHead>
-                                <TableHead>Umur</TableHead>
-                                <KepalaUang>Total</KepalaUang>
-                                {/* Dibayar = Total − Sisa dan terbaca dari persen badge;
+                    <>
+                        {/* Layar sempit (spek 4.6): kartu dari baris yang sama;
+                        kelas CSS, bukan deteksi perangkat. */}
+                        <ul className="flex flex-col gap-3 md:hidden">
+                            {visible.map((o) => (
+                                <ReceivableCard
+                                    key={o.id}
+                                    row={o}
+                                    template={billing_template}
+                                    onPay={() => setPayingId(o.id)}
+                                />
+                            ))}
+                        </ul>
+                        <div className="hidden min-w-0 md:block">
+                            <TabelData>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>No</TableHead>
+                                        <TableHead>Customer</TableHead>
+                                        <TableHead>Lini</TableHead>
+                                        <TableHead>Jatuh tempo</TableHead>
+                                        <TableHead>Umur</TableHead>
+                                        <KepalaUang>Total</KepalaUang>
+                                        {/* Dibayar = Total − Sisa dan terbaca dari persen badge;
                                     disembunyikan di bawah 2xl supaya kolom aksi (Tagih WA +
                                     Catat Bayar) muat tanpa scroll di laptop. */}
-                                <KepalaUang className="hidden 2xl:table-cell">
-                                    Dibayar
-                                </KepalaUang>
-                                <KepalaUang>Sisa</KepalaUang>
-                                <TableHead>Status</TableHead>
-                                <TableHead />
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {visible.map((o) => (
-                                <TableRow key={o.id}>
-                                    <SelKode>{o.number}</SelKode>
-                                    <TableCell className="font-medium whitespace-nowrap">
-                                        {o.customer_name ?? (
-                                            <span className="text-muted-foreground">
-                                                Walk-in
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <LineMark line={o.business_line} />
-                                    </TableCell>
-                                    <TableCell className="whitespace-nowrap">
-                                        {formatTanggal(o.service_date)}
-                                    </TableCell>
-                                    <TableCell
-                                        className={`whitespace-nowrap ${o.days_until_due < 0 ? 'text-destructive' : ''}`}
-                                    >
-                                        {formatUmurPiutang(o.days_until_due)}
-                                    </TableCell>
-                                    <SelUang nominal={o.total} />
-                                    <SelUang
-                                        nominal={o.paid}
-                                        className="hidden 2xl:table-cell"
-                                    />
-                                    <SelUang nominal={o.balance} />
-                                    <TableCell>
-                                        <PaymentBadge
-                                            status={o.payment_status}
-                                            paidPercent={o.paid_percent}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="flex justify-end gap-1.5">
-                                            <BillButton
-                                                row={o}
-                                                template={billing_template}
-                                            />
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setPayingId(o.id)
-                                                }
+                                        <KepalaUang className="hidden 2xl:table-cell">
+                                            Dibayar
+                                        </KepalaUang>
+                                        <KepalaUang>Sisa</KepalaUang>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead />
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {visible.map((o) => (
+                                        <TableRow key={o.id}>
+                                            <SelKode>{o.number}</SelKode>
+                                            <TableCell className="font-medium whitespace-nowrap">
+                                                {o.customer_name ?? (
+                                                    <span className="text-muted-foreground">
+                                                        Walk-in
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <LineMark
+                                                    line={o.business_line}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="whitespace-nowrap">
+                                                {formatTanggal(o.service_date)}
+                                            </TableCell>
+                                            <TableCell
+                                                className={`whitespace-nowrap ${o.days_until_due < 0 ? 'text-destructive' : ''}`}
                                             >
-                                                Catat Bayar
-                                            </Button>
-                                        </span>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </TabelData>
+                                                {formatUmurPiutang(
+                                                    o.days_until_due,
+                                                )}
+                                            </TableCell>
+                                            <SelUang nominal={o.total} />
+                                            <SelUang
+                                                nominal={o.paid}
+                                                className="hidden 2xl:table-cell"
+                                            />
+                                            <SelUang nominal={o.balance} />
+                                            <TableCell>
+                                                <PaymentBadge
+                                                    status={o.payment_status}
+                                                    paidPercent={o.paid_percent}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="flex justify-end gap-1.5">
+                                                    <BillButton
+                                                        row={o}
+                                                        template={
+                                                            billing_template
+                                                        }
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setPayingId(o.id)
+                                                        }
+                                                    >
+                                                        Catat Bayar
+                                                    </Button>
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </TabelData>
+                        </div>
+                    </>
                 )}
                 {orders.length > 0 && (
                     <p className="text-xs text-muted-foreground">
@@ -312,42 +337,3 @@ export default function Receivables({
 Receivables.layout = {
     breadcrumbs: [{ title: 'Pembayaran', href: receivablesIndex() }],
 };
-
-/**
- * Tagih via WhatsApp — pesan dari template `billing`, dikirim manual.
- * Lewat jatuh tempo → tombol bergaris merah (prioritas); isi pesan sama.
- * Tanpa HP → disabled + tooltip; tidak ada fallback ke email.
- */
-function BillButton({
-    row,
-    template,
-}: {
-    row: ReceivableRow;
-    template: string;
-}) {
-    const overdue = row.days_until_due < 0;
-
-    const message = personalise(
-        template,
-        billingValues({
-            customer_name: row.customer_name,
-            order_number: row.number,
-            balance: row.balance,
-            service_date: row.service_date,
-            public_url: row.invoice_url,
-        }),
-    );
-
-    return (
-        <WhatsAppButton
-            phone={row.customer_phone}
-            message={message}
-            label={
-                overdue
-                    ? `Tagih ${row.number} via WhatsApp — lewat jatuh tempo`
-                    : `Tagih ${row.number} via WhatsApp`
-            }
-            urgent={overdue}
-        />
-    );
-}

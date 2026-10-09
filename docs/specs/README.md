@@ -47,7 +47,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 3.6 Katalog: margin % + cari | `3.6-katalog-margin-cari.md` | S | 3.1 (toolbar) | ✅ #46 |
 | 4.1 Diskon persen | `4.1-diskon-persen.md` | S | — | ✅ #47 |
 | 4.2 Retur / refund | `4.2-retur-refund.md` | M | 0.1, 0.2, 3.3 | ✅ #48 |
-| 4.3 Hold keranjang | `4.3-hold-keranjang.md` | S | — | ⬜ |
+| 4.3 Hold keranjang | `4.3-hold-keranjang.md` | S | — | ✅ #51 |
 | 4.4 Split payment | `4.4-split-payment.md` | M | 2.2 | ✅ #50 |
 | 4.5 Ekspor CSV | `4.5-ekspor-csv.md` | S | 3.1, 3.3 | ✅ #49 |
 | 4.6 Layar sempit | `4.6-layar-sempit.md` | M | 2.4 | ⬜ |

@@ -34,3 +34,21 @@ export function useIsMobile(): boolean {
         getServerSnapshot,
     );
 }
+
+/**
+ * `true` bila viewport ≥ `px`. Untuk tata letak yang tidak cukup dengan kelas
+ * CSS — mis. keranjang POS yang harus dirender SEKALI (inline atau di Sheet),
+ * karena render ganda menggandakan id input. Aman dari flash: app tanpa SSR.
+ */
+export function useMinWidth(px: number): boolean {
+    const query = `(min-width: ${px}px)`;
+    return useSyncExternalStore(
+        (callback) => {
+            const m = window.matchMedia(query);
+            m.addEventListener('change', callback);
+            return () => m.removeEventListener('change', callback);
+        },
+        () => window.matchMedia(query).matches,
+        () => true,
+    );
+}
