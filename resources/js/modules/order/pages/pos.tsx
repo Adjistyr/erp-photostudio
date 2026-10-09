@@ -13,6 +13,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Minus, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import PosController from '@/actions/Modules/Order/Controllers/PosController';
 import { KosongTabel } from '@/components/data-table';
 import InputError from '@/components/input-error';
@@ -27,9 +28,24 @@ import {
     rapikanPersen,
 } from '@/modules/order/lib/discount';
 import type { DiscountMode } from '@/modules/order/lib/discount';
+import {
+    defaultLabel,
+    dropCart,
+    holdCart,
+    loadHeld,
+    makeHeldCart,
+    MAX_HELD,
+    restoreCart,
+    saveHeld,
+} from '@/modules/order/lib/held-carts';
+import type { HeldCart } from '@/modules/order/lib/held-carts';
 import { bagiPembayaran } from '@/modules/order/lib/split-payment';
 import { formatRp, hanyaDigit } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
+import {
+    HeldCarts,
+    HoldCartButton,
+} from '@/modules/order/components/held-carts';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { TodaySales } from '@/modules/order/components/today-sales';
 import type { TodaySale } from '@/modules/order/components/today-sales';
@@ -154,6 +170,46 @@ export default function Pos({
                 ),
             );
     };
+    // Keranjang tertahan (spek 4.3). Lazy initializer, bukan useEffect: app
+    // tanpa SSR (tidak ada ssr.tsx); `loadHeld` tetap aman tanpa `window`.
+    const [held, setHeld] = useState<HeldCart[]>(() => loadHeld());
+    const persistHeld = (next: HeldCart[]) => {
+        setHeld(next);
+        saveHeld(next);
+    };
+    const clearCart = () => {
+        form.reset();
+        form.clearErrors();
+        setDiscountMode('rp');
+    };
+    const hold = (label: string) => {
+        const next = holdCart(held, makeHeldCart(data, discountMode, label));
+        if (next === 'full') return;
+        persistHeld(next);
+        clearCart();
+    };
+    const restore = (cart: HeldCart, holdCurrent: boolean) => {
+        const rest = dropCart(held, cart.id);
+        // Satu slot baru saja kosong — menahan keranjang aktif tidak bisa penuh.
+        persistHeld(
+            holdCurrent
+                ? [
+                      makeHeldCart(
+                          data,
+                          discountMode,
+                          defaultLabel(data.customer_name),
+                      ),
+                      ...rest,
+                  ]
+                : rest,
+        );
+        const { form: fields, skipped } = restoreCart(cart, products);
+        form.clearErrors();
+        setData(fields);
+        setDiscountMode(cart.discountMode);
+        if (skipped > 0)
+            toast.warning(`${skipped} item tidak lagi tersedia dan dilewati`);
+    };
     const materialCost = lines.reduce(
         (s, l) => s + l.quantity * (l.product.unit_cost ?? 0),
         0,
@@ -271,10 +327,25 @@ export default function Pos({
                 </section>
 
                 <div className="flex min-w-0 flex-col gap-4 self-start">
+                    <HeldCarts
+                        carts={held}
+                        products={products}
+                        cartActive={data.items.length > 0}
+                        onRestore={restore}
+                        onDrop={(id) => persistHeld(dropCart(held, id))}
+                    />
                     <aside className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-                        <h2 className="font-heading text-base font-semibold">
-                            Keranjang
-                        </h2>
+                        <div className="flex items-center justify-between gap-2">
+                            <h2 className="font-heading text-base font-semibold">
+                                Keranjang
+                            </h2>
+                            <HoldCartButton
+                                empty={lines.length === 0}
+                                full={held.length >= MAX_HELD}
+                                defaultLabel={defaultLabel(data.customer_name)}
+                                onHold={hold}
+                            />
+                        </div>
 
                         {lines.length === 0 ? (
                             <p className="text-sm text-muted-foreground">

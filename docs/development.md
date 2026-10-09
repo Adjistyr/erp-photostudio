@@ -175,6 +175,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 15. **SQL mentah harus literal-string.** Larastan menolak `whereRaw()` dengan string hasil interpolasi — pakai konstanta (mis. `Phone::SQL_NORMALISED_PHONE`) dan binding `?` untuk nilai.
 16. **Diskon persen hanya di klien.** POS mengonversi persen → nominal (`persenKeNominal()`, `modules/order/lib/discount.ts`) dan mengirim `discount` nominal lewat `transform` saat simpan; server tidak tahu ada mode persen. Jangan tambah field `discount_percent` di request.
 17. **`Order::balance()` sengaja bruto.** Sisa tagihan & status bayar memakai `totalPaid()`, bukan `netPaid()` — refund tidak membuat customer berutang lagi; memakai `netPaid()` membuat order yang direfund penuh muncul lagi di piutang. Yang memakai refund: `margin()`, `ProfitAndLoss::revenue()`, `CashReceipts`. Relasi `refunds` di-eager-load bersama `payments` di layar yang memanggil `margin()`.
+18. **Keranjang tertahan POS hanya di `localStorage` browser kasir** (`pos.held`, `lib/held-carts.ts`) — bukan data, tidak di-backup, tidak terlihat dari perangkat lain, hilang bila cache browser dibersihkan. Bentuknya divalidasi saat dimuat (versi 1); entri rusak dilewati, bukan error. ID tidak memakai `crypto.randomUUID()` karena fungsi itu hanya ada di secure context — POS lewat IP LAN `http://` akan error.
 
 ---
 
