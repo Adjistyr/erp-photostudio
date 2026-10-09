@@ -22,7 +22,9 @@ use Modules\Finance\Services\AssetMaintenance;
 use Modules\Finance\Services\DueMaintenance;
 use Modules\Finance\Services\Funds;
 use Modules\Finance\Services\Periods;
+use Modules\Shared\Http\CsvResponse;
 use Modules\Shared\Support\Money;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Aset & Maintenance (business-flow 8.9) — bonus di luar quotation Paket B.
@@ -38,6 +40,49 @@ class AssetController extends Controller
         private readonly AssetMaintenance $maintenance,
         private readonly Periods $periods,
     ) {}
+
+    /**
+     * Ekspor daftar aset (spek 4.5) — untuk asuransi/pajak. Aset dilepas ikut
+     * (dengan alasan & harga jual): riwayatnya tetap dibutuhkan. Nilai buku &
+     * jadwal servis dari service yang sama dengan layar.
+     */
+    public function export(): StreamedResponse
+    {
+        $month = $this->periods->current();
+        $rows = function () use ($month) {
+            foreach (Asset::with('maintenances')->orderBy('id')->lazy(200) as $a) {
+                $last = $a->maintenances->sortByDesc('performed_on')->first();
+                $next = $a->isDisposed() ? null : $this->maintenance->nextMaintenance($a);
+                yield [
+                    sprintf('AST-%02d', $a->id),
+                    $a->name,
+                    $a->category,
+                    $a->model,
+                    $a->units,
+                    $a->unit_price,
+                    $a->purchaseTotal(),
+                    $a->purchased_on->toDateString(),
+                    $a->useful_life_months,
+                    $this->maintenance->bookValue($a, $month),
+                    $a->maintenance_percent,
+                    $a->maintenance_interval_months,
+                    $last?->performed_on->toDateString(),
+                    $next?->toDateString(),
+                    $a->status->value,
+                    $a->status->label(),
+                    $a->disposed_on?->toDateString(),
+                    $a->disposal_reason,
+                    $a->sale_price,
+                ];
+            }
+        };
+
+        return CsvResponse::stream('potrait-time-aset-'.today()->toDateString().'.csv', $rows(), [
+            'kode', 'nama', 'kategori', 'model', 'unit', 'harga_unit', 'nilai_beli', 'tanggal_beli',
+            'umur_bulan', 'nilai_buku', 'persen_maintenance', 'interval_bulan', 'servis_terakhir',
+            'servis_berikutnya', 'status', 'status_label', 'dilepas_pada', 'alasan_lepas', 'harga_jual',
+        ]);
+    }
 
     public function index(Funds $funds): Response
     {

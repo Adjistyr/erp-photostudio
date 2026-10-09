@@ -10,6 +10,8 @@ use Modules\Order\Controllers\ReceivableController;
 
 Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+    // Ekspor CSV (spek 4.5) — setelah peran (5.1): can:view-finance (memuat HPP & margin).
+    Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
     Route::get('orders/create', [OrderController::class, 'create'])->name('orders.create');
     Route::get('orders/calendar', [OrderController::class, 'calendar'])->name('orders.calendar');
     Route::post('orders', [OrderController::class, 'store'])->name('orders.store');

@@ -9,6 +9,8 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('reports/margin', [ReportController::class, 'margin'])->name('reports.margin');
     Route::get('reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
     Route::get('reports/cash', [ReportController::class, 'cash'])->name('reports.cash');
+    // Setelah peran (5.1): can:view-finance.
+    Route::get('reports/cash/export', [ReportController::class, 'cashExport'])->name('reports.cash.export');
     Route::get('reports/receivables', [ReportController::class, 'receivables'])->name('reports.receivables');
 
     Route::get('capital', [CapitalController::class, 'index'])->name('capital.index');

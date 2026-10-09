@@ -114,4 +114,19 @@ class CashReceiptsTest extends DemoDataTestCase
         $this->assertSame(30_000, $props['refund_totals']['cash']);
         $this->assertSame(app(ProfitAndLoss::class)->revenue(self::AUG), $props['total']);
     }
+
+    public function test_cash_export_has_rows_and_totals_per_method()
+    {
+        Refund::create(['order_id' => $this->order('ORD-0010')->id, 'refunded_on' => '2026-08-26',
+            'amount' => 30_000, 'method' => 'cash', 'reason' => 'Retur']);
+
+        $content = substr($this->get(route('reports.cash.export', ['month' => self::AUG]))->assertOk()->streamedContent(), 3);
+        $lines = array_values(array_filter(explode("\n", $content)));
+
+        $this->assertSame('tanggal,metode,metode_label,jenis,jumlah,jumlah_transaksi', $lines[0]);
+        $this->assertContains('2026-08-26,cash,Tunai,keluar,-30000,', $lines);
+        $this->assertContains('2026-08-26,cash,Tunai,masuk,80000,', $lines);
+        $total = app(ProfitAndLoss::class)->revenue(self::AUG);
+        $this->assertSame('TOTAL,,,bersih,'.$total.','.Payment::whereBetween('paid_on', ['2026-08-01', '2026-08-31'])->count(), end($lines));
+    }
 }

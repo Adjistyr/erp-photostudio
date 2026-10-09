@@ -220,4 +220,20 @@ class AssetsTest extends TestCase
             'reason' => 'Dibuang', 'disposed_on' => '2026-06-30', 'sale_price' => -1,
         ])->assertSessionHasErrors(['reason', 'disposed_on', 'sale_price']);
     }
+
+    public function test_assets_export_includes_disposed_rows_with_reason()
+    {
+        $asset = Asset::orderBy('id')->firstOrFail();
+        $asset->update(['status' => 'disposed', 'disposed_on' => '2026-08-20', 'disposal_reason' => 'Dijual', 'sale_price' => 1_000_000]);
+
+        $content = substr($this->get(route('assets.export'))->assertOk()->streamedContent(), 3);
+        $rows = array_map(fn ($l) => str_getcsv($l, escape: ''), array_values(array_filter(explode("\n", $content))));
+        $header = array_shift($rows);
+        $first = array_combine($header, $rows[0]);
+
+        $this->assertSame(Asset::count(), count($rows));
+        $this->assertSame([sprintf('AST-%02d', $asset->id), 'disposed', 'Dilepas', 'Dijual', '1000000'],
+            [$first['kode'], $first['status'], $first['status_label'], $first['alasan_lepas'], $first['harga_jual']]);
+        $this->assertSame('', $first['servis_berikutnya']);
+    }
 }

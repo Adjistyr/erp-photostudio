@@ -26,6 +26,8 @@ use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\Payment;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Http\CsvResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Laporan (prompt 4.19–4.22) + Kas Harian (spek 3.3). Controller ini hanya MENYAJIKAN angka service
@@ -179,6 +181,43 @@ class ReportController extends Controller
             'total' => $r->total,
             'count' => $r->count,
             'shares' => array_map(fn (int $v) => $r->total > 0 ? $v / $r->total : 0, $r->totals),
+        ]);
+    }
+
+    /**
+     * Ekspor Kas Harian (spek 4.5): satu baris per hari × metode × jenis
+     * (masuk/keluar), lalu baris TOTAL per metode (bersih). Sumber sama
+     * dengan layar — CashReceipts.
+     *
+     * Setelah peran (spek 5.1): butuh `view-finance`.
+     */
+    public function cashExport(Request $request, CashReceipts $cash): StreamedResponse
+    {
+        $month = Periods::orCurrent($request->query('month'));
+        $r = $cash->forMonth($month);
+        $label = fn (string $m) => PaymentMethod::from($m)->label();
+
+        $rows = function () use ($r, $label) {
+            foreach ($r->days as $d) {
+                foreach ($d->byMethod as $method => $net) {
+                    $out = $d->refunds[$method] ?? 0;
+                    $in = $net + $out;
+                    if ($in > 0) {
+                        yield [$d->date, $method, $label($method), 'masuk', $in, null];
+                    }
+                    if ($out > 0) {
+                        yield [$d->date, $method, $label($method), 'keluar', -$out, null];
+                    }
+                }
+            }
+            foreach ($r->totals as $method => $net) {
+                yield ['TOTAL', $method, $label($method), 'bersih', $net, null];
+            }
+            yield ['TOTAL', null, null, 'bersih', $r->total, $r->count];
+        };
+
+        return CsvResponse::stream("potrait-time-kas-{$month}.csv", $rows(), [
+            'tanggal', 'metode', 'metode_label', 'jenis', 'jumlah', 'jumlah_transaksi',
         ]);
     }
 
