@@ -34,7 +34,11 @@ class StorePosSaleRequest extends FormRequest
                 ->where('type', CatalogItemType::Product->value)],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'discount' => ['nullable', 'integer', 'min:0'],
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            // 1–2 pembayaran (split tunai + QRIS, spek 4.4) — satu jalur saja;
+            // field lama `method` sudah dihapus.
+            'payments' => ['required', 'array', 'min:1', 'max:2'],
+            'payments.*.method' => ['required', Rule::enum(PaymentMethod::class)],
+            'payments.*.amount' => ['required', 'integer', 'min:1'],
             'customer_name' => ['nullable', 'string', 'max:255'],
             // Longgar (max:30, tanpa pola): nomor luar negeri ada. Dinormalkan di server.
             'customer_phone' => ['nullable', 'string', 'max:30'],
@@ -55,6 +59,20 @@ class StorePosSaleRequest extends FormRequest
             $subtotal = $this->subtotal();
             if ($this->discount() >= $subtotal) {
                 $validator->errors()->add('discount', 'Diskon harus di bawah subtotal '.Money::format($subtotal).'.');
+
+                return;
+            }
+            // Jumlah harus PERSIS total — kembalian urusan laci, bukan omzet.
+            $total = $subtotal - $this->discount();
+            $paid = array_sum(array_column($this->payments(), 'amount'));
+            if ($paid !== $total) {
+                $validator->errors()->add('payments', 'Jumlah pembayaran '.Money::format($paid).' tidak sama dengan total '.Money::format($total).'.');
+
+                return;
+            }
+            $methods = array_map(fn (array $p) => $p['method'], $this->payments());
+            if (count($methods) !== count(array_unique($methods, SORT_REGULAR))) {
+                $validator->errors()->add('payments.1.method', 'Dua pembayaran dengan metode sama — gabungkan saja.');
             }
         }];
     }
@@ -65,6 +83,18 @@ class StorePosSaleRequest extends FormRequest
         $phone = Phone::normalise((string) $this->input('customer_phone', ''));
 
         return $phone === '' ? null : $phone;
+    }
+
+    /** @return list<array{method: PaymentMethod, amount: int}> */
+    public function payments(): array
+    {
+        /** @var list<array{method: string, amount: int|string}> $rows */
+        $rows = $this->input('payments', []);
+
+        return array_map(fn (array $p) => [
+            'method' => PaymentMethod::from($p['method']),
+            'amount' => (int) $p['amount'],
+        ], $rows);
     }
 
     public function discount(): int
@@ -82,7 +112,9 @@ class StorePosSaleRequest extends FormRequest
             'items.*.catalog_item_id' => 'produk',
             'items.*.quantity' => 'qty',
             'discount' => 'diskon',
-            'method' => 'metode bayar',
+            'payments' => 'pembayaran',
+            'payments.*.method' => 'metode bayar',
+            'payments.*.amount' => 'jumlah bayar',
             'customer_name' => 'nama customer',
             'customer_phone' => 'no HP',
         ];

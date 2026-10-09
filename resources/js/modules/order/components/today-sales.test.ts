@@ -10,7 +10,7 @@ const sale: TodaySale = {
     time: '10:15',
     items_summary: 'Cetak 4R ×4',
     total: 20000,
-    method: 'cash',
+    methods: ['cash'],
     cancelled: false,
     customer_name: 'Rina',
     customer_phone: '62812',

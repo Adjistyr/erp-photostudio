@@ -34,17 +34,24 @@ class PosTest extends TestCase
         return CatalogItem::where('name', $name)->sole();
     }
 
-    /** @param  array<string, mixed>  $data */
+    /**
+     * Penjualan uji. Tanpa `payments`, satu pembayaran sebesar total dibentuk
+     * dari item & diskon (`method` = kemudahan untuk metodenya, bukan field request).
+     *
+     * @param  array<string, mixed>  $data
+     */
     private function sell(array $data = [])
     {
-        return $this->post(route('pos.store'), [
-            'items' => [
-                ['catalog_item_id' => $this->item('Cetak 4R')->id, 'quantity' => 4],
-                ['catalog_item_id' => $this->item('Keychain Foto Akrilik')->id, 'quantity' => 1],
-            ],
-            'method' => 'cash',
-            ...$data,
-        ]);
+        $items = $data['items'] ?? [
+            ['catalog_item_id' => $this->item('Cetak 4R')->id, 'quantity' => 4],
+            ['catalog_item_id' => $this->item('Keychain Foto Akrilik')->id, 'quantity' => 1],
+        ];
+        $total = collect($items)->sum(fn (array $i) => (CatalogItem::find($i['catalog_item_id'])->price ?? 0) * $i['quantity'])
+            - (int) ($data['discount'] ?? 0);
+        $payments = $data['payments'] ?? [['method' => $data['method'] ?? 'cash', 'amount' => max(1, $total)]];
+        unset($data['method']);
+
+        return $this->post(route('pos.store'), ['items' => $items, ...$data, 'payments' => $payments]);
     }
 
     private function newest(): Order
@@ -229,7 +236,60 @@ class PosTest extends TestCase
 
     public function test_requires_items_and_valid_method()
     {
-        $this->sell(['items' => [], 'method' => 'utang'])->assertSessionHasErrors(['items', 'method']);
+        $this->sell(['items' => [], 'payments' => [['method' => 'utang', 'amount' => 1]]])
+            ->assertSessionHasErrors(['items', 'payments.0.method']);
+    }
+
+    public function test_single_payment_creates_one_payment_row()
+    {
+        $this->sell(['method' => 'transfer'])->assertSessionHasNoErrors();
+
+        $payment = $this->newest()->payments->sole();
+        $this->assertSame(['transfer', 'Pelunasan', 45_000], [$payment->method->value, $payment->note, $payment->amount]);
+    }
+
+    public function test_split_payment_creates_two_rows_by_method()
+    {
+        $this->sell(['payments' => [['method' => 'cash', 'amount' => 25_000], ['method' => 'qris', 'amount' => 20_000]]])
+            ->assertSessionHasNoErrors();
+
+        $order = $this->newest();
+        $rows = $order->payments->sortBy('id')->map(fn ($p) => [$p->method->value, $p->amount, $p->note])->values()->all();
+        $this->assertSame([['cash', 25_000, 'Pelunasan (1/2)'], ['qris', 20_000, 'Pelunasan (2/2)']], $rows);
+        $this->assertSame(PaymentStatus::Paid, $order->paymentStatus());
+        $this->assertSame(2, $order->events()->where('type', 'payment_recorded')->count());
+
+        // Struk = invoice publik: dua baris pembayaran terbaca.
+        $this->get($order->invoiceUrl())->assertInertia(fn (Assert $page) => $page
+            ->has('invoice.payments', 2)
+            ->where('invoice.payments.1.note', 'Pelunasan (2/2)'));
+        $this->assertSame(['cash', 'qris'], $this->get(route('pos.index'))->inertiaPage()['props']['today_sales'][0]['methods']);
+    }
+
+    public function test_rejects_sum_mismatch()
+    {
+        $this->sell(['payments' => [['method' => 'cash', 'amount' => 25_000], ['method' => 'qris', 'amount' => 10_000]]])
+            ->assertSessionHasErrors(['payments' => 'Jumlah pembayaran Rp 35.000 tidak sama dengan total Rp 45.000.']);
+        $this->assertSame(12, Order::count());
+    }
+
+    public function test_rejects_duplicate_method()
+    {
+        $this->sell(['payments' => [['method' => 'cash', 'amount' => 25_000], ['method' => 'cash', 'amount' => 20_000]]])
+            ->assertSessionHasErrors('payments.1.method');
+    }
+
+    public function test_rejects_three_payments_and_legacy_method_field()
+    {
+        $this->sell(['payments' => [
+            ['method' => 'cash', 'amount' => 15_000], ['method' => 'qris', 'amount' => 15_000], ['method' => 'transfer', 'amount' => 15_000],
+        ]])->assertSessionHasErrors('payments');
+
+        // Jalur lama (hanya `method`) benar-benar mati.
+        $this->post(route('pos.store'), [
+            'items' => [['catalog_item_id' => $this->item('Cetak 4R')->id, 'quantity' => 1]],
+            'method' => 'cash',
+        ])->assertSessionHasErrors('payments');
     }
 
     public function test_pos_rejects_rows_without_catalog_item()
@@ -237,7 +297,7 @@ class PosTest extends TestCase
         // Retail = katalog saja: tanpa HPP katalog, margin retail bohong.
         $this->post(route('pos.store'), [
             'items' => [['name' => 'Gantungan custom', 'unit_price' => 10_000, 'quantity' => 1]],
-            'method' => 'cash',
+            'payments' => [['method' => 'cash', 'amount' => 10_000]],
         ])->assertSessionHasErrors('items.0.catalog_item_id');
     }
 
@@ -252,7 +312,7 @@ class PosTest extends TestCase
 
         // ORD-0010 = retail demo hari ini; ORD-0012 (studio hari ini) & ORD-0006 (retail lain hari) tidak ikut.
         $this->assertSame([$second->number, $first->number, 'ORD-0010'], array_column($props['today_sales'], 'number'));
-        $this->assertSame('qris', $props['today_sales'][0]['method']);
+        $this->assertSame(['qris'], $props['today_sales'][0]['methods']);
         $this->assertSame($first->total() + $second->total() + 80_000, $props['today_total']);
         $this->assertNotNull($props['today_sales'][0]['print_url']);
     }

@@ -27,6 +27,7 @@ import {
     rapikanPersen,
 } from '@/modules/order/lib/discount';
 import type { DiscountMode } from '@/modules/order/lib/discount';
+import { bagiPembayaran } from '@/modules/order/lib/split-payment';
 import { formatRp, hanyaDigit } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
@@ -49,7 +50,11 @@ interface Product {
 interface SaleForm {
     items: { catalog_item_id: number; quantity: number }[];
     discount: string;
-    method: PaymentMethod;
+    /**
+     * 1–2 baris (spek 4.4). `amount` baris pertama tidak dipakai — dihitung
+     * saat simpan dari total (dan baris kedua bila ada).
+     */
+    payments: { method: PaymentMethod; amount: string }[];
     customer_name: string;
     customer_phone: string;
 }
@@ -81,7 +86,7 @@ export default function Pos({
     const form = useForm<SaleForm>({
         items: [],
         discount: '',
-        method: 'cash',
+        payments: [{ method: 'cash', amount: '' }],
         customer_name: '',
         customer_phone: '',
     });
@@ -130,6 +135,25 @@ export default function Pos({
         setDiscountMode(mode);
     };
     const total = subtotal - discount;
+    // Split payment: hanya baris kedua yang diketik, baris pertama = sisa.
+    const [first, second] = data.payments;
+    const split = second
+        ? bagiPembayaran(total, Number(second.amount) || 0)
+        : null;
+    const splitError =
+        second && second.amount !== '' && !split
+            ? `Isi antara Rp 1 dan ${formatRp(total - 1)}.`
+            : undefined;
+    const setMethod = (i: number, v: string[]) => {
+        const m = METHODS.find((x) => x === v[0]);
+        if (m)
+            setData(
+                'payments',
+                data.payments.map((p, j) =>
+                    j === i ? { ...p, method: m } : p,
+                ),
+            );
+    };
     const materialCost = lines.reduce(
         (s, l) => s + l.quantity * (l.product.unit_cost ?? 0),
         0,
@@ -160,8 +184,19 @@ export default function Pos({
         );
 
     const submit = () => {
-        // Server selalu menerima nominal rupiah.
-        form.transform((d) => ({ ...d, discount: String(discountNominal) }));
+        // Server selalu menerima nominal rupiah. Nominal bayar dihitung di sini,
+        // bukan disimpan di state — supaya ikut berubah bila keranjang berubah.
+        form.transform((d) => ({
+            ...d,
+            discount: String(discountNominal),
+            payments:
+                split && second
+                    ? [
+                          { method: first.method, amount: split[0] },
+                          { method: second.method, amount: split[1] },
+                      ]
+                    : [{ method: first.method, amount: total }],
+        }));
         form.post(PosController.store().url, {
             preserveScroll: true,
             onSuccess: () => {
@@ -462,19 +497,123 @@ export default function Pos({
                         <div className="flex flex-col gap-1.5">
                             <span className="text-sm">Metode bayar</span>
                             <ToggleGroup
-                                value={[data.method]}
-                                onValueChange={(v) => {
-                                    const m = METHODS.find((x) => x === v[0]);
-                                    if (m) setData('method', m);
-                                }}
+                                aria-label="Metode bayar"
+                                value={[first.method]}
+                                onValueChange={(v) => setMethod(0, v)}
                             >
                                 {METHODS.map((m) => (
-                                    <ToggleGroupItem key={m} value={m}>
+                                    <ToggleGroupItem
+                                        key={m}
+                                        value={m}
+                                        disabled={second?.method === m}
+                                    >
                                         {PAYMENT_METHOD_LABEL[m]}
                                     </ToggleGroupItem>
                                 ))}
                             </ToggleGroup>
-                            <InputError message={errors.method} />
+                            {second ? (
+                                <div className="flex flex-col gap-2 rounded-lg border p-3">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                            {PAYMENT_METHOD_LABEL[first.method]}{' '}
+                                            (sisa)
+                                        </span>
+                                        <span className="font-mono">
+                                            {split ? formatRp(split[0]) : '—'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <ToggleGroup
+                                            size="sm"
+                                            aria-label="Metode pembayaran kedua"
+                                            value={[second.method]}
+                                            onValueChange={(v) =>
+                                                setMethod(1, v)
+                                            }
+                                        >
+                                            {METHODS.map((m) => (
+                                                <ToggleGroupItem
+                                                    key={m}
+                                                    value={m}
+                                                    disabled={
+                                                        first.method === m
+                                                    }
+                                                >
+                                                    {PAYMENT_METHOD_LABEL[m]}
+                                                </ToggleGroupItem>
+                                            ))}
+                                        </ToggleGroup>
+                                        <div className="flex items-center gap-1">
+                                            <Input
+                                                aria-label="Nominal pembayaran kedua"
+                                                inputMode="numeric"
+                                                placeholder="0"
+                                                className="h-8 min-w-0 flex-1 text-right font-mono"
+                                                value={second.amount}
+                                                aria-invalid={Boolean(
+                                                    splitError,
+                                                )}
+                                                onChange={(e) =>
+                                                    setData('payments', [
+                                                        first,
+                                                        {
+                                                            ...second,
+                                                            amount: hanyaDigit(
+                                                                e.target.value,
+                                                            ),
+                                                        },
+                                                    ])
+                                                }
+                                            />
+                                            <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                aria-label="Hapus pembayaran kedua"
+                                                onClick={() =>
+                                                    setData('payments', [first])
+                                                }
+                                            >
+                                                <Trash2 />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <InputError
+                                        message={
+                                            splitError ??
+                                            errors['payments.1.method'] ??
+                                            errors['payments.1.amount']
+                                        }
+                                    />
+                                </div>
+                            ) : (
+                                <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="self-start px-0"
+                                    disabled={total < 2}
+                                    onClick={() =>
+                                        setData('payments', [
+                                            first,
+                                            {
+                                                // Kasus nyata: tunai + QRIS.
+                                                method:
+                                                    first.method === 'qris'
+                                                        ? 'cash'
+                                                        : 'qris',
+                                                amount: '',
+                                            },
+                                        ])
+                                    }
+                                >
+                                    + Bagi pembayaran
+                                </Button>
+                            )}
+                            <InputError
+                                message={
+                                    errors.payments ??
+                                    errors['payments.0.method']
+                                }
+                            />
                         </div>
 
                         <Button
@@ -482,7 +621,9 @@ export default function Pos({
                             disabled={
                                 lines.length === 0 ||
                                 processing ||
-                                Boolean(pctError)
+                                Boolean(pctError) ||
+                                // Baris kedua dibuka tapi nominalnya belum valid.
+                                (Boolean(second) && !split)
                             }
                             onClick={submit}
                         >
