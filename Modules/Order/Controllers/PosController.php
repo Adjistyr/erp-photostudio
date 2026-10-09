@@ -66,8 +66,8 @@ class PosController extends Controller
                 'time' => $o->created_at?->format('H:i'),
                 'items_summary' => $o->itemsSummary(),
                 'total' => $o->total(),
-                // ponytail: POS = satu pembayaran; jadi daftar kalau split payment (4.4) ada.
-                'method' => $o->payments->first()?->method->value,
+                // Split payment (4.4): satu atau dua metode, urut pencatatan.
+                'methods' => $o->payments->sortBy('id')->map(fn (Payment $p) => $p->method->value)->values()->all(),
                 'cancelled' => $o->isCancelled(),
                 'customer_name' => $o->customer?->name,
                 'customer_phone' => $o->customer?->phone,
@@ -112,18 +112,26 @@ class PosController extends Controller
                 ]);
             }
 
-            $payment = $order->payments()->create([
-                'paid_on' => today()->toDateString(),
-                'amount' => $total,
-                'method' => $request->validated('method'),
-                'note' => 'Pelunasan',
-            ]);
+            // Satu baris per metode (split, spek 4.4). Dua baris diberi (1/2), (2/2)
+            // supaya di invoice terbaca sebagai satu transaksi pelunasan.
+            $rows = $request->payments();
+            $payments = [];
+            foreach ($rows as $n => $p) {
+                $payments[] = $order->payments()->create([
+                    'paid_on' => today()->toDateString(),
+                    'amount' => $p['amount'],
+                    'method' => $p['method'],
+                    'note' => count($rows) > 1 ? 'Pelunasan ('.($n + 1).'/'.count($rows).')' : 'Pelunasan',
+                ]);
+            }
 
             $events->execute($order, OrderEventType::Created, [
                 'work_status' => ['from' => null, 'to' => WorkStatus::Delivered->value],
                 'total' => ['from' => null, 'to' => $total],
             ]);
-            $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
+            foreach ($payments as $payment) {
+                $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
+            }
 
             return $order;
         });

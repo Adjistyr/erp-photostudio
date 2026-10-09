@@ -67,7 +67,7 @@ class OrderEventsTest extends TestCase
     {
         $this->post(route('pos.store'), [
             'items' => [['catalog_item_id' => CatalogItem::where('name', 'Cetak 4R')->sole()->id, 'quantity' => 4]],
-            'method' => 'cash',
+            'payments' => [['method' => 'cash', 'amount' => 20_000]],
         ])->assertSessionHasNoErrors();
 
         $order = Order::latest('id')->firstOrFail();

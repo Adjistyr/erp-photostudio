@@ -28,7 +28,8 @@ export interface TodaySale {
     time: string | null;
     items_summary: string;
     total: number;
-    method: PaymentMethod | null;
+    /** Split payment (4.4): 1–2 metode; kosong bila belum ada pembayaran. */
+    methods: PaymentMethod[];
     cancelled: boolean;
     customer_name: string | null;
     customer_phone: string | null;
@@ -118,9 +119,9 @@ export function TodaySales({
                                     <Badge variant="secondary">Batal</Badge>
                                 ) : (
                                     <span className="shrink-0 text-xs text-muted-foreground">
-                                        {s.method
-                                            ? PAYMENT_METHOD_LABEL[s.method]
-                                            : ''}
+                                        {s.methods
+                                            .map((m) => PAYMENT_METHOD_LABEL[m])
+                                            .join(' + ')}
                                     </span>
                                 )}
                                 <span className="w-24 shrink-0 text-right font-mono">

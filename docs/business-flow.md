@@ -163,7 +163,7 @@ Transaksi paling sederhana dan paling sering. Target: selesai di bawah 30 detik.
 2. Owner buka layar POS, pilih item dari katalog, isi qty.
 3. Total dihitung otomatis. Owner bisa isi diskon kalau ada.
 4. **Customer bersifat opsional.** Kalau customer mau nomornya dicatat (misal untuk dikirimi file foto), isi nama + HP (HP hanya tersimpan bersama nama; nama yang sudah ada dicocokkan lewat HP dulu, lalu nama). Kalau tidak, transaksi tetap bisa disimpan sebagai walk-in tanpa customer.
-5. Pilih metode bayar → simpan.
+5. Pilih metode bayar → simpan. Kalau customer membayar dengan dua metode (mis. sebagian tunai, sebagian QRIS), pakai **+ Bagi pembayaran**: ketik nominal metode kedua, sisanya otomatis ke metode pertama. Jumlah keduanya harus sama dengan total; tiap metode tercatat sebagai pembayaran sendiri supaya Kas Harian per metode tetap cocok dengan laci dan rekening.
 6. Setelah simpan muncul ringkasan transaksi dengan **struk**: cetak (kertas 80 mm), kirim via WA (kalau customer punya HP), atau salin link. Struk = halaman invoice publik untuk order retail (lunas). Panel **Hari ini** di bawah keranjang menampilkan transaksi POS hari ini (jumlah, total, 50 terbaru) dan bisa membuka ulang struknya.
 
 Hasil: Order `retail`, status kerja **Diserahkan**, status bayar **Lunas**, dan HPP tercatat otomatis dari data HPP bahan di katalog.
