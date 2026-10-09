@@ -30,31 +30,38 @@ class CatalogItemController extends Controller
                 ->orderBy('type')
                 ->orderBy('id')
                 ->get()
-                ->map(fn (CatalogItem $i) => [
-                    'id' => $i->id, 'name' => $i->name, 'type' => $i->type->value, 'price' => $i->price,
-                    'unit_cost' => $i->unit_cost, 'category' => $i->category, 'is_active' => $i->is_active,
-                    // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
-                    'unknown_category' => ! $i->hasKnownServiceCategory(),
-                    // Profil publik + galeri (spek 7.1), sampul dulu.
-                    'description' => $i->description, 'is_public' => $i->is_public,
-                    'photos' => $i->photos->map(fn (CatalogItemPhoto $p) => $p->toProps())->values()->all(),
-                ])->values()->all(),
+                ->map(fn (CatalogItem $i) => $this->itemProps($i))
+                ->values()->all(),
             // Ambang penanda margin rendah (merah) di kolom Margin % produk.
             'low_margin_ratio' => (float) config('studio.low_margin_ratio'),
-            'service_categories' => array_map(fn (ServiceCategory $c) => ['value' => $c->value, 'label' => $c->label()], ServiceCategory::cases()),
         ]);
+    }
+
+    /**
+     * Tambah & Edit = satu halaman penuh (spek 7.2), bukan dialog — ruang
+     * untuk galeri foto dan varian produk nanti.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('catalog::form', ['item' => null, ...$this->formProps()]);
+    }
+
+    public function edit(CatalogItem $catalogItem): Response
+    {
+        $catalogItem->load('photos');
+
+        return Inertia::render('catalog::form', ['item' => $this->itemProps($catalogItem), ...$this->formProps()]);
     }
 
     public function store(CatalogItemRequest $request): RedirectResponse
     {
         $item = CatalogItem::create($request->catalogData());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "{$item->name} ditambahkan ke katalog."]);
-        // Dialog langsung pindah ke mode Edit item ini — foto baru bisa
-        // ditambahkan setelah item punya id (spek 7.1).
-        Inertia::flash('catalog_created', $item->id);
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$item->name} ditambahkan ke katalog. Tambahkan foto di bawah."]);
 
-        return to_route('catalog.index');
+        // Ke halaman Edit item ini — foto baru bisa diunggah setelah item
+        // punya id (spek 7.1/7.2).
+        return to_route('catalog.edit', $item);
     }
 
     public function update(CatalogItemRequest $request, CatalogItem $catalogItem): RedirectResponse
@@ -77,5 +84,32 @@ class CatalogItemController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('catalog.index');
+    }
+
+    /**
+     * Bentuk satu item untuk daftar dan halaman form — satu sumber.
+     *
+     * @return array<string, mixed>
+     */
+    private function itemProps(CatalogItem $i): array
+    {
+        return [
+            'id' => $i->id, 'name' => $i->name, 'type' => $i->type->value, 'price' => $i->price,
+            'unit_cost' => $i->unit_cost, 'category' => $i->category, 'is_active' => $i->is_active,
+            // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
+            'unknown_category' => ! $i->hasKnownServiceCategory(),
+            // Profil publik + galeri (spek 7.1), sampul dulu.
+            'description' => $i->description, 'is_public' => $i->is_public,
+            'photos' => $i->photos->map(fn (CatalogItemPhoto $p) => $p->toProps())->values()->all(),
+        ];
+    }
+
+    /** @return array{service_categories: list<array{value: string, label: string}>, low_margin_ratio: float} */
+    private function formProps(): array
+    {
+        return [
+            'service_categories' => array_map(fn (ServiceCategory $c) => ['value' => $c->value, 'label' => $c->label()], ServiceCategory::cases()),
+            'low_margin_ratio' => (float) config('studio.low_margin_ratio'),
+        ];
     }
 }

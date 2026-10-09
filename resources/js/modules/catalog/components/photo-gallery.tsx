@@ -1,9 +1,9 @@
 /**
- * Galeri foto item di dialog Edit Katalog (spek 7.1). Setiap aksi langsung
- * tersimpan ke server — tidak menunggu tombol Simpan dialog.
+ * Galeri foto item di halaman Edit Katalog (spek 7.1, halaman sejak 7.2).
+ * Setiap aksi langsung tersimpan ke server — tidak menunggu tombol Simpan.
  *
- * Kunjungan memakai `preserveState`: tanpa itu halaman Katalog di-reset dan
- * dialog tertutup setiap kali foto ditambah/dihapus.
+ * Kunjungan memakai `preserveState`: tanpa itu halaman di-reset setiap kali
+ * foto ditambah/dihapus dan isian form yang belum disimpan hilang.
  */
 
 import { router } from '@inertiajs/react';

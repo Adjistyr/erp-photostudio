@@ -4,10 +4,13 @@ namespace Modules\Catalog\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Catalog\Models\CatalogItemPhoto;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Shared\Enums\BusinessLine;
@@ -34,9 +37,7 @@ class CatalogItemTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->post(route('catalog.store'), $this->product(['description' => '  Akrilik 5 cm, cetak dua sisi.  ', 'is_public' => true]))
-            ->assertSessionHasNoErrors()
-            // Dialog pindah ke mode Edit item baru (spek 7.1).
-            ->assertInertiaFlash('catalog_created', CatalogItem::sole()->id);
+            ->assertSessionHasNoErrors();
 
         $item = CatalogItem::sole();
         $this->assertSame(['Akrilik 5 cm, cetak dua sisi.', true], [$item->description, $item->is_public]);
@@ -59,6 +60,49 @@ class CatalogItemTest extends TestCase
             ->where('items.0.description', null)
             ->where('items.0.is_public', false)
             ->where('items.0.photos', []));
+    }
+
+    public function test_create_page_renders_empty_form()
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('catalog.create'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('catalog::form')
+                ->where('item', null)
+                ->has('service_categories', 3)
+                ->where('service_categories.0.value', 'Studio')
+                ->has('low_margin_ratio'));
+    }
+
+    public function test_edit_page_renders_item_with_photos()
+    {
+        Storage::fake(CatalogItemPhoto::DISK);
+        $item = $this->item(['description' => 'Cetak glossy', 'is_public' => true]);
+        $this->actingAs(User::factory()->create())
+            ->post(route('catalog.photos.store', $item), ['photos' => [UploadedFile::fake()->image('a.jpg', 300, 300)]]);
+
+        $this->get(route('catalog.edit', $item))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('catalog::form')
+                ->where('item.id', $item->id)
+                ->where('item.unit_cost', 1_500)
+                ->where('item.description', 'Cetak glossy')
+                ->where('item.is_public', true)
+                ->has('item.photos', 1)
+                ->has('service_categories', 3));
+    }
+
+    public function test_edit_missing_item_is_not_found()
+    {
+        $this->actingAs(User::factory()->create())->get(route('catalog.edit', 999))->assertNotFound();
+    }
+
+    public function test_guest_cannot_open_form_pages()
+    {
+        $item = $this->item();
+
+        $this->get(route('catalog.create'))->assertRedirect(route('login'));
+        $this->get(route('catalog.edit', $item))->assertRedirect(route('login'));
     }
 
     public function test_guest_is_redirected_to_login()
@@ -89,7 +133,8 @@ class CatalogItemTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->post(route('catalog.store'), $this->product())
-            ->assertRedirect(route('catalog.index'))
+            // Ke halaman Edit supaya foto bisa langsung ditambahkan (spek 7.2).
+            ->assertRedirect(route('catalog.edit', CatalogItem::sole()))
             ->assertSessionHasNoErrors();
 
         $item = CatalogItem::sole();
@@ -165,8 +210,8 @@ class CatalogItemTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('items.0.unknown_category', false)
                 ->where('items.1.unknown_category', true)
-                ->has('service_categories', 3)
-                ->where('service_categories.0.value', 'Studio')
+                // Pilihan kategori jasa hanya dibutuhkan halaman form (spek 7.2).
+                ->missing('service_categories')
             );
     }
 

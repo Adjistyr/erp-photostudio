@@ -1,6 +1,6 @@
 /**
- * Katalog — daftar + dialog tambah/edit (prompt 4.1 & 4.2, porting
- * web/app/routes/katalog.tsx).
+ * Katalog — daftar (prompt 4.1 & 4.2, porting web/app/routes/katalog.tsx).
+ * Tambah/edit dulu dialog; sejak spek 7.2 halaman penuh (`form.tsx`).
  *
  * Modul fondasi: POS, form order, dan laporan HPP bergantung ke sini. Aturan
  * isi yang gampang hilang: HPP & margin jasa ditampilkan "—", bukan Rp 0. HPP
@@ -8,7 +8,7 @@
  * jasa terlihat 100%.
  */
 
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Eye, EyeOff, MoreHorizontal, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import CatalogItemController from '@/actions/Modules/Catalog/Controllers/CatalogItemController';
@@ -18,7 +18,6 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
-import InputError from '@/components/input-error';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
@@ -26,16 +25,6 @@ import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -44,21 +33,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Field,
-    FieldDescription,
-    FieldGroup,
-    FieldLabel,
-} from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
     TableBody,
     TableCell,
     TableHead,
@@ -66,79 +40,28 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useFlash } from '@/hooks/use-flash';
-import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
-import { PhotoGallery } from '@/modules/catalog/components/photo-gallery';
-import type { CatalogPhoto } from '@/modules/catalog/components/photo-gallery';
+import { formatPersen } from '@/lib/format';
 import { filterCatalog, isLowMargin } from '@/modules/catalog/lib/filter';
+import type { CatalogItem } from '@/modules/catalog/types';
 import { index as catalogIndex } from '@/routes/catalog';
-import type { ServiceCategory } from '@/types/domain';
-
-type CatalogItemType = 'product' | 'service';
-
-/** Bentuk props dari CatalogItemController@index. */
-export interface CatalogItem {
-    id: number;
-    name: string;
-    type: CatalogItemType;
-    price: number;
-    /** HPP bahan per unit; null untuk jasa. */
-    unit_cost: number | null;
-    category: string;
-    is_active: boolean;
-    /** Jasa berkategori di luar ServiceCategory — tidak muncul di Buat Order. */
-    unknown_category: boolean;
-    /** Profil publik untuk company profile nanti (spek 7.1). */
-    description: string | null;
-    is_public: boolean;
-    /** Galeri, sampul dulu. */
-    photos: CatalogPhoto[];
-}
-
-interface ServiceCategoryOption {
-    value: ServiceCategory;
-    label: string;
-}
 
 const FILTER = ['all', 'product', 'service'] as const;
 type Filter = (typeof FILTER)[number];
 
 export default function CatalogIndex({
     items,
-    service_categories,
     low_margin_ratio,
 }: {
     items: CatalogItem[];
-    service_categories: ServiceCategoryOption[];
     /** Ambang margin rendah 0..1 dari config/studio.php (spek 3.6). */
     low_margin_ratio: number;
 }) {
     const [filter, setFilter] = useState<Filter>('all');
-    /**
-     * null = dialog tertutup · 'new' = tambah · angka = edit item itu. Id,
-     * bukan objek: setelah foto diunggah item dibaca ulang dari props.
-     */
-    const [editing, setEditing] = useState<number | 'new' | null>(null);
-    // Setelah Tambah berhasil dialog pindah ke Edit item baru — foto baru bisa
-    // diunggah setelah item punya id (spek 7.1).
-    const [created, clearCreated] = useFlash<number>('catalog_created');
-    const target = created ?? editing;
-    const targetItem =
-        typeof target === 'number'
-            ? (items.find((i) => i.id === target) ?? null)
-            : null;
-    const openDialog = (t: number | 'new' | null) => {
-        clearCreated();
-        setEditing(t);
-    };
-
     // Cari di klien (spek 3.6) — katalog kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
     const visible = filterCatalog(items, { type: filter, q: search.q });
@@ -158,7 +81,11 @@ export default function CatalogIndex({
             <Head title="Katalog" />
             <h1 className="sr-only">Katalog</h1>
             <PageActions>
-                <Button onClick={() => openDialog('new')}>
+                {/* Halaman penuh, bukan dialog (spek 7.2). */}
+                <Button
+                    nativeButton={false}
+                    render={<Link href={CatalogItemController.create()} />}
+                >
                     <Plus data-icon="inline-start" />
                     Tambah Item
                 </Button>
@@ -210,7 +137,8 @@ export default function CatalogIndex({
                         kalimat="Belum ada produk atau jasa. Tambahkan yang paling sering dijual dulu."
                         aksi={{
                             label: 'Tambah Item',
-                            onClick: () => openDialog('new'),
+                            onClick: () =>
+                                router.visit(CatalogItemController.create()),
                         }}
                     />
                 ) : (
@@ -371,7 +299,11 @@ export default function CatalogIndex({
                                                 <DropdownMenuGroup>
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            openDialog(item.id)
+                                                            router.visit(
+                                                                CatalogItemController.edit(
+                                                                    item.id,
+                                                                ),
+                                                            )
                                                         }
                                                     >
                                                         <Pencil />
@@ -407,18 +339,6 @@ export default function CatalogIndex({
                     lewat menu Biaya.
                 </p>
             </div>
-
-            {(target === 'new' || targetItem) && (
-                // key: remount saat target berganti. Tanpa itu, membuka Edit
-                // item lain menampilkan isian item sebelumnya dan owner bisa
-                // menimpa harga produk yang salah tanpa sadar.
-                <ItemDialog
-                    key={targetItem ? targetItem.id : 'new'}
-                    item={targetItem}
-                    serviceCategories={service_categories}
-                    onClose={() => openDialog(null)}
-                />
-            )}
         </>
     );
 }
@@ -432,317 +352,5 @@ function NotApplicable() {
         <TableCell className="text-right font-mono text-muted-foreground">
             —
         </TableCell>
-    );
-}
-
-const TYPES = ['product', 'service'] as const;
-
-/** Isian form — angka tetap string selama diketik, divalidasi server. */
-interface ItemForm {
-    name: string;
-    type: CatalogItemType;
-    price: string;
-    unit_cost: string;
-    category: string;
-    description: string;
-    is_public: boolean;
-}
-
-/** Satu dialog untuk tambah DAN edit (R9: tambah/edit item katalog → Dialog). */
-function ItemDialog({
-    item,
-    serviceCategories,
-    onClose,
-}: {
-    item: CatalogItem | null;
-    serviceCategories: ServiceCategoryOption[];
-    onClose: () => void;
-}) {
-    const form = useForm<ItemForm>({
-        name: item?.name ?? '',
-        type: item?.type ?? 'product',
-        price: item ? String(item.price) : '',
-        unit_cost: item?.unit_cost != null ? String(item.unit_cost) : '',
-        category: item?.category ?? '',
-        description: item?.description ?? '',
-        is_public: item?.is_public ?? false,
-    });
-    const { data, setData, errors, processing } = form;
-
-    const price = Number(data.price) || 0;
-    const unitCost = Number(data.unit_cost) || 0;
-    const editing = item !== null;
-    const complete =
-        data.name.trim() !== '' &&
-        price > 0 &&
-        (data.type === 'service'
-            ? data.category !== ''
-            : data.unit_cost !== '');
-
-    const submit = () => {
-        // Jasa tidak membawa HPP sama sekali — server menolaknya.
-        form.transform((d) => ({
-            ...d,
-            unit_cost: d.type === 'service' ? null : d.unit_cost,
-        }));
-        if (editing) {
-            form.put(CatalogItemController.update(item.id).url, {
-                preserveScroll: true,
-                onSuccess: onClose,
-            });
-        } else {
-            // Tidak ditutup di sini: flash `catalog_created` memindahkan
-            // dialog ke mode Edit item baru (lihat CatalogIndex).
-            form.post(CatalogItemController.store().url, {
-                preserveScroll: true,
-            });
-        }
-    };
-
-    return (
-        <Dialog open onOpenChange={(o) => !o && onClose()}>
-            {/* Galeri membuat dialog tinggi — gulir di dalam dialog. */}
-            <DialogContent className="max-h-[90svh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>
-                        {editing ? 'Edit Item Katalog' : 'Tambah Item Katalog'}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {editing
-                            ? 'Perubahan harga hanya berlaku untuk transaksi berikutnya.'
-                            : 'Produk fisik punya HPP bahan per unit; jasa tidak.'}
-                    </DialogDescription>
-                </DialogHeader>
-
-                <FieldGroup>
-                    <Field>
-                        <FieldLabel>Jenis</FieldLabel>
-                        <ToggleGroup
-                            value={[data.type]}
-                            onValueChange={(v) => {
-                                const t = TYPES.find((x) => x === v[0]);
-                                if (!t) return;
-                                // Kategori ikut direset: teks bebas produk
-                                // tidak boleh terbawa jadi kategori jasa.
-                                setData((d) => ({
-                                    ...d,
-                                    type: t,
-                                    unit_cost: '',
-                                    category: '',
-                                }));
-                            }}
-                        >
-                            <ToggleGroupItem value="product">
-                                Produk fisik
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="service">
-                                Jasa
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                        <InputError message={errors.type} />
-                    </Field>
-
-                    <Field>
-                        <FieldLabel htmlFor="name">Nama</FieldLabel>
-                        <Input
-                            id="name"
-                            placeholder={
-                                data.type === 'product'
-                                    ? 'Keychain Foto Akrilik'
-                                    : 'Paket Studio 1 Jam'
-                            }
-                            value={data.name}
-                            aria-invalid={Boolean(errors.name)}
-                            onChange={(e) => setData('name', e.target.value)}
-                        />
-                        <InputError message={errors.name} />
-                    </Field>
-
-                    {data.type === 'service' ? (
-                        <Field>
-                            <FieldLabel htmlFor="category">Kategori</FieldLabel>
-                            {/* `items` supaya trigger menampilkan label (gotcha #10). */}
-                            <Select
-                                items={serviceCategories}
-                                value={data.category}
-                                onValueChange={(v) =>
-                                    setData('category', v ?? '')
-                                }
-                            >
-                                <SelectTrigger
-                                    id="category"
-                                    aria-invalid={Boolean(errors.category)}
-                                >
-                                    <SelectValue placeholder="Pilih kategori" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        {serviceCategories.map((c) => (
-                                            <SelectItem
-                                                key={c.value}
-                                                value={c.value}
-                                            >
-                                                {c.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                            <FieldDescription>
-                                Menentukan di mana paket muncul saat Buat Order.
-                            </FieldDescription>
-                            <InputError message={errors.category} />
-                        </Field>
-                    ) : (
-                        <Field>
-                            <FieldLabel htmlFor="category">
-                                Kategori{' '}
-                                <span className="text-muted-foreground">
-                                    — opsional
-                                </span>
-                            </FieldLabel>
-                            <Input
-                                id="category"
-                                placeholder="Cetak"
-                                value={data.category}
-                                onChange={(e) =>
-                                    setData('category', e.target.value)
-                                }
-                            />
-                            <InputError message={errors.category} />
-                        </Field>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Field>
-                            <FieldLabel htmlFor="price">Harga jual</FieldLabel>
-                            <Input
-                                id="price"
-                                inputMode="numeric"
-                                className="font-mono"
-                                placeholder="0"
-                                value={data.price}
-                                aria-invalid={Boolean(errors.price)}
-                                onChange={(e) =>
-                                    setData('price', hanyaDigit(e.target.value))
-                                }
-                            />
-                            <InputError message={errors.price} />
-                        </Field>
-
-                        {/*
-                            HPP hanya untuk produk. Untuk jasa field-nya
-                            DIHILANGKAN dengan penjelasan pengganti, bukan
-                            di-disable — field disabled mengundang pertanyaan
-                            "kenapa tidak boleh diisi".
-                        */}
-                        {data.type === 'product' ? (
-                            <Field>
-                                <FieldLabel htmlFor="unit_cost">
-                                    HPP bahan / unit
-                                </FieldLabel>
-                                <Input
-                                    id="unit_cost"
-                                    inputMode="numeric"
-                                    className="font-mono"
-                                    placeholder="0"
-                                    value={data.unit_cost}
-                                    aria-invalid={Boolean(errors.unit_cost)}
-                                    onChange={(e) =>
-                                        setData(
-                                            'unit_cost',
-                                            hanyaDigit(e.target.value),
-                                        )
-                                    }
-                                />
-                                <InputError message={errors.unit_cost} />
-                            </Field>
-                        ) : (
-                            <div className="flex flex-col justify-center">
-                                <p className="text-xs text-muted-foreground">
-                                    Jasa tidak punya HPP tetap. Biaya crew,
-                                    transport, dan sewa dicatat per order lewat
-                                    menu Biaya.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-
-                    {data.type === 'product' && price > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                            Margin{' '}
-                            <span className="font-mono text-foreground">
-                                {formatRp(price - unitCost)}
-                            </span>{' '}
-                            ({formatPersen((price - unitCost) / price)})
-                            {data.unit_cost === '' &&
-                                ' — isi HPP bahan supaya margin mencerminkan biaya sebenarnya.'}
-                        </p>
-                    )}
-
-                    <Field>
-                        <FieldLabel htmlFor="description">
-                            Deskripsi{' '}
-                            <span className="text-muted-foreground">
-                                — opsional
-                            </span>
-                        </FieldLabel>
-                        <Textarea
-                            id="description"
-                            rows={3}
-                            maxLength={2000}
-                            placeholder={
-                                data.type === 'product'
-                                    ? 'Akrilik 5 cm, cetak dua sisi.'
-                                    : 'Sesi 1 jam, 2 background, 10 file edit.'
-                            }
-                            value={data.description}
-                            aria-invalid={Boolean(errors.description)}
-                            onChange={(e) =>
-                                setData('description', e.target.value)
-                            }
-                        />
-                        <InputError message={errors.description} />
-                    </Field>
-
-                    <Field orientation="horizontal">
-                        <Checkbox
-                            id="is_public"
-                            checked={data.is_public}
-                            onCheckedChange={(c) => setData('is_public', c)}
-                        />
-                        <FieldLabel htmlFor="is_public" className="font-normal">
-                            Tampil di company profile
-                        </FieldLabel>
-                    </Field>
-                    <FieldDescription className="-mt-4">
-                        Untuk website company profile nanti — nama, deskripsi,
-                        dan foto. HPP tidak pernah ikut tampil. Tidak mengubah
-                        POS atau form order.
-                    </FieldDescription>
-
-                    {editing ? (
-                        <PhotoGallery
-                            itemId={item.id}
-                            itemName={item.name}
-                            photos={item.photos}
-                        />
-                    ) : (
-                        <p className="text-xs text-muted-foreground">
-                            Foto bisa ditambahkan setelah item disimpan.
-                        </p>
-                    )}
-                </FieldGroup>
-
-                <DialogFooter>
-                    <DialogClose
-                        render={<Button variant="outline">Batal</Button>}
-                    />
-                    <Button disabled={!complete || processing} onClick={submit}>
-                        Simpan
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     );
 }

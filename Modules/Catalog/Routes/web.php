@@ -6,7 +6,7 @@ use Modules\Catalog\Controllers\CatalogPhotoController;
 
 Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::resource('catalog', CatalogItemController::class)
-        ->only(['index', 'store', 'update'])
+        ->only(['index', 'create', 'store', 'edit', 'update'])
         ->parameters(['catalog' => 'catalogItem']);
     Route::patch('catalog/{catalogItem}/toggle-active', [CatalogItemController::class, 'toggleActive'])
         ->name('catalog.toggle-active');
