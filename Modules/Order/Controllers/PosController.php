@@ -33,8 +33,14 @@ class PosController extends Controller
         return Inertia::render('order::pos', [
             'products' => CatalogItem::where('is_active', true)
                 ->where('type', CatalogItemType::Product)
+                // Sampul saja (spek 7.1) — limit per induk di eager load.
+                ->with(['photos' => fn ($q) => $q->limit(1)])
                 ->orderBy('name')
-                ->get(['id', 'name', 'price', 'unit_cost']),
+                ->get()
+                ->map(fn (CatalogItem $p) => [
+                    'id' => $p->id, 'name' => $p->name, 'price' => $p->price, 'unit_cost' => $p->unit_cost,
+                    'photo_url' => $p->photos->first()?->thumbUrl(),
+                ])->values()->all(),
             // Nama studio untuk pesan WA struk.
             'studio' => config('studio'),
             ...$this->todaySales(),

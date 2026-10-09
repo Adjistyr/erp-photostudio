@@ -86,6 +86,7 @@ Entitas di blok bawah dijelaskan di bagian 8.
 **Katalog** — dua jenis dalam satu daftar:
 - *Produk* (keychain, cetak 4R, bingkai): punya HPP bahan per unit yang diisi manual. Katalog menandai merah produk bermargin di bawah 20% (ambang bisa diubah lewat `STUDIO_LOW_MARGIN_RATIO`).
 - *Jasa* (paket studio 1 jam, paket prewed, paket wedding): punya harga jual, tapi HPP-nya tidak tetap — dicatat per job lewat BiayaJob. Kategorinya **tiga nilai tetap** — Studio (muncul di order sesi studio), Event (order event), Add-on (keduanya) — karena kategori inilah yang menentukan paket mana yang ditawarkan form Buat Order. Kategori produk tetap bebas.
+- Setiap item (produk maupun jasa) bisa punya **galeri foto** (maksimal 8; foto pertama = sampul yang tampil di POS dan daftar Katalog), **deskripsi**, dan penanda **Tampil di company profile**. Ketiganya disiapkan untuk website company profile (produk terpisah) — yang nanti hanya boleh menampilkan item aktif bertanda itu, tanpa HPP.
 
 **Order** — satu tabel untuk semua jenis transaksi, dibedakan oleh field `tipe`: `retail` / `studio` / `event`. Menyimpan customer, tanggal transaksi, jadwal (kalau ada), lokasi, total, diskon, link hasil foto, catatan.
 

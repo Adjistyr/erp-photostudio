@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import PosController from '@/actions/Modules/Order/Controllers/PosController';
 import { KosongTabel } from '@/components/data-table';
+import { ProductPhoto } from '@/components/product-photo';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,8 @@ interface Product {
     name: string;
     price: number;
     unit_cost: number | null;
+    /** Thumbnail sampul (spek 7.1); null tanpa foto. */
+    photo_url: string | null;
 }
 
 interface SaleForm {
@@ -116,6 +119,9 @@ export default function Pos({
     )?.[1];
 
     const productOf = (id: number) => products.find((p) => p.id === id);
+    // Area gambar hanya bila ada produk berfoto — katalog tanpa foto tetap
+    // ringkas; bila ada, semua kartu berarea gambar supaya tingginya seragam.
+    const withPhotos = products.some((p) => p.photo_url !== null);
     const visible = products.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()),
     );
@@ -640,6 +646,12 @@ export default function Pos({
                                 onClick={() => add(p)}
                                 className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
+                                {withPhotos && (
+                                    <ProductPhoto
+                                        url={p.photo_url}
+                                        className="mb-1 aspect-[4/3] w-full rounded-md"
+                                    />
+                                )}
                                 <span className="line-clamp-2 text-sm font-medium">
                                     {p.name}
                                 </span>

@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
+use Modules\Catalog\Models\CatalogItemPhoto;
 use Modules\Catalog\Requests\CatalogItemRequest;
 
 /**
@@ -25,6 +26,7 @@ class CatalogItemController extends Controller
         return Inertia::render('catalog::index', [
             // 'product' < 'service' — produk tampil lebih dulu, lalu urut input.
             'items' => CatalogItem::query()
+                ->with('photos')
                 ->orderBy('type')
                 ->orderBy('id')
                 ->get()
@@ -33,6 +35,9 @@ class CatalogItemController extends Controller
                     'unit_cost' => $i->unit_cost, 'category' => $i->category, 'is_active' => $i->is_active,
                     // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
                     'unknown_category' => ! $i->hasKnownServiceCategory(),
+                    // Profil publik + galeri (spek 7.1), sampul dulu.
+                    'description' => $i->description, 'is_public' => $i->is_public,
+                    'photos' => $i->photos->map(fn (CatalogItemPhoto $p) => $p->toProps())->values()->all(),
                 ])->values()->all(),
             // Ambang penanda margin rendah (merah) di kolom Margin % produk.
             'low_margin_ratio' => (float) config('studio.low_margin_ratio'),
@@ -45,6 +50,9 @@ class CatalogItemController extends Controller
         $item = CatalogItem::create($request->catalogData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$item->name} ditambahkan ke katalog."]);
+        // Dialog langsung pindah ke mode Edit item ini — foto baru bisa
+        // ditambahkan setelah item punya id (spek 7.1).
+        Inertia::flash('catalog_created', $item->id);
 
         return to_route('catalog.index');
     }

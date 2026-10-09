@@ -32,6 +32,9 @@ class CatalogItemRequest extends FormRequest
             'category' => $isProduct
                 ? ['nullable', 'string', 'max:100']
                 : ['required', Rule::in(ServiceCategory::values())],
+            // Profil publik (spek 7.1) — dibaca company profile nanti.
+            'description' => ['nullable', 'string', 'max:2000'],
+            'is_public' => ['boolean'],
         ];
     }
 
@@ -46,6 +49,8 @@ class CatalogItemRequest extends FormRequest
             'price' => 'harga jual',
             'unit_cost' => 'HPP bahan',
             'category' => 'kategori',
+            'description' => 'deskripsi',
+            'is_public' => 'tampil di company profile',
         ];
     }
 
@@ -62,11 +67,11 @@ class CatalogItemRequest extends FormRequest
     /**
      * Kategori kosong → "Lain-lain", supaya laporan tidak punya grup tanpa nama.
      *
-     * @return array{name: string, type: string, price: int, unit_cost: int|null, category: string}
+     * @return array{name: string, type: string, price: int, unit_cost: int|null, category: string, description: string|null, is_public: bool}
      */
     public function catalogData(): array
     {
-        /** @var array{name: string, type: string, price: int, unit_cost?: int|null, category?: string|null} $data */
+        /** @var array{name: string, type: string, price: int, unit_cost?: int|null, category?: string|null, description?: string|null, is_public?: bool} $data */
         $data = $this->validated();
 
         return [
@@ -75,6 +80,9 @@ class CatalogItemRequest extends FormRequest
             'price' => (int) $data['price'],
             'unit_cost' => isset($data['unit_cost']) ? (int) $data['unit_cost'] : null,
             'category' => ($data['category'] ?? null) ?: 'Lain-lain',
+            // Spasi saja = kosong — jangan simpan deskripsi "   ".
+            'description' => trim((string) ($data['description'] ?? '')) ?: null,
+            'is_public' => (bool) ($data['is_public'] ?? false),
         ];
     }
 }
