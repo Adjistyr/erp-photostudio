@@ -166,6 +166,21 @@ class OrderUpdateTest extends TestCase
         $this->assertSame($before, OrderEvent::count());
     }
 
+    public function test_update_can_add_product_line_to_studio_order()
+    {
+        $order = $this->order('ORD-0005');
+        $own = $order->items->sole();
+        $print = $this->catalog('Cetak 4R');
+
+        $this->update($order, ['items' => [
+            ['id' => $own->id, 'catalog_item_id' => $own->catalog_item_id, 'quantity' => $own->quantity],
+            ['id' => null, 'catalog_item_id' => $print->id, 'quantity' => 6],
+        ]])->assertSessionHasNoErrors();
+
+        $line = $order->refresh()->items->firstWhere('name', 'Cetak 4R');
+        $this->assertSame([6, 5_000, 1_500], [$line?->quantity, $line?->unit_price, $line?->unit_cost]);
+    }
+
     public function test_cancelled_order_cannot_be_edited()
     {
         $order = $this->order('ORD-0004');

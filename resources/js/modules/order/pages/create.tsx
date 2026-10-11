@@ -76,7 +76,7 @@ export default function OrdersCreate({
         hasCustomer(data) &&
         data.service_date !== '' &&
         total > 0 &&
-        rowsComplete(data.items);
+        rowsComplete(data.items, catalog);
 
     return (
         <>

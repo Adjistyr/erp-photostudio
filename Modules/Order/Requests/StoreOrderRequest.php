@@ -6,7 +6,6 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
-use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
 use Modules\Order\Requests\Concerns\ResolvesCustomer;
@@ -43,9 +42,11 @@ class StoreOrderRequest extends FormRequest
             'items' => ['required', 'array', 'min:1', 'max:20'],
             // Baris katalog (catalog_item_id) ATAU item custom (nama + harga,
             // spek 1.3). Baris katalog mengabaikan name/unit_price kiriman klien.
+            // Jasa atau PRODUK aktif (spek 7.5: cetak tambahan, album, bingkai).
             'items.*.catalog_item_id' => ['nullable', 'integer', Rule::exists('catalog_items', 'id')
-                ->where('is_active', true)
-                ->where('type', CatalogItemType::Service->value)],
+                ->where('is_active', true)],
+            // Varian produk (spek 7.3/7.5) — wajib/terlarang per produk, di after().
+            'items.*.catalog_item_variant_id' => ['nullable', 'integer'],
             'items.*.name' => ['required_without:items.*.catalog_item_id', 'nullable', 'string', 'max:255'],
             // 0 diizinkan: bonus yang tetap ingin tercetak di invoice.
             'items.*.unit_price' => ['required_without:items.*.catalog_item_id', 'nullable', 'integer', 'min:0'],
@@ -63,6 +64,9 @@ class StoreOrderRequest extends FormRequest
         return [function (Validator $validator) {
             // Item tidak valid sudah punya error sendiri — total belum bisa dihitung.
             if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+            if ($this->rejectWrongVariants($validator)) {
                 return;
             }
             $total = $this->total();

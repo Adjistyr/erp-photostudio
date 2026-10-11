@@ -80,7 +80,7 @@ export default function OrdersEdit({
         (order.business_line === 'retail' || hasCustomer(data)) &&
         data.service_date !== '' &&
         total > 0 &&
-        rowsComplete(data.items);
+        rowsComplete(data.items, catalog);
 
     return (
         <>

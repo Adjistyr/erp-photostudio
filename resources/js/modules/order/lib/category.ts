@@ -8,6 +8,11 @@ export type OrderType = 'studio' | 'event';
  * Add-on tersedia di keduanya. Nilainya enum `ServiceCategory` — server
  * (`OrderController@create`) hanya mengirim jasa berkategori dikenal.
  */
+/** Kategori jasa dikenal — kategori produk teks bebas (spek 7.5). */
+export function isServiceCategory(c: string): c is ServiceCategory {
+    return c === 'Studio' || c === 'Event' || c === 'Add-on';
+}
+
 export function categoryMatches(
     category: ServiceCategory,
     type: OrderType,

@@ -91,7 +91,7 @@ Entitas di blok bawah dijelaskan di bagian 8.
 
 **Order** — satu tabel untuk semua jenis transaksi, dibedakan oleh field `tipe`: `retail` / `studio` / `event`. Menyimpan customer, tanggal transaksi, jadwal (kalau ada), lokasi, total, diskon, link hasil foto, catatan.
 
-**OrderItem** — baris item: referensi ke katalog, qty, harga satuan saat itu. Item custom (harga nego di luar katalog) tidak punya referensi katalog dan tidak punya HPP — biaya nyatanya dicatat sebagai biaya job.
+**OrderItem** — baris item: referensi ke katalog, qty, harga satuan saat itu. Order studio/event boleh berisi paket jasa **dan produk** (cetak tambahan, album, bingkai — spek 7.5); produk membawa HPP-nya dan, bila bervarian, variannya. Item custom (harga nego di luar katalog) tidak punya referensi katalog dan tidak punya HPP — biaya nyatanya dicatat sebagai biaya job.
 
 **Payment** — tanggal, nominal, metode (tunai / transfer / QRIS), keterangan (DP / pelunasan / termin 2).
 
