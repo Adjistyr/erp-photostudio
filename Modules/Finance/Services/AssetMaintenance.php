@@ -3,6 +3,7 @@
 namespace Modules\Finance\Services;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Modules\Asset\Models\Asset;
 
@@ -16,6 +17,13 @@ class AssetMaintenance
 {
     /** Batas "segera" — cukup waktu untuk menjadwalkan teknisi. */
     public const WARNING_DAYS = 14;
+
+    /**
+     * Horizon proyeksi penggantian (spek 6.2).
+     *
+     * ponytail: konstanta, jadikan setelan bila owner minta.
+     */
+    public const REPLACEMENT_HORIZON_MONTHS = 6;
 
     public function __construct(private readonly Periods $periods) {}
 
@@ -126,5 +134,32 @@ class AssetMaintenance
             fn (string $m) => $this->allocationFor($asset, $m),
             $this->periods->closedMonths(),
         ));
+    }
+
+    /**
+     * Aset dimiliki (status apa pun) yang habis umur ekonomis sampai hari ini
+     * + 6 bulan — termasuk yang sudah lewat — urut tanggal (spek 6.2).
+     * `addMonthsNoOverflow`: beli 31 Jan + 1 bulan = 28/29 Feb, bukan 3 Mar.
+     *
+     * @return list<ReplacementDue>
+     */
+    public function replacementsDue(CarbonInterface $today): array
+    {
+        $today = CarbonImmutable::parse($today)->startOfDay();
+        $horizon = $today->addMonthsNoOverflow(self::REPLACEMENT_HORIZON_MONTHS);
+        $due = [];
+        /** @var Collection<int, Asset> $assets */
+        $assets = Asset::whereNull('disposed_on')->orderBy('id')->get();
+        foreach ($assets as $asset) {
+            $dueOn = $asset->purchased_on->addMonthsNoOverflow($asset->useful_life_months);
+            if ($dueOn->greaterThan($horizon)) {
+                continue;
+            }
+            $months = (int) $today->startOfMonth()->diffInMonths($dueOn->startOfMonth(), false);
+            $due[] = new ReplacementDue($asset, $dueOn, $months, $asset->purchaseTotal());
+        }
+        usort($due, fn (ReplacementDue $a, ReplacementDue $b) => $a->dueOn <=> $b->dueOn);
+
+        return $due;
     }
 }

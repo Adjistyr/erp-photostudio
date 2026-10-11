@@ -46,6 +46,14 @@ import {
     StatusBadge,
     WarrantyBadge,
 } from '@/modules/asset/components/asset-badges';
+import {
+    CategorySummaryTable,
+    ReplacementCard,
+} from '@/modules/asset/components/asset-overview';
+import type {
+    CategorySummary,
+    Replacements,
+} from '@/modules/asset/components/asset-overview';
 import { filterAssets } from '@/modules/asset/lib/filter';
 import type { AssetStatusFilter } from '@/modules/asset/lib/filter';
 import { brandModel } from '@/modules/asset/types';
@@ -81,10 +89,15 @@ interface Props {
     /** + thumbnail sampul (foto alat pertama, spek 8.2). */
     assets: (AssetRow & { photo_url: string | null })[];
     categories: { id: number; name: string }[];
+    /** Spek 8.3 — aset dimiliki per kategori. */
+    by_category: CategorySummary[];
+    /** Spek 6.2 / 8.3 — habis umur ekonomis dalam 6 bulan. */
+    replacements: Replacements;
 }
 
 export default function AssetsIndex(props: Props) {
     const { month, summary, due, assets, categories, today } = props;
+    const { by_category, replacements } = props;
     // Cari & filter di klien (spek 3.6, 8.1) — daftar aset kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
     const filters: ListFilterDef[] = [
@@ -177,6 +190,9 @@ export default function AssetsIndex(props: Props) {
                         </AlertDescription>
                     </Alert>
                 )}
+
+                <ReplacementCard data={replacements} />
+                <CategorySummaryTable rows={by_category} />
 
                 {assets.length > 0 && (
                     <ListToolbar

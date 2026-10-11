@@ -8,11 +8,14 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\MessageTemplate;
+use Modules\Finance\Enums\Fund;
 use Modules\Finance\Services\AssetMaintenance;
 use Modules\Finance\Services\DueMaintenance;
+use Modules\Finance\Services\Funds;
 use Modules\Finance\Services\Periods;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Finance\Services\Receivables;
+use Modules\Finance\Services\ReplacementDue;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Shared\Enums\BusinessLine;
@@ -26,7 +29,7 @@ use Modules\Shared\Enums\BusinessLine;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(Receivables $receivables, ProfitAndLoss $pnl, AssetMaintenance $assets, Periods $periods): Response
+    public function __invoke(Receivables $receivables, ProfitAndLoss $pnl, AssetMaintenance $assets, Periods $periods, Funds $funds): Response
     {
         $today = today();
         $month = $periods->current();
@@ -72,7 +75,21 @@ class DashboardController extends Controller
                 'asset_name' => $d->asset->name,
                 'days_until' => $d->daysUntil,
             ], $assets->dueSoon()),
+            // Proyeksi penggantian 6 bulan (spek 6.2 / 8.3) — dua angka saja.
+            ...$this->replacements($assets, $funds, $today),
         ]);
+    }
+
+    /** @return array{replacements_due_count: int, replacements_shortfall: int} */
+    private function replacements(AssetMaintenance $assets, Funds $funds, CarbonInterface $today): array
+    {
+        $due = $assets->replacementsDue($today);
+        $total = array_sum(array_map(fn (ReplacementDue $r) => $r->estimate, $due));
+
+        return [
+            'replacements_due_count' => count($due),
+            'replacements_shortfall' => max(0, $total - $funds->balance(Fund::Maintenance)),
+        ];
     }
 
     /**
