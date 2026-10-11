@@ -12,6 +12,7 @@ import type { InertiaLinkProps } from '@inertiajs/react';
 import {
     ArrowRight,
     BookCheck,
+    CalendarClock,
     CalendarDays,
     Clock,
     Target,
@@ -122,6 +123,9 @@ interface Props {
         ratio: number;
     };
     due_maintenance: { asset_name: string; days_until: number }[];
+    /** Proyeksi penggantian 6 bulan (spek 6.2 / 8.3). */
+    replacements_due_count: number;
+    replacements_shortfall: number;
 }
 
 export default function Dashboard(props: Props) {
@@ -259,6 +263,27 @@ export default function Dashboard(props: Props) {
                                 className="font-medium text-foreground underline underline-offset-2"
                             >
                                 Buka Aset & Maintenance
+                            </Link>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {props.replacements_due_count > 0 && (
+                    <Alert>
+                        <CalendarClock />
+                        <AlertTitle>
+                            {props.replacements_due_count} alat habis umur
+                            ekonomis dalam 6 bulan
+                        </AlertTitle>
+                        <AlertDescription>
+                            {props.replacements_shortfall > 0
+                                ? `Dana maintenance kurang ${formatRp(props.replacements_shortfall)} untuk menggantinya (perkiraan dari harga beli).`
+                                : 'Dana maintenance cukup untuk menggantinya.'}{' '}
+                            <Link
+                                href={assetsIndex()}
+                                className="font-medium text-foreground underline underline-offset-2"
+                            >
+                                Lihat di Aset
                             </Link>
                         </AlertDescription>
                     </Alert>

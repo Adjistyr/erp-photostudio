@@ -27,6 +27,7 @@ use Modules\Finance\Services\AssetMaintenance;
 use Modules\Finance\Services\DueMaintenance;
 use Modules\Finance\Services\Funds;
 use Modules\Finance\Services\Periods;
+use Modules\Finance\Services\ReplacementDue;
 use Modules\Shared\Http\CsvResponse;
 use Modules\Shared\Support\Money;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -96,7 +97,7 @@ class AssetController extends Controller
         ]);
     }
 
-    public function index(): Response
+    public function index(Funds $funds): Response
     {
         $month = $this->periods->current();
         $today = today()->toImmutable();
@@ -128,7 +129,46 @@ class AssetController extends Controller
                 'photo_url' => ($cover = $a->photos->first()) ? $cover->toProps()['thumb_url'] : null,
             ])->values()->all(),
             'categories' => AssetCategory::orderBy('position')->get()->map(fn (AssetCategory $c) => ['id' => $c->id, 'name' => $c->name])->all(),
+            // Ringkasan per kategori (spek 8.3) — aset dimiliki saja; totalnya = kartu di atas.
+            'by_category' => $owned->groupBy(fn (Asset $a) => $a->category->name)
+                ->map(fn ($group, string $name) => [
+                    'name' => $name,
+                    'kinds' => $group->count(),
+                    'units' => (int) $group->sum('units'),
+                    'purchase_value' => (int) $group->sum(fn (Asset $a) => $a->purchaseTotal()),
+                    'book_value' => (int) $group->sum(fn (Asset $a) => $this->maintenance->bookValue($a, $month)),
+                    'allocation' => (int) $group->sum(fn (Asset $a) => $this->maintenance->allocationFor($a, $month)),
+                ])
+                ->sortByDesc('purchase_value')->values()->all(),
+            'replacements' => $this->replacementProps($funds, $today),
         ]);
+    }
+
+    /**
+     * Proyeksi penggantian 6 bulan (spek 6.2 / 8.3): perkiraan dari harga
+     * beli dibanding dana maintenance — pos yang disisihkan per aset.
+     *
+     * @return array{items: list<array<string, mixed>>, total_estimate: int, maintenance_balance: int, shortfall: int}
+     */
+    private function replacementProps(Funds $funds, CarbonImmutable $today): array
+    {
+        $due = $this->maintenance->replacementsDue($today);
+        $total = array_sum(array_map(fn (ReplacementDue $r) => $r->estimate, $due));
+        $balance = $funds->balance(Fund::Maintenance);
+
+        return [
+            'items' => array_map(fn (ReplacementDue $r) => [
+                'asset_id' => $r->asset->id,
+                'name' => $r->asset->name,
+                'model' => $r->asset->brandModel(),
+                'due_on' => $r->dueOn->toDateString(),
+                'months_until' => $r->monthsUntil,
+                'estimate' => $r->estimate,
+            ], $due),
+            'total_estimate' => $total,
+            'maintenance_balance' => $balance,
+            'shortfall' => max(0, $total - $balance),
+        ];
     }
 
     /** Detail aset (spek 8.1) — pengganti Sheet: identitas, keuangan, riwayat servis. */

@@ -58,6 +58,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | | | #56 | 7.3 Varian produk |
 | | | #57 | 8.1 Register aset |
 | | | #58 | 8.2 Foto alat & nota |
+| | | #59 | 8.3 Ringkasan per kategori + proyeksi penggantian |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 
@@ -91,7 +92,7 @@ Fase 0–4 selesai. Sisa di `docs/specs/README.md`:
 - **5.1 Peran & hak akses** — hanya setelah owner memastikan ada staf admin yang akan input.
 - **5.2 Shift kasir tidak dikerjakan** — keputusan 9 Okt 2026: POS tidak memakai shift (tidak ada buka/tutup laci). Pencocokan laci tetap lewat Kas Harian (3.3) kolom Tunai.
 - **7.1 Galeri foto katalog** (#54), **7.2 form katalog jadi halaman** (#55), dan **7.3 varian produk** (#56) selesai. Endpoint company profile (produk terpisah) belum dibuat; aturan field publik ada di spek 7.1, varian di company profile diputuskan saat itu. Endpoint publik untuk company profile belum dibuat — aturan field yang boleh keluar ada di speknya.
-- **Fase 8 — Aset jadi register alat** (keputusan 11 Okt 2026: daftar alat saja, tetap jenis × jumlah, field keuangan terkunci): 8.1 (#57) dan 8.2 foto alat & nota (#58) selesai; berikutnya **8.3 peminjaman alat ke event + ringkasan per kategori + proyeksi penggantian**.
+- **Fase 8 — Aset jadi register alat** (keputusan 11 Okt 2026: daftar alat saja, tetap jenis × jumlah, field keuangan terkunci): 8.1 (#57), 8.2 foto alat & nota (#58), dan 8.3 ringkasan per kategori + proyeksi penggantian (#59) selesai; berikutnya **8.4 peminjaman alat ke event**.
 - **6.x** (serial + garansi, proyeksi penggantian, bundel, termin, riwayat harga, sumber lead, lampiran bukti transfer) — sesuai kebutuhan owner.
 
 Per item: branch dari `develop` (`feat/<modul>-<item>`), kerjakan sesuai spek (test ditulis bersamaan), checklist spek dipindah ke body PR, PR ke `develop`, setelah merge ubah status di `docs/specs/README.md` → ✅ + nomor PR. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.

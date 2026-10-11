@@ -512,6 +512,8 @@ Aturan:
 - **Aset rusak tetap dialokasikan** — masih dimiliki, dan justru butuh dana servis.
 - **Identitas bisa dikoreksi, keuangan tidak** (spek 8.1). Nama, kode, kategori, merek, model, nomor seri, garansi, lokasi, catatan, umur ekonomis, dan interval perawatan bisa diubah kapan saja — juga setelah aset dilepas. Jumlah unit, harga, tanggal beli, persen maintenance, dan sumber dana terkunci: mengubahnya menggeser alokasi bulan lalu dan investasi yang tercatat.
 - **Kode aset** boleh diketik (mis. sesuai stiker label) atau dibiarkan kosong → otomatis `PREFIKS-NNN` per kategori (KAM-001). Unik. Alat bernomor seri sebaiknya dicatat satu per baris (unit 1); satu baris tetap boleh berisi beberapa unit untuk barang tanpa seri (baterai, memory card).
+- **Proyeksi penggantian** (spek 6.2 / 8.3): aset dimiliki yang habis umur ekonomis (tanggal beli + umur) sampai 6 bulan ke depan — termasuk yang sudah lewat — dengan perkiraan biaya ganti = harga beli × unit, dibanding saldo dana maintenance; kekurangannya disebut di halaman Aset dan Dashboard.
+- **Ringkasan per kategori** (spek 8.3): jenis, unit, nilai beli, nilai buku, dan alokasi maintenance per kategori untuk aset yang dimiliki; totalnya sama dengan kartu ringkasan.
 - Per aset ditampilkan total biaya servis dibanding dana yang sudah disisihkan untuknya. Alat yang servisnya melebihi dana yang disisihkan adalah kandidat diganti, atau tanda persennya terlalu kecil.
 
 Default per kategori — **praktik umum studio foto UMKM, bukan data client**, dan dikonfirmasi saat demo:
