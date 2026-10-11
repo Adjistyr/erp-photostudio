@@ -61,6 +61,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | | | #59 | 8.3 Ringkasan per kategori + proyeksi penggantian |
 | | | #60 | 8.4 Peminjaman alat ke event |
 | | | #62 | 7.4 Detail order jadi halaman + edit retail |
+| | | #63 | 7.5 Item produk di order studio/event |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 
@@ -86,7 +87,7 @@ Kode yang menang bila spek tidak cocok — speknya tidak ditulis ulang, alasanny
 
 ### Data uji lokal (bukan seed)
 
-DB lokal berisi data hasil verifikasi manual: aset "Drone DJI" (DRN-001) + kategori Drone + 2 foto & 2 nota (file di `storage/app/private/assets/`), riwayat peminjaman Lighting (Raka, ORD-0005) & Trigger (Dimas), merek/lokasi/garansi di "Printer foto", servis Head cleaning 11 Okt, foto di "Cetak 10R + Bingkai" (bertanda Profil), item baru "Gantungan Kunci Foto Kayu" dan "Bingkai Kayu A4", varian Kayu/Hitam di "Cetak 10R + Bingkai" dengan penjualan ORD-0018, ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` dan `storage/app/private/assets` (file foto tidak ikut terhapus oleh reset DB).
+DB lokal berisi data hasil verifikasi manual: ORD-0019 (studio + produk bervarian & Keychain), catatan di ORD-0010, aset "Drone DJI" (DRN-001) + kategori Drone + 2 foto & 2 nota (file di `storage/app/private/assets/`), riwayat peminjaman Lighting (Raka, ORD-0005) & Trigger (Dimas), merek/lokasi/garansi di "Printer foto", servis Head cleaning 11 Okt, foto di "Cetak 10R + Bingkai" (bertanda Profil), item baru "Gantungan Kunci Foto Kayu" dan "Bingkai Kayu A4", varian Kayu/Hitam di "Cetak 10R + Bingkai" dengan penjualan ORD-0018, ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` dan `storage/app/private/assets` (file foto tidak ikut terhapus oleh reset DB).
 
 ## 4. Langkah berikutnya
 
