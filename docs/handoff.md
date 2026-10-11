@@ -32,10 +32,10 @@ php artisan wayfinder:generate --with-form   # bila route berubah
 
 Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`. Data demo: `php artisan migrate:fresh --seed`. Login `agung@potraittime.test` atau `raka@potraittime.test`, sandi `password`. Data demo: Juli 2026 sudah tutup buku, Agustus–September belum.
 
-## 3. Posisi per 9 Oktober 2026
+## 3. Posisi per 11 Oktober 2026
 
-- `develop` memuat PR #10–#28 (semua layar prototype `web/` dipindah ke Laravel, keputusan bisnis 6 Okt: margin order batal, tutup buku manual, koreksi = hapus) dan **PR #29–#52**: analisis + 32 spek, lalu **seluruh spek Fase 0–4 (22 item) selesai**.
-- Test terakhir: **407 PHPUnit, 88 Vitest**, PHPStan level 7 bersih, `composer ci:check` hijau.
+- `develop` memuat PR #10–#28 (semua layar prototype `web/` dipindah ke Laravel, keputusan bisnis 6 Okt: margin order batal, tutup buku manual, koreksi = hapus) dan **PR #29–#60**: analisis + 32 spek, **seluruh spek Fase 0–4 (22 item)**, 5.2 dibatalkan (#53, POS tanpa shift), **Fase 7** permintaan tambahan katalog (galeri foto & profil publik, form halaman penuh, varian produk — #54–#56), dan **Fase 8** modul Aset jadi register alat (#57–#60).
+- Test terakhir: **478 PHPUnit, 100 Vitest**, PHPStan level 7 bersih, `composer ci:check` hijau.
 - CI GitHub Actions tidak berjalan sejak awal (akun terkunci billing — job gagal dalam 2–3 detik tanpa dijalankan). Gate yang dipakai: `composer ci:check` lokal sebelum merge.
 
 ### Daftar PR spek
