@@ -4,8 +4,7 @@ namespace Modules\Asset\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Modules\Asset\Models\Asset;
+use Modules\Asset\Requests\Concerns\AssetIdentity;
 use Modules\Finance\Rules\OpenPeriod;
 
 /**
@@ -15,22 +14,22 @@ use Modules\Finance\Rules\OpenPeriod;
  */
 class StoreAssetRequest extends FormRequest
 {
+    use AssetIdentity;
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(array_column(Asset::CATEGORIES, 'name'))],
-            'model' => ['nullable', 'string', 'max:255'],
+            // Identitas (spek 8.1) — sama dengan Edit.
+            ...$this->identityRules(),
+            // Keuangan — hanya saat tambah; terkunci setelah simpan.
             'units' => ['required', 'integer', 'min:1', 'max:999'],
             'unit_price' => ['required', 'integer', 'min:1'],
             // Basis kas: pembelian masa depan belum terjadi.
             'purchased_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
             'maintenance_percent' => ['required', 'integer', 'min:0', 'max:100'],
-            'useful_life_months' => ['required', 'integer', 'min:1', 'max:600'],
-            'maintenance_interval_months' => ['nullable', 'integer', 'min:1', 'max:120'],
             // null = kas usaha; id owner = dibayar owner (setoran modal).
             'paid_by' => ['nullable', 'integer', 'exists:owners,id'],
         ];
@@ -42,15 +41,11 @@ class StoreAssetRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'name' => 'nama',
-            'category' => 'kategori',
-            'model' => 'merek / model',
+            ...$this->identityAttributes(),
             'units' => 'unit',
             'unit_price' => 'harga per unit',
             'purchased_on' => 'tanggal beli',
             'maintenance_percent' => 'persen maintenance',
-            'useful_life_months' => 'umur ekonomis',
-            'maintenance_interval_months' => 'interval perawatan',
             'paid_by' => 'pembayar',
         ];
     }

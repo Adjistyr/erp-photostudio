@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Asset\Models\Asset;
+use Modules\Asset\Models\AssetCategory;
 use Modules\Finance\Enums\ContributionDestination;
 use Modules\Finance\Enums\ContributionKind;
 use Modules\Finance\Enums\Fund;
@@ -46,7 +47,7 @@ class AssetsTest extends TestCase
     {
         return $this->post(route('assets.store'), [
             'name' => 'Lensa portrait',
-            'category' => 'Lensa',
+            'asset_category_id' => AssetCategory::where('name', 'Lensa')->sole()->id,
             'model' => 'Canon RF 50mm',
             'units' => 2,
             'unit_price' => 1_500_000,
@@ -72,9 +73,10 @@ class AssetsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('asset::index')
                 ->has('assets', 6)
-                // Kode dari id (sequence PostgreSQL tidak di-reset antar test).
-                ->where('assets.0.code', sprintf('AST-%02d', $this->asset('Kamera mirrorless')->id))
-                ->where('assets.0.funded_by', 'Modal Agung')
+                // Dulu kode dari id (sequence PostgreSQL tidak di-reset antar
+                // test); sejak spek 8.1 kode otomatis per kategori.
+                ->where('assets.0.code', 'KAM-001')
+                ->where('assets.0.brand', 'Canon')
                 ->where('summary.units', 9)
                 ->where('summary.kinds', 6)
                 ->where('summary.purchase_value', 15_809_000)
@@ -83,17 +85,31 @@ class AssetsTest extends TestCase
                 ->has('due', 1)
                 ->where('due.0.name', 'Printer foto')
                 ->where('due.0.days_until', -25)
-                ->where('maintenance_balance', $this->balance())
-                ->has('owners', 2)
                 ->has('categories', 7)
             );
+    }
+
+    public function test_show_page_carries_funding_history_and_balance()
+    {
+        $kamera = $this->asset('Kamera mirrorless');
+
+        $this->get(route('assets.show', $kamera))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('asset::show')
+                ->where('asset.code', 'KAM-001')
+                ->where('asset.category', 'Kamera')
+                ->where('asset.funded_by', 'Modal Agung')
+                ->where('asset.serial_number', '183052001234')
+                ->has('asset.maintenances', 0)
+                ->where('maintenance_balance', $this->balance()));
     }
 
     public function test_store_paid_from_cash_records_investment_without_contribution()
     {
         $contributions = OwnerContribution::count();
 
-        $this->store()->assertRedirect(route('assets.index'))->assertSessionHasNoErrors();
+        // Ke halaman detail aset baru (spek 8.1).
+        $this->store()->assertRedirect(route('assets.show', Asset::latest('id')->firstOrFail()))->assertSessionHasNoErrors();
 
         $asset = $this->asset('Lensa portrait');
         $this->assertSame(AssetStatus::Active, $asset->status);
@@ -124,11 +140,11 @@ class AssetsTest extends TestCase
         $investments = Investment::count();
 
         $this->store([
-            'name' => ' ', 'category' => 'Drone', 'units' => 0, 'unit_price' => 0,
+            'name' => ' ', 'asset_category_id' => 999, 'units' => 0, 'unit_price' => 0,
             'purchased_on' => '2026-08-27', 'maintenance_percent' => 101,
             'useful_life_months' => 0, 'maintenance_interval_months' => 0, 'paid_by' => 999,
         ])->assertSessionHasErrors([
-            'name', 'category', 'units', 'unit_price', 'purchased_on',
+            'name', 'asset_category_id', 'units', 'unit_price', 'purchased_on',
             'maintenance_percent', 'useful_life_months', 'maintenance_interval_months', 'paid_by',
         ]);
 
@@ -141,9 +157,10 @@ class AssetsTest extends TestCase
         $printer = $this->asset('Printer foto');
         $before = $this->balance();
 
-        $this->post(route('assets.maintenances.store', $printer), [
+        // Dicatat dari halaman detail — kembali ke sana.
+        $this->from(route('assets.show', $printer))->post(route('assets.maintenances.store', $printer), [
             'type' => 'routine', 'description' => 'Head cleaning', 'performed_on' => '2026-08-26', 'cost' => 50_000,
-        ])->assertRedirect(route('assets.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('assets.show', $printer))->assertSessionHasNoErrors();
 
         $this->assertSame($before - 50_000, $this->balance());
         $this->assertSame([], app(AssetMaintenance::class)->dueSoon());
@@ -186,9 +203,9 @@ class AssetsTest extends TestCase
         $kamera = $this->asset('Kamera mirrorless');
         $before = $this->balance();
 
-        $this->patch(route('assets.dispose', $kamera), [
+        $this->from(route('assets.show', $kamera))->patch(route('assets.dispose', $kamera), [
             'reason' => 'Dijual', 'disposed_on' => '2026-08-26', 'sale_price' => 5_000_000,
-        ])->assertRedirect(route('assets.index'))->assertSessionHasNoErrors();
+        ])->assertRedirect(route('assets.show', $kamera))->assertSessionHasNoErrors();
 
         $kamera->refresh();
         $this->assertSame(AssetStatus::Disposed, $kamera->status);
@@ -232,7 +249,7 @@ class AssetsTest extends TestCase
         $first = array_combine($header, $rows[0]);
 
         $this->assertSame(Asset::count(), count($rows));
-        $this->assertSame([sprintf('AST-%02d', $asset->id), 'disposed', 'Dilepas', 'Dijual', '1000000'],
+        $this->assertSame([$asset->code, 'disposed', 'Dilepas', 'Dijual', '1000000'],
             [$first['kode'], $first['status'], $first['status_label'], $first['alasan_lepas'], $first['harga_jual']]);
         $this->assertSame('', $first['servis_berikutnya']);
     }
