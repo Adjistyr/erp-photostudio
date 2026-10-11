@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Asset\Controllers\AssetCategoryController;
+use Modules\Asset\Controllers\AssetCheckoutController;
 use Modules\Asset\Controllers\AssetController;
 use Modules\Asset\Controllers\AssetPhotoController;
 
@@ -20,6 +21,12 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         Route::get('assets/{asset}/photos/{photo}', [AssetPhotoController::class, 'show'])->name('assets.photos.show');
         Route::delete('assets/{asset}/photos/{photo}', [AssetPhotoController::class, 'destroy'])->name('assets.photos.destroy');
         Route::patch('assets/{asset}/photos/{photo}/cover', [AssetPhotoController::class, 'cover'])->name('assets.photos.cover');
+    });
+    // Peminjaman alat ke event (spek 8.4).
+    Route::post('assets/{asset}/checkouts', [AssetCheckoutController::class, 'store'])->name('assets.checkouts.store');
+    Route::scopeBindings()->group(function () {
+        Route::patch('assets/{asset}/checkouts/{checkout}/return', [AssetCheckoutController::class, 'return'])->name('assets.checkouts.return');
+        Route::delete('assets/{asset}/checkouts/{checkout}', [AssetCheckoutController::class, 'destroy'])->name('assets.checkouts.destroy');
     });
     // Kategori aset dikelola owner (spek 8.1). Tidak ada halaman per kategori.
     Route::resource('asset-categories', AssetCategoryController::class)

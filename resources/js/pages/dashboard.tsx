@@ -126,6 +126,8 @@ interface Props {
     /** Proyeksi penggantian 6 bulan (spek 6.2 / 8.3). */
     replacements_due_count: number;
     replacements_shortfall: number;
+    /** Peminjaman alat lewat rencana kembali (spek 8.4). */
+    overdue_checkouts_count: number;
 }
 
 export default function Dashboard(props: Props) {
@@ -263,6 +265,25 @@ export default function Dashboard(props: Props) {
                                 className="font-medium text-foreground underline underline-offset-2"
                             >
                                 Buka Aset & Maintenance
+                            </Link>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {props.overdue_checkouts_count > 0 && (
+                    <Alert variant="destructive">
+                        <TriangleAlert />
+                        <AlertTitle>
+                            {props.overdue_checkouts_count} peminjaman alat
+                            belum kembali
+                        </AlertTitle>
+                        <AlertDescription>
+                            Sudah lewat rencana kembali.{' '}
+                            <Link
+                                href={assetsIndex()}
+                                className="font-medium underline underline-offset-2"
+                            >
+                                Lihat di Aset
                             </Link>
                         </AlertDescription>
                     </Alert>

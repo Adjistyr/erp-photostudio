@@ -11,6 +11,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, Download, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
+import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
 import OrderRefundController from '@/actions/Modules/Order/Controllers/OrderRefundController';
@@ -577,6 +578,49 @@ function OrderDetail({
                         </div>
                     </div>
                 </Section>
+
+                {/* Alat yang dibawa (spek 8.4) — dicatat dari halaman aset; di sini baca saja. */}
+                {order.asset_checkouts.length > 0 && (
+                    <Section title="Alat dibawa">
+                        <ul className="flex flex-col divide-y text-sm">
+                            {order.asset_checkouts.map((c) => (
+                                <li
+                                    key={c.id}
+                                    className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2"
+                                >
+                                    <Link
+                                        href={AssetController.show(c.asset_id)}
+                                        className="font-medium underline-offset-4 hover:underline"
+                                    >
+                                        <span className="font-mono text-xs">
+                                            {c.asset_code}
+                                        </span>{' '}
+                                        {c.asset_name}
+                                    </Link>
+                                    <span className="text-muted-foreground">
+                                        {c.quantity} unit · {c.holder}
+                                    </span>
+                                    <span className="ml-auto text-xs">
+                                        {c.returned_on ? (
+                                            <span className="text-muted-foreground">
+                                                Kembali{' '}
+                                                {formatTanggal(c.returned_on)}
+                                            </span>
+                                        ) : c.overdue ? (
+                                            <Badge variant="destructive">
+                                                Belum kembali · lewat jadwal
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline">
+                                                Belum kembali
+                                            </Badge>
+                                        )}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Section>
+                )}
 
                 <Section title="Biaya job & margin">
                     {order.job_costs.length === 0 ? (

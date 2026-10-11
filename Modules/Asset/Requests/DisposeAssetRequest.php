@@ -38,6 +38,13 @@ class DisposeAssetRequest extends FormRequest
         return [function (Validator $validator) {
             if ($this->asset()->isDisposed()) {
                 $validator->errors()->add('reason', 'Aset sudah dilepas.');
+
+                return;
+            }
+            // Spek 8.4: alat yang masih dibawa keluar dikembalikan dulu.
+            $out = $this->asset()->unitsOut();
+            if ($out > 0) {
+                $validator->errors()->add('reason', "Masih dipinjam {$out} unit — kembalikan dulu sebelum dilepas.");
             }
         }];
     }

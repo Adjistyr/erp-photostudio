@@ -87,6 +87,18 @@ export interface OrderRow {
         note: string;
         created_by_name: string | null;
     }[];
+    /** Alat yang dibawa (spek 8.4, modul Aset) — baca saja. */
+    asset_checkouts: {
+        id: number;
+        asset_id: number;
+        asset_code: string;
+        asset_name: string;
+        quantity: number;
+        holder: string;
+        due_back_on: string | null;
+        returned_on: string | null;
+        overdue: boolean;
+    }[];
     job_costs: {
         id: number;
         incurred_on: string;

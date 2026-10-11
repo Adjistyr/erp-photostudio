@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Asset\Models\AssetCheckout;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Customer\Models\MessageTemplate;
 use Modules\Finance\Enums\Fund;
@@ -77,6 +78,11 @@ class DashboardController extends Controller
             ], $assets->dueSoon()),
             // Proyeksi penggantian 6 bulan (spek 6.2 / 8.3) — dua angka saja.
             ...$this->replacements($assets, $funds, $today),
+            // Alat belum kembali, lewat rencana kembali (spek 8.4).
+            'overdue_checkouts_count' => AssetCheckout::whereNull('returned_on')
+                ->whereNotNull('due_back_on')
+                ->whereDate('due_back_on', '<', $today)
+                ->count(),
         ]);
     }
 

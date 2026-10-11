@@ -29,6 +29,7 @@ import {
     StatusBadge,
     WarrantyBadge,
 } from '@/modules/asset/components/asset-badges';
+import { CheckoutSection } from '@/modules/asset/components/checkout-section';
 import { DisposeDialog } from '@/modules/asset/components/dispose-dialog';
 import { ServiceDialog } from '@/modules/asset/components/service-dialog';
 import {
@@ -37,17 +38,20 @@ import {
     MAX_RECEIPTS,
     brandModel,
 } from '@/modules/asset/types';
-import type { AssetDetail } from '@/modules/asset/types';
+import type { AssetDetail, OrderOption } from '@/modules/asset/types';
 import { index as assetsIndex } from '@/routes/assets';
 
 export default function AssetShow({
     asset: a,
     maintenance_balance,
     today,
+    order_options,
 }: {
     asset: AssetDetail;
     maintenance_balance: number;
     today: string;
+    /** Order studio/event untuk dikaitkan ke peminjaman (spek 8.4). */
+    order_options: OrderOption[];
 }) {
     const [dialog, setDialog] = useState<'service' | 'dispose' | null>(null);
     const totalService = a.maintenances.reduce((s, m) => s + m.cost, 0);
@@ -205,6 +209,12 @@ export default function AssetShow({
                         </Table>
                     </Section>
                 </div>
+
+                <CheckoutSection
+                    asset={a}
+                    orders={order_options}
+                    today={today}
+                />
 
                 {/* Foto alat & nota (spek 8.2) — privat, dibuka lewat route ber-auth. */}
                 <div className="grid grid-cols-1 gap-6 rounded-lg border p-4 xl:grid-cols-2">
