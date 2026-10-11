@@ -139,7 +139,7 @@ Order bertipe `retail` langsung lahir dengan status **Diserahkan** — barangnya
 
 Status kerja maju satu langkah per klik. Salah klik dikoreksi dengan **mundur satu langkah** ("Kembalikan ke …", dengan konfirmasi) — tercatat di riwayat order, pembayaran dan link hasil tidak berubah. **Batal** tetap final.
 
-**Mengubah order (studio/event).** Reschedule, ganti jam/lokasi, tambah add-on, atau koreksi customer dilakukan lewat **Ubah** di detail order — bukan batalkan lalu buat ulang (pembatalan hanya untuk customer yang benar-benar batal; DP-nya baru dianggap hangus di situ). Harga item yang sudah ada tetap harga deal walau katalog naik; total baru tidak boleh di bawah yang sudah dibayar. Setelah **Diserahkan**, hanya catatan dan customer yang bisa diubah — jadwal dan item terkunci (keputusan K1). Order retail dan order batal tidak bisa diubah. Setiap perubahan tercatat di riwayat order.
+**Mengubah order (studio/event).** Reschedule, ganti jam/lokasi, tambah add-on, atau koreksi customer dilakukan lewat **Ubah** di detail order — bukan batalkan lalu buat ulang (pembatalan hanya untuk customer yang benar-benar batal; DP-nya baru dianggap hangus di situ). Harga item yang sudah ada tetap harga deal walau katalog naik; total baru tidak boleh di bawah yang sudah dibayar. Setelah **Diserahkan**, hanya catatan dan customer yang bisa diubah — jadwal dan item terkunci (keputusan K1). Order retail (selalu Diserahkan) bisa diubah customer & catatannya saja — mis. mencatat customer belakangan; customer boleh kosong untuk walk-in (spek 7.4). Order batal tidak bisa diubah. Setiap perubahan tercatat di riwayat order. Detail order dibuka sebagai halaman sendiri, tombol Ubah di kepala halaman.
 
 ### Status Bayar (dihitung otomatis)
 

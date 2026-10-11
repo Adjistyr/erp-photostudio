@@ -55,6 +55,15 @@ trait ResolvesCustomer
         return trim((string) $this->input('new_customer.name', ''));
     }
 
+    /**
+     * Untuk order yang boleh tanpa customer (retail walk-in, spek 7.4): null
+     * bila customer_id dan nama customer baru sama-sama kosong.
+     */
+    public function resolveCustomerOrNull(FindOrCreateCustomer $findOrCreate): ?Customer
+    {
+        return $this->filled('customer_id') || $this->wantsNewCustomer() ? $this->resolveCustomer($findOrCreate) : null;
+    }
+
     public function resolveCustomer(FindOrCreateCustomer $findOrCreate): Customer
     {
         if (! $this->wantsNewCustomer()) {

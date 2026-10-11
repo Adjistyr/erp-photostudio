@@ -395,7 +395,7 @@ Dibatasi supaya generator tidak mengarang komponen yang tidak ada di shadcn dan 
 | Daftar order, katalog, customer, piutang | `Table` + `Badge` |
 | KPI dashboard | `Card` |
 | Catat Payment | `Dialog` |
-| Detail order dari tabel | `Sheet` (slide kanan) |
+| Detail order dari tabel | halaman penuh (sejak spek 7.4 — dulu `Sheet`; tombol Ubah tersembunyi di dasar Sheet) |
 | Form order studio/event, tambah/edit item katalog | halaman penuh, bukan modal (katalog sejak spek 7.2 — galeri foto dan varian tidak muat di dialog) |
 | Kalender booking | `Calendar` |
 | Pilih item di POS, pilih customer | `Command` (search-first) |

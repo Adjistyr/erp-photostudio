@@ -4,7 +4,6 @@ namespace Modules\Order\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 use Modules\Catalog\Enums\CatalogItemType;
@@ -29,8 +28,9 @@ class UpdateOrderRequest extends FormRequest
     use ResolvesCustomer;
 
     /**
-     * Order retail/batal ditolak SEBELUM validasi field — item retail adalah
-     * produk dan akan gagal di aturan `items` dengan pesan yang menyesatkan.
+     * Order batal ditolak SEBELUM validasi field. Dulu retail juga (item retail
+     * produk gagal di aturan `items`); sejak spek 7.4 retail boleh diubah —
+     * customer & catatan saja, item & tanggal terkunci seperti order Diserahkan.
      */
     public function authorize(): bool
     {
@@ -40,9 +40,22 @@ class UpdateOrderRequest extends FormRequest
     /** 422 dengan alasan, bukan 403 — sama dengan aturan bisnis lain di form. */
     protected function failedAuthorization(): never
     {
-        throw ValidationException::withMessages(['order' => $this->order()->business_line === BusinessLine::Retail
-            ? 'Order retail tidak bisa diubah — hapus pembayaran atau catat retur.'
-            : 'Order yang dibatalkan tidak bisa diubah.']);
+        throw ValidationException::withMessages(['order' => 'Order yang dibatalkan tidak bisa diubah.']);
+    }
+
+    /** Retail walk-in boleh tanpa customer (spek 7.4); studio/event wajib. */
+    private function customerOptional(): bool
+    {
+        return $this->order()->business_line === BusinessLine::Retail;
+    }
+
+    /** @return array<string, list<string>> */
+    private function optionalCustomerRules(): array
+    {
+        return array_map(
+            fn (array $rules) => array_values(array_filter($rules, fn (string $r) => ! str_starts_with($r, 'required_without'))),
+            $this->customerRules(),
+        );
     }
 
     /**
@@ -51,8 +64,8 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // customer_id ATAU new_customer (spek 3.4).
-            ...$this->customerRules(),
+            // customer_id ATAU new_customer (spek 3.4); retail boleh tanpa customer (walk-in, spek 7.4).
+            ...($this->customerOptional() ? $this->optionalCustomerRules() : $this->customerRules()),
             'service_date' => ['required', 'date_format:Y-m-d'],
             'service_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -63,8 +76,9 @@ class UpdateOrderRequest extends FormRequest
             // TANPA is_active: baris lama boleh merujuk paket yang sudah
             // dinonaktifkan supaya order lama tetap bisa diubah. Baris baru
             // dicek aktif di after().
-            'items.*.catalog_item_id' => ['nullable', 'integer', Rule::exists('catalog_items', 'id')
-                ->where('type', CatalogItemType::Service->value)],
+            // Jenis apa pun: baris lama order retail adalah produk (spek 7.4).
+            // Baris BARU dicek jenisnya di after().
+            'items.*.catalog_item_id' => ['nullable', 'integer', 'exists:catalog_items,id'],
             // Item custom (spek 1.3): nama + harga bila tanpa paket.
             'items.*.name' => ['required_without:items.*.catalog_item_id', 'nullable', 'string', 'max:255'],
             'items.*.unit_price' => ['required_without:items.*.catalog_item_id', 'nullable', 'integer', 'min:0'],
@@ -98,6 +112,11 @@ class UpdateOrderRequest extends FormRequest
                 if ($id === null) {
                     if ($catalog !== null && ! $catalog->is_active) {
                         $validator->errors()->add("items.{$i}.catalog_item_id", "{$catalog->name} sudah nonaktif.");
+
+                        return;
+                    }
+                    if ($catalog !== null && $catalog->type !== CatalogItemType::Service) {
+                        $validator->errors()->add("items.{$i}.catalog_item_id", 'Paket harus jasa.');
 
                         return;
                     }
@@ -197,7 +216,7 @@ class UpdateOrderRequest extends FormRequest
      * `$customerId` = hasil resolveCustomer() bila customer baru dibuat/dicocokkan
      * di transaksi; null = `customer_id` dari input.
      *
-     * @return array{customer_id: int, service_date: string, service_time: string|null, location: string|null, notes: string|null}
+     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null}
      */
     public function normalised(?int $customerId = null): array
     {
@@ -205,7 +224,8 @@ class UpdateOrderRequest extends FormRequest
         $time = (string) $this->input('service_time', '');
 
         return [
-            'customer_id' => $customerId ?? $this->integer('customer_id'),
+            // Kosong = tanpa customer (retail walk-in) — bukan 0, yang melanggar FK.
+            'customer_id' => $customerId ?? ($this->filled('customer_id') ? $this->integer('customer_id') : null),
             'service_date' => (string) $this->input('service_date'),
             'service_time' => $time !== '' ? $time : null,
             // Sama dengan store(): studio tanpa lokasi = di studio.
