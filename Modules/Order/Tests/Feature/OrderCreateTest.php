@@ -56,17 +56,20 @@ class OrderCreateTest extends TestCase
         $this->get(route('orders.create'))->assertRedirect(route('login'));
     }
 
-    public function test_create_page_offers_only_active_services()
+    public function test_create_page_offers_active_services_and_products()
     {
         CatalogItem::where('name', 'Paket Studio Keluarga 2 Jam')->update(['is_active' => false]);
+        CatalogItem::where('name', 'Photostrip 3 Pose')->update(['is_active' => false]);
 
         $this->get(route('orders.create'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('order::create')
                 ->has('customers', Customer::count())
-                // 5 jasa di demo, satu dinonaktifkan; produk (cetak, bingkai) tidak ikut.
-                ->has('catalog', 4)
+                // 5 jasa − 1 nonaktif + 5 produk − 1 nonaktif (spek 7.5: produk ikut).
+                ->has('catalog', 8)
                 ->where('catalog.0.name', 'Add-on Editing Lanjutan')
+                ->where('catalog', fn ($c) => collect($c)->where('type', 'product')->pluck('name')->contains('Cetak 4R')
+                    && ! collect($c)->pluck('name')->contains('Photostrip 3 Pose'))
             );
     }
 
@@ -76,7 +79,8 @@ class OrderCreateTest extends TestCase
         CatalogItem::create(['name' => 'Paket Wedding Lama', 'type' => CatalogItemType::Service, 'price' => 1, 'unit_cost' => null, 'category' => 'Wedding']);
 
         $this->get(route('orders.create'))
-            ->assertInertia(fn (Assert $page) => $page->has('catalog', 5)->missing('catalog.5'));
+            // 5 jasa + 5 produk; jasa berkategori tak dikenal tidak ikut.
+            ->assertInertia(fn (Assert $page) => $page->has('catalog', 10)->missing('catalog.10'));
         $this->assertNotContains('Paket Wedding Lama', array_column($this->get(route('orders.create'))->inertiaPage()['props']['catalog'], 'name'));
     }
 
@@ -155,16 +159,53 @@ class OrderCreateTest extends TestCase
             ->assertSessionHasErrors(['customer_id', 'service_date', 'items']);
     }
 
-    public function test_inactive_service_and_products_are_rejected()
+    public function test_inactive_service_or_product_is_rejected()
     {
         $inactive = $this->catalog('Paket Studio Keluarga 2 Jam');
         $inactive->update(['is_active' => false]);
-        $product = CatalogItem::where('type', 'product')->firstOrFail();
+        $product = $this->catalog('Album Mini 20 Halaman');
+        $product->update(['is_active' => false]);
 
         $this->store(['items' => [
             ['catalog_item_id' => $inactive->id, 'quantity' => 1],
             ['catalog_item_id' => $product->id, 'quantity' => 1],
         ]])->assertSessionHasErrors(['items.0.catalog_item_id', 'items.1.catalog_item_id']);
+    }
+
+    public function test_product_line_snapshots_price_and_unit_cost()
+    {
+        // Spek 7.5: sesi studio + cetak tambahan dalam satu order.
+        $this->store(['items' => [
+            ['catalog_item_id' => $this->catalog('Paket Studio 1 Jam')->id, 'quantity' => 1],
+            ['catalog_item_id' => $this->catalog('Cetak 4R')->id, 'quantity' => 10],
+        ]])->assertSessionHasNoErrors();
+
+        $line = $this->newest()->items->firstWhere('name', 'Cetak 4R');
+        $this->assertSame([10, 5_000, 1_500, null], [$line?->quantity, $line?->unit_price, $line?->unit_cost, $line?->catalog_item_variant_id]);
+        $this->assertSame(400_000, $this->newest()->total());
+    }
+
+    public function test_product_variant_is_required_and_must_belong_to_product()
+    {
+        $frame = $this->catalog('Cetak 10R + Bingkai');
+        $kayu = $frame->variants()->create(['name' => 'Kayu', 'price' => 95_000, 'unit_cost' => 40_000, 'position' => 1]);
+        $foreign = $this->catalog('Cetak 4R')->variants()->create(['name' => 'Glossy', 'price' => 6_000, 'unit_cost' => 1_800, 'position' => 1]);
+
+        $this->store(['items' => [['catalog_item_id' => $frame->id, 'quantity' => 1]]])
+            ->assertSessionHasErrors(['items.0.catalog_item_variant_id' => 'Pilih varian produk ini.']);
+        $this->store(['items' => [['catalog_item_id' => $frame->id, 'catalog_item_variant_id' => $foreign->id, 'quantity' => 1]]])
+            ->assertSessionHasErrors('items.0.catalog_item_variant_id');
+
+        $this->store(['items' => [
+            ['catalog_item_id' => $this->catalog('Paket Studio 1 Jam')->id, 'quantity' => 1],
+            ['catalog_item_id' => $frame->id, 'catalog_item_variant_id' => $kayu->id, 'quantity' => 2],
+        ]])->assertSessionHasNoErrors();
+        $line = $this->newest()->items->firstWhere('catalog_item_variant_id', $kayu->id);
+        $this->assertSame(['Cetak 10R + Bingkai – Kayu', 95_000, 40_000], [$line?->name, $line?->unit_price, $line?->unit_cost]);
+
+        // Varian ikut di pilihan form.
+        $options = collect($this->get(route('orders.create'))->inertiaPage()['props']['catalog'])->keyBy('name');
+        $this->assertSame(['Kayu'], array_column($options['Cetak 10R + Bingkai']['variants'], 'name'));
     }
 
     public function test_quantity_must_be_positive()

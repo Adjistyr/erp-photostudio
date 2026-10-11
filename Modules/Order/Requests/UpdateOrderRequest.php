@@ -6,7 +6,6 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
-use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
@@ -76,9 +75,10 @@ class UpdateOrderRequest extends FormRequest
             // TANPA is_active: baris lama boleh merujuk paket yang sudah
             // dinonaktifkan supaya order lama tetap bisa diubah. Baris baru
             // dicek aktif di after().
-            // Jenis apa pun: baris lama order retail adalah produk (spek 7.4).
-            // Baris BARU dicek jenisnya di after().
+            // Jasa atau produk (spek 7.4 baris lama retail, 7.5 baris baru);
+            // baris baru dicek aktif di after().
             'items.*.catalog_item_id' => ['nullable', 'integer', 'exists:catalog_items,id'],
+            'items.*.catalog_item_variant_id' => ['nullable', 'integer'],
             // Item custom (spek 1.3): nama + harga bila tanpa paket.
             'items.*.name' => ['required_without:items.*.catalog_item_id', 'nullable', 'string', 'max:255'],
             'items.*.unit_price' => ['required_without:items.*.catalog_item_id', 'nullable', 'integer', 'min:0'],
@@ -115,11 +115,6 @@ class UpdateOrderRequest extends FormRequest
 
                         return;
                     }
-                    if ($catalog !== null && $catalog->type !== CatalogItemType::Service) {
-                        $validator->errors()->add("items.{$i}.catalog_item_id", 'Paket harus jasa.');
-
-                        return;
-                    }
 
                     continue;
                 }
@@ -143,6 +138,12 @@ class UpdateOrderRequest extends FormRequest
 
                     return;
                 }
+            }
+
+            // Varian hanya dicek untuk baris baru — baris lama tidak berganti isi.
+            $new = array_keys(array_filter($this->rows(), fn (array $r) => $r['id'] === null));
+            if ($this->rejectWrongVariants($validator, $new)) {
+                return;
             }
 
             if ($order->hasLockedSchedule()) {

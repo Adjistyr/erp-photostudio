@@ -64,7 +64,7 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 7.2 Tambah/Edit katalog jadi halaman | `7.2-halaman-form-katalog.md` | M | 7.1 | ✅ #55 |
 | 7.3 Varian produk | `7.3-varian-produk.md` | L | 7.1, 7.2 | ✅ #56 |
 | 7.4 Detail order jadi halaman + edit retail | `7.4-detail-order-halaman.md` | M | 1.2 | ✅ #62 |
-| 7.5 Item produk di order studio/event | (ditulis saat dikerjakan) | M | 7.3, 7.4 | ⬜ |
+| 7.5 Item produk di order studio/event | `7.5-produk-di-order.md` | M | 7.3, 7.4 | ⬜ |
 | 8.1 Register aset (edit, kategori, kode, merek/model, seri & garansi) | `8.1-register-aset.md` | L | — | ✅ #57 |
 | 8.2 Foto alat & nota | `8.2-foto-aset.md` | M | 8.1 | ✅ #58 |
 | 8.3 Ringkasan per kategori + proyeksi penggantian | `8.3-ringkasan-proyeksi-aset.md` | M | 8.1 | ✅ #59 |

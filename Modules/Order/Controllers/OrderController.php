@@ -174,12 +174,7 @@ class OrderController extends Controller
     {
         return Inertia::render('order::create', [
             'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
-            'catalog' => CatalogItem::where('is_active', true)
-                ->where('type', CatalogItemType::Service)
-                // Aturan "paket muncul di form mana" ada di server, bukan tersembunyi di klien.
-                ->whereIn('category', ServiceCategory::values())
-                ->orderBy('name')
-                ->get(['id', 'name', 'price', 'category']),
+            'catalog' => $this->catalogOptions(),
         ]);
     }
 
@@ -216,6 +211,7 @@ class OrderController extends Controller
                 $order->items()->create([
                     // null = item custom (spek 1.3).
                     'catalog_item_id' => $line['item']?->id,
+                    'catalog_item_variant_id' => $line['variant']?->id,
                     'name' => $line['name'],
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
@@ -274,20 +270,16 @@ class OrderController extends Controller
     {
         abort_unless($order->isEditable(), 404);
         $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user']);
-        $kept = $order->items->pluck('catalog_item_id')->filter()->all();
+        /** @var list<int> $kept */
+        $kept = $order->items->pluck('catalog_item_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
 
         return Inertia::render('order::edit', [
             'order' => $this->orderProps($order),
             'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
             // Paket aktif berkategori dikenal (sama dengan create) + paket yang
             // dirujuk baris lama walau sudah nonaktif — supaya namanya tampil.
-            // Baris lama jenis apa pun (produk di order retail, spek 7.4).
-            'catalog' => CatalogItem::query()
-                ->where(fn ($q) => $q
-                    ->where(fn ($q) => $q->where('type', CatalogItemType::Service)->where('is_active', true)->whereIn('category', ServiceCategory::values()))
-                    ->orWhereIn('id', $kept))
-                ->orderBy('name')
-                ->get(['id', 'name', 'price', 'category', 'is_active']),
+            // + item yang dirujuk baris lama walau nonaktif (produk di order retail, spek 7.4).
+            'catalog' => $this->catalogOptions($kept),
             // Dua flag walau nilainya sama hari ini: K1 bisa direvisi tanpa
             // mengubah bentuk props.
             'locked' => ['schedule' => $order->hasLockedSchedule(), 'items' => $order->hasLockedSchedule()],
@@ -333,6 +325,7 @@ class OrderController extends Controller
                 }
                 $order->items()->create([
                     'catalog_item_id' => $line['item']?->id,
+                    'catalog_item_variant_id' => $line['variant']?->id,
                     'name' => $line['name'],
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
@@ -446,6 +439,35 @@ class OrderController extends Controller
 
         // Dari halaman detail (spek 7.4) — kembali ke sana.
         return back();
+    }
+
+    /**
+     * Pilihan item Form Order: paket jasa aktif berkategori dikenal (aturan
+     * "paket muncul di form mana" di server) + PRODUK aktif (spek 7.5: cetak
+     * tambahan, album, bingkai) dengan varian aktifnya. `$kept` = item yang
+     * dirujuk baris lama, tampil walau nonaktif supaya namanya terbaca.
+     *
+     * @param  list<int>  $kept
+     * @return array<int, array<string, mixed>>
+     */
+    private function catalogOptions(array $kept = []): array
+    {
+        return CatalogItem::query()
+            ->with(['variants' => fn ($q) => $q->where('is_active', true)])
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->where('type', CatalogItemType::Service)->where('is_active', true)->whereIn('category', ServiceCategory::values()))
+                ->orWhere(fn ($q) => $q->where('type', CatalogItemType::Product)->where('is_active', true))
+                ->orWhereIn('id', $kept))
+            ->orderBy('name')
+            ->get()
+            // Produk bervarian tanpa varian aktif tidak bisa dijual (spek 7.3) — kecuali dirujuk baris lama.
+            ->reject(fn (CatalogItem $c) => ! in_array($c->id, $kept, true)
+                && $c->type === CatalogItemType::Product && $c->variants->isEmpty() && $c->variants()->exists())
+            ->map(fn (CatalogItem $c) => [
+                'id' => $c->id, 'name' => $c->name, 'price' => $c->price, 'category' => $c->category,
+                'type' => $c->type->value, 'is_active' => $c->is_active,
+                'variants' => $c->variants->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => $v->price])->values()->all(),
+            ])->values()->all();
     }
 
     /** @return array<string, mixed> */

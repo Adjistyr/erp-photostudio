@@ -37,14 +37,18 @@ import {
     SelectContent,
     SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRp, hanyaDigit } from '@/lib/format';
-import { categoryMatches } from '@/modules/order/lib/category';
+import { variantLabel } from '@/modules/catalog';
+import {
+    categoryMatches,
+    isServiceCategory,
+} from '@/modules/order/lib/category';
 import type { OrderType } from '@/modules/order/lib/category';
-import type { ServiceCategory } from '@/types/domain';
 
 export interface CustomerOption {
     id: number;
@@ -56,9 +60,14 @@ export interface CatalogOption {
     id: number;
     name: string;
     price: number;
-    category: ServiceCategory;
+    /** Jasa: ServiceCategory; produk: teks bebas (spek 7.5). */
+    category: string;
+    /** undefined = jasa (data lama/test); produk ikut sejak spek 7.5. */
+    type?: 'product' | 'service';
     /** Hanya dikirim halaman Ubah; undefined = aktif. */
     is_active?: boolean;
+    /** Varian aktif produk (spek 7.3/7.5); kosong = tanpa varian. */
+    variants?: { id: number; name: string; price: number }[];
 }
 
 export interface ItemRow {
@@ -75,6 +84,8 @@ export interface ItemRow {
     custom?: boolean;
     /** Harga item custom yang sedang diketik (string selama diedit). */
     price?: string;
+    /** Varian produk baris baru (spek 7.5); '' = belum dipilih / tanpa varian. */
+    catalog_item_variant_id?: string;
 }
 
 /** Customer yang diketik di form order (spek 3.4) — dicocokkan/dibuat server. */
@@ -103,10 +114,30 @@ export interface Locked {
 
 const UNLOCKED: Locked = { schedule: false, items: false };
 
-/** Harga satu baris: tersimpan untuk baris lama, katalog untuk baris baru. */
+/** Varian terpilih baris baru (spek 7.5), atau undefined. */
+export function rowVariant(
+    row: ItemRow,
+    catalog: CatalogOption[],
+): { id: number; name: string; price: number } | undefined {
+    if (!row.catalog_item_variant_id) return undefined;
+    return catalog
+        .find((x) => String(x.id) === row.catalog_item_id)
+        ?.variants?.find((v) => String(v.id) === row.catalog_item_variant_id);
+}
+
+/** Produk bervarian wajib memilih varian sebelum disimpan (spek 7.3/7.5). */
+export function needsVariant(row: ItemRow, catalog: CatalogOption[]): boolean {
+    if (row.id !== undefined || row.custom) return false;
+    const c = catalog.find((x) => String(x.id) === row.catalog_item_id);
+    return (c?.variants?.length ?? 0) > 0 && !rowVariant(row, catalog);
+}
+
+/** Harga satu baris: tersimpan untuk baris lama, katalog (atau varian) untuk baris baru. */
 export function lineTotal(row: ItemRow, catalog: CatalogOption[]): number {
     if (row.unit_price !== undefined) return row.unit_price * row.quantity;
     if (row.custom) return (Number(row.price) || 0) * row.quantity;
+    const v = rowVariant(row, catalog);
+    if (v) return v.price * row.quantity;
     const c = catalog.find((x) => String(x.id) === row.catalog_item_id);
     return c ? c.price * row.quantity : 0;
 }
@@ -120,9 +151,11 @@ export function lineName(
     catalog: CatalogOption[],
 ): string | null {
     if (row.name !== undefined) return row.name.trim() || null;
-    return (
-        catalog.find((x) => String(x.id) === row.catalog_item_id)?.name ?? null
-    );
+    const name =
+        catalog.find((x) => String(x.id) === row.catalog_item_id)?.name ?? null;
+    const v = rowVariant(row, catalog);
+    // Sama dengan nama baris order di server: "Produk – Varian".
+    return name && v ? variantLabel(name, v.name) : name;
 }
 
 /**
@@ -169,10 +202,18 @@ export function customerMatches(c: CustomerOption, query: string): boolean {
     );
 }
 
-/** Baris custom wajib nama & harga (harga 0 boleh — bonus). */
-export function rowsComplete(rows: ItemRow[]): boolean {
+/**
+ * Baris custom wajib nama & harga (harga 0 boleh — bonus). Dengan katalog,
+ * produk bervarian juga wajib varian (spek 7.5).
+ */
+export function rowsComplete(
+    rows: ItemRow[],
+    catalog: CatalogOption[] = [],
+): boolean {
     return rows.every(
-        (r) => !r.custom || ((r.name ?? '').trim() !== '' && r.price !== ''),
+        (r) =>
+            (!r.custom || ((r.name ?? '').trim() !== '' && r.price !== '')) &&
+            !needsVariant(r, catalog),
     );
 }
 
@@ -194,6 +235,7 @@ export function toPayload(rows: ItemRow[]): Record<string, unknown>[] {
             : {
                   id: r.id ?? null,
                   catalog_item_id: r.catalog_item_id,
+                  catalog_item_variant_id: r.catalog_item_variant_id || null,
                   quantity: r.quantity,
               },
     );
@@ -234,9 +276,17 @@ export function OrderFormFields({
     /** Isi tambahan di atas customer (mis. jenis order di Buat Order). */
     header?: ReactNode;
 }) {
-    // Baris baru hanya boleh paket aktif yang cocok dengan lini order.
+    // Baris baru: paket jasa aktif yang cocok dengan lini order + produk
+    // aktif (spek 7.5 — cetak tambahan, album, bingkai).
     const services = catalog.filter(
-        (c) => c.is_active !== false && categoryMatches(c.category, line),
+        (c) =>
+            c.type !== 'product' &&
+            c.is_active !== false &&
+            isServiceCategory(c.category) &&
+            categoryMatches(c.category, line),
+    );
+    const products = catalog.filter(
+        (c) => c.type === 'product' && c.is_active !== false,
     );
     const updateRow = (key: number, patch: Partial<ItemRow>) =>
         onChange({
@@ -272,12 +322,22 @@ export function OrderFormFields({
                         const old = r.id !== undefined;
                         const rowError =
                             errors[`items.${i}.catalog_item_id`] ??
+                            errors[`items.${i}.catalog_item_variant_id`] ??
                             errors[`items.${i}.name`] ??
                             errors[`items.${i}.unit_price`] ??
                             errors[`items.${i}.quantity`];
                         // Baris lama: daftar memuat paket nonaktif supaya
                         // labelnya tetap tampil; select-nya dikunci.
-                        const options = old ? catalog : services;
+                        const options = old
+                            ? catalog
+                            : [...services, ...products];
+                        const chosen = catalog.find(
+                            (c) => String(c.id) === r.catalog_item_id,
+                        );
+                        const variants =
+                            !old && chosen?.variants?.length
+                                ? chosen.variants
+                                : [];
                         const total = lineTotal(r, catalog);
                         return (
                             <div key={r.key} className="flex flex-col gap-1">
@@ -339,7 +399,10 @@ export function OrderFormFields({
                                                     value: String(s.id),
                                                     label: old
                                                         ? `${r.name ?? s.name}${s.is_active === false ? ' (nonaktif)' : ''} · ${formatRp(r.unit_price ?? s.price)}`
-                                                        : `${s.name} · ${formatRp(s.price)}`,
+                                                        : // Produk bervarian: harga ada di pilihan varian.
+                                                          s.variants?.length
+                                                          ? `${s.name} · ${s.variants.length} varian`
+                                                          : `${s.name} · ${formatRp(s.price)}`,
                                                 }))}
                                                 value={r.catalog_item_id}
                                                 disabled={old || locked.items}
@@ -347,6 +410,9 @@ export function OrderFormFields({
                                                     updateRow(r.key, {
                                                         catalog_item_id:
                                                             v ?? '',
+                                                        // Ganti item → varian lama tidak berlaku.
+                                                        catalog_item_variant_id:
+                                                            '',
                                                     })
                                                 }
                                             >
@@ -361,24 +427,88 @@ export function OrderFormFields({
                                                             : undefined
                                                     }
                                                 >
-                                                    <SelectValue placeholder="Pilih paket dari katalog" />
+                                                    <SelectValue placeholder="Pilih paket atau produk" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectGroup>
-                                                        {options.map((s) => (
-                                                            <SelectItem
-                                                                key={s.id}
-                                                                value={String(
-                                                                    s.id,
+                                                    {old ? (
+                                                        <SelectGroup>
+                                                            {options.map(
+                                                                (s) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            s.id
+                                                                        }
+                                                                        value={String(
+                                                                            s.id,
+                                                                        )}
+                                                                    >
+                                                                        {s.name}
+                                                                    </SelectItem>
+                                                                ),
+                                                            )}
+                                                        </SelectGroup>
+                                                    ) : (
+                                                        <>
+                                                            {/* Label di dalam Group (gotcha #1). */}
+                                                            <SelectGroup>
+                                                                <SelectLabel>
+                                                                    Paket jasa
+                                                                </SelectLabel>
+                                                                {services.map(
+                                                                    (s) => (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                s.id
+                                                                            }
+                                                                            value={String(
+                                                                                s.id,
+                                                                            )}
+                                                                        >
+                                                                            {
+                                                                                s.name
+                                                                            }{' '}
+                                                                            ·{' '}
+                                                                            {formatRp(
+                                                                                s.price,
+                                                                            )}
+                                                                        </SelectItem>
+                                                                    ),
                                                                 )}
-                                                            >
-                                                                {s.name} ·{' '}
-                                                                {formatRp(
-                                                                    s.price,
-                                                                )}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
+                                                            </SelectGroup>
+                                                            {products.length >
+                                                                0 && (
+                                                                <SelectGroup>
+                                                                    <SelectLabel>
+                                                                        Produk
+                                                                    </SelectLabel>
+                                                                    {products.map(
+                                                                        (s) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    s.id
+                                                                                }
+                                                                                value={String(
+                                                                                    s.id,
+                                                                                )}
+                                                                            >
+                                                                                {
+                                                                                    s.name
+                                                                                }{' '}
+                                                                                ·{' '}
+                                                                                {s
+                                                                                    .variants
+                                                                                    ?.length
+                                                                                    ? `${s.variants.length} varian`
+                                                                                    : formatRp(
+                                                                                          s.price,
+                                                                                      )}
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectGroup>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -424,6 +554,54 @@ export function OrderFormFields({
                                         <Trash2 />
                                     </Button>
                                 </div>
+                                {/* Varian produk (spek 7.5) — baris baru saja. */}
+                                {variants.length > 0 && (
+                                    <div className="flex items-center gap-2 pl-2">
+                                        <span className="text-xs text-muted-foreground">
+                                            Varian
+                                        </span>
+                                        {/* `items` supaya trigger menampilkan label (gotcha #10). */}
+                                        <Select
+                                            items={variants.map((v) => ({
+                                                value: String(v.id),
+                                                label: `${v.name} · ${formatRp(v.price)}`,
+                                            }))}
+                                            value={
+                                                r.catalog_item_variant_id ?? ''
+                                            }
+                                            onValueChange={(v) =>
+                                                updateRow(r.key, {
+                                                    catalog_item_variant_id:
+                                                        v ?? '',
+                                                })
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                className="w-64"
+                                                aria-label="Varian produk"
+                                                aria-invalid={needsVariant(
+                                                    r,
+                                                    catalog,
+                                                )}
+                                            >
+                                                <SelectValue placeholder="Pilih varian" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {variants.map((v) => (
+                                                        <SelectItem
+                                                            key={v.id}
+                                                            value={String(v.id)}
+                                                        >
+                                                            {v.name} ·{' '}
+                                                            {formatRp(v.price)}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
                                 <InputError message={rowError} />
                             </div>
                         );

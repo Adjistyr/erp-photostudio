@@ -2,6 +2,7 @@
 
 namespace Modules\Order\Requests\Concerns;
 
+use Illuminate\Validation\Validator;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Catalog\Models\CatalogItemVariant;
 
@@ -75,5 +76,45 @@ trait ResolvesCatalogLines
     public function subtotal(): int
     {
         return array_sum(array_map(fn (array $l) => $l['unit_price'] * $l['quantity'], $this->lines()));
+    }
+
+    /**
+     * Produk bervarian wajib varian aktif miliknya; produk tanpa varian tidak
+     * boleh membawa varian (spek 7.3). true = ada error. Dipakai POS dan Form
+     * Order (spek 7.5); baris custom (tanpa katalog) dilewati. `$only` =
+     * indeks baris yang dicek (Ubah Order: baris baru saja).
+     *
+     * @param  list<int>|null  $only
+     */
+    protected function rejectWrongVariants(Validator $validator, ?array $only = null): bool
+    {
+        /** @var list<array{catalog_item_id?: int|string|null, catalog_item_variant_id?: int|string|null}> $items */
+        $items = $this->input('items', []);
+        $ids = array_map(fn (array $i) => (int) ($i['catalog_item_id'] ?? 0), $items);
+        $variantsByItem = CatalogItemVariant::whereIn('catalog_item_id', $ids)->get()->groupBy('catalog_item_id');
+
+        foreach ($items as $n => $i) {
+            if (($i['catalog_item_id'] ?? null) === null || $i['catalog_item_id'] === '' || ($only !== null && ! in_array($n, $only, true))) {
+                continue;
+            }
+            $variants = $variantsByItem->get((int) $i['catalog_item_id']);
+            $chosen = isset($i['catalog_item_variant_id']) && $i['catalog_item_variant_id'] !== '' ? (int) $i['catalog_item_variant_id'] : null;
+            $key = "items.{$n}.catalog_item_variant_id";
+            if ($variants === null) {
+                if ($chosen !== null) {
+                    $validator->errors()->add($key, 'Produk ini tidak punya varian.');
+                }
+
+                continue;
+            }
+            $variant = $chosen === null ? null : $variants->firstWhere('id', $chosen);
+            if ($variant === null) {
+                $validator->errors()->add($key, 'Pilih varian produk ini.');
+            } elseif (! $variant->is_active) {
+                $validator->errors()->add($key, "Varian {$variant->name} sudah tidak dijual.");
+            }
+        }
+
+        return $validator->errors()->isNotEmpty();
     }
 }

@@ -133,7 +133,13 @@ test('toPayload: baris katalog tanpa nama/harga, baris custom tanpa paket', () =
             },
         ]),
         [
-            { id: 10, catalog_item_id: '1', quantity: 2 },
+            // Baris katalog selalu membawa varian (null = tanpa varian, spek 7.5).
+            {
+                id: 10,
+                catalog_item_id: '1',
+                catalog_item_variant_id: null,
+                quantity: 2,
+            },
             {
                 id: null,
                 catalog_item_id: null,
@@ -194,4 +200,55 @@ test('customerMatches: nama tanpa beda huruf besar atau digit HP', () => {
     assert.equal(customerMatches(c, 'budi'), false);
     // Digit terlalu sedikit tidak dicocokkan ke HP.
     assert.equal(customerMatches(c, '12'), false);
+});
+
+const withProducts: CatalogOption[] = [
+    ...catalog,
+    {
+        id: 3,
+        name: 'Cetak 10R + Bingkai',
+        price: 90000,
+        category: 'Cetak',
+        type: 'product',
+        variants: [
+            { id: 30, name: 'Kayu', price: 95000 },
+            { id: 31, name: 'Hitam', price: 90000 },
+        ],
+    },
+    {
+        id: 4,
+        name: 'Cetak 4R',
+        price: 5000,
+        category: 'Cetak',
+        type: 'product',
+        variants: [],
+    },
+];
+
+test('spek 7.5: produk bervarian memakai harga & nama varian', () => {
+    const row: ItemRow = {
+        key: 1,
+        catalog_item_id: '3',
+        catalog_item_variant_id: '30',
+        quantity: 2,
+    };
+    assert.equal(lineTotal(row, withProducts), 190000);
+    assert.equal(lineName(row, withProducts), 'Cetak 10R + Bingkai – Kayu');
+    assert.deepEqual(toPayload([row])[0], {
+        id: null,
+        catalog_item_id: '3',
+        catalog_item_variant_id: '30',
+        quantity: 2,
+    });
+});
+
+test('spek 7.5: produk bervarian wajib varian; produk tanpa varian tidak', () => {
+    const missing: ItemRow = { key: 1, catalog_item_id: '3', quantity: 1 };
+    const plain: ItemRow = { key: 2, catalog_item_id: '4', quantity: 3 };
+    assert.equal(rowsComplete([missing], withProducts), false);
+    assert.equal(rowsComplete([plain], withProducts), true);
+    assert.equal(lineTotal(plain, withProducts), 15000);
+    assert.equal(toPayload([plain])[0].catalog_item_variant_id, null);
+    // Baris lama tidak dicek ulang (varian tidak berganti).
+    assert.equal(rowsComplete([{ ...missing, id: 9 }], withProducts), true);
 });
