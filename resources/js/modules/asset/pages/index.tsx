@@ -26,6 +26,7 @@ import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
 import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -40,7 +41,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { formatBulan, formatRp, formatUmurPiutang } from '@/lib/format';
+import {
+    formatBulan,
+    formatRp,
+    formatTanggal,
+    formatUmurPiutang,
+} from '@/lib/format';
 import {
     NextMaintenance,
     StatusBadge,
@@ -87,7 +93,15 @@ interface Props {
         days_until: number;
     }[];
     /** + thumbnail sampul (foto alat pertama, spek 8.2). */
-    assets: (AssetRow & { photo_url: string | null })[];
+    assets: (AssetRow & { photo_url: string | null; units_out: number })[];
+    /** Belum kembali, lewat rencana kembali (spek 8.4). */
+    overdue_checkouts: {
+        asset_id: number;
+        name: string;
+        quantity: number;
+        holder: string;
+        due_back_on: string;
+    }[];
     categories: { id: number; name: string }[];
     /** Spek 8.3 — aset dimiliki per kategori. */
     by_category: CategorySummary[];
@@ -97,7 +111,7 @@ interface Props {
 
 export default function AssetsIndex(props: Props) {
     const { month, summary, due, assets, categories, today } = props;
-    const { by_category, replacements } = props;
+    const { by_category, replacements, overdue_checkouts } = props;
     // Cari & filter di klien (spek 3.6, 8.1) — daftar aset kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
     const filters: ListFilterDef[] = [
@@ -185,6 +199,29 @@ export default function AssetsIndex(props: Props) {
                                     {d.name}
                                     {d.model ? ` (${d.model})` : ''} — perawatan{' '}
                                     {formatUmurPiutang(d.days_until)}.
+                                </span>
+                            ))}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {overdue_checkouts.length > 0 && (
+                    <Alert variant="destructive">
+                        <TriangleAlert />
+                        <AlertTitle>
+                            {overdue_checkouts.length} peminjaman belum kembali
+                        </AlertTitle>
+                        <AlertDescription>
+                            {overdue_checkouts.map((c, i) => (
+                                <span key={i} className="block">
+                                    <Link
+                                        href={AssetController.show(c.asset_id)}
+                                        className="underline underline-offset-4"
+                                    >
+                                        {c.name}
+                                    </Link>{' '}
+                                    × {c.quantity} — dibawa {c.holder}, rencana
+                                    kembali {formatTanggal(c.due_back_on)}.
                                 </span>
                             ))}
                         </AlertDescription>
@@ -292,6 +329,15 @@ export default function AssetsIndex(props: Props) {
                                         <TableCell>
                                             <span className="flex flex-col items-start gap-1">
                                                 <StatusBadge asset={a} />
+                                                {a.units_out > 0 && (
+                                                    <Badge
+                                                        variant="outline"
+                                                        title="Sedang dibawa keluar (spek 8.4)"
+                                                    >
+                                                        Dipinjam {a.units_out}/
+                                                        {a.units}
+                                                    </Badge>
+                                                )}
                                                 {!a.disposed_on && (
                                                     <WarrantyBadge
                                                         until={a.warranty_until}

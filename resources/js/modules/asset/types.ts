@@ -63,11 +63,36 @@ export interface AssetPhoto {
 export const MAX_ITEM_PHOTOS = 8;
 export const MAX_RECEIPTS = 4;
 
-/** Detail aset — baris + sumber dana + riwayat servis + foto. */
+/** Peminjaman alat (spek 8.4). */
+export interface AssetCheckout {
+    id: number;
+    asset_id: number;
+    quantity: number;
+    holder: string;
+    order: { id: number; number: string; customer_name: string | null } | null;
+    checked_out_on: string;
+    due_back_on: string | null;
+    /** null = belum kembali. */
+    returned_on: string | null;
+    note: string | null;
+    overdue: boolean;
+}
+
+export interface OrderOption {
+    id: number;
+    number: string;
+    customer_name: string | null;
+    service_date: string;
+}
+
+/** Detail aset — baris + sumber dana + riwayat servis + foto + peminjaman. */
 export interface AssetDetail extends AssetRow {
     funded_by: string | null;
     maintenances: MaintenanceRow[];
     photos: AssetPhoto[];
+    /** Belum kembali dulu, lalu 10 riwayat terakhir. */
+    checkouts: AssetCheckout[];
+    available_units: number;
 }
 
 export interface AssetCategoryOption {

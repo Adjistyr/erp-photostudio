@@ -40,6 +40,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property-read Investment|null $investment
  * @property-read AssetCategory $category
  * @property-read Collection<int, AssetPhoto> $photos foto alat & nota (spek 8.2)
+ * @property-read Collection<int, AssetCheckout> $checkouts peminjaman (spek 8.4)
  * @property-read Collection<int, AssetMaintenance> $maintenances
  */
 #[Fillable([
@@ -91,6 +92,22 @@ class Asset extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(AssetPhoto::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Peminjaman alat ke event (spek 8.4), terbaru dulu.
+     *
+     * @return HasMany<AssetCheckout, $this>
+     */
+    public function checkouts(): HasMany
+    {
+        return $this->hasMany(AssetCheckout::class)->orderByDesc('checked_out_on')->orderByDesc('id');
+    }
+
+    /** Unit yang sedang dibawa keluar (belum kembali). */
+    public function unitsOut(): int
+    {
+        return (int) $this->checkouts()->whereNull('returned_on')->sum('quantity');
     }
 
     /** "Canon EOS M50" — merek + model, null bila keduanya kosong. */

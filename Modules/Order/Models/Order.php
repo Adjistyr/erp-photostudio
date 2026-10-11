@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
+use Modules\Asset\Models\AssetCheckout;
 use Modules\Customer\Models\Customer;
 use Modules\Customer\Support\Phone;
 use Modules\Expense\Models\JobCost;
@@ -116,6 +117,16 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Alat yang dibawa untuk order ini (spek 8.4, modul Aset) — baca saja di sini.
+     *
+     * @return HasMany<AssetCheckout, $this>
+     */
+    public function assetCheckouts(): HasMany
+    {
+        return $this->hasMany(AssetCheckout::class)->orderBy('id');
     }
 
     /** @return HasMany<Refund, $this> */

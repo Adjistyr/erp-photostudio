@@ -66,6 +66,6 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 8.1 Register aset (edit, kategori, kode, merek/model, seri & garansi) | `8.1-register-aset.md` | L | — | ✅ #57 |
 | 8.2 Foto alat & nota | `8.2-foto-aset.md` | M | 8.1 | ✅ #58 |
 | 8.3 Ringkasan per kategori + proyeksi penggantian | `8.3-ringkasan-proyeksi-aset.md` | M | 8.1 | ✅ #59 |
-| 8.4 Peminjaman alat ke event | (ditulis saat dikerjakan) | L | 8.1 | ⬜ |
+| 8.4 Peminjaman alat ke event | `8.4-peminjaman-alat.md` | L | 8.1 | ⬜ |
 
 Urutan pengerjaan yang disarankan: 0.1 → 0.2 → 1.1 → 2.1 → 2.2 → 2.3 → 2.4 → 1.2 → 1.3 → 1.4 → 2.5 → 3.1 → 3.3 → 3.2 → 3.4 → 3.5 → 3.6 → 4.1 → 4.2 → 4.5 → 4.4 → 4.3 → 4.6 → (saat admin ada) 5.1 → 6.x sesuai kebutuhan. Fase 2 ditaruh sebelum 1.2 karena kecil, tidak tergantung, dan langsung terasa oleh customer. **Fase 7** = permintaan tambahan dari user di luar rencana awal (mulai 9 Okt 2026), dikerjakan saat diminta. **Fase 8** = modul Aset jadi register alat (keputusan 11 Okt 2026: daftar alat saja, bukan stok bahan), dikerjakan berurutan 8.1 → 8.2 → 8.3 → 8.4.

@@ -12,6 +12,7 @@ use Modules\Asset\Enums\AssetPhotoKind;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Asset\Models\Asset;
 use Modules\Asset\Models\AssetCategory;
+use Modules\Asset\Models\AssetCheckout;
 use Modules\Asset\Models\AssetMaintenance as MaintenanceRecord;
 use Modules\Asset\Models\AssetPhoto;
 use Modules\Asset\Requests\DisposeAssetRequest;
@@ -28,6 +29,9 @@ use Modules\Finance\Services\DueMaintenance;
 use Modules\Finance\Services\Funds;
 use Modules\Finance\Services\Periods;
 use Modules\Finance\Services\ReplacementDue;
+use Modules\Order\Enums\WorkStatus;
+use Modules\Order\Models\Order;
+use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Http\CsvResponse;
 use Modules\Shared\Support\Money;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -102,7 +106,11 @@ class AssetController extends Controller
         $month = $this->periods->current();
         $today = today()->toImmutable();
         // Sampul (foto alat pertama, spek 8.2) untuk thumbnail di daftar.
-        $assets = Asset::with(['category', 'maintenances', 'photos' => fn ($q) => $q->where('kind', AssetPhotoKind::Item)])
+        $assets = Asset::with([
+            'category', 'maintenances', 'photos' => fn ($q) => $q->where('kind', AssetPhotoKind::Item),
+            // Peminjaman yang belum kembali (spek 8.4) — status "Dipinjam" & peringatan lewat jadwal.
+            'checkouts' => fn ($q) => $q->whereNull('returned_on')->with('order'),
+        ])
             ->orderByRaw('disposed_on IS NOT NULL') // dilepas di bawah — tetap tampil sebagai riwayat
             ->orderBy('id')
             ->get();
@@ -127,7 +135,17 @@ class AssetController extends Controller
             'assets' => $assets->map(fn (Asset $a) => [
                 ...$this->assetProps($a, $month, $today),
                 'photo_url' => ($cover = $a->photos->first()) ? $cover->toProps()['thumb_url'] : null,
+                'units_out' => (int) $a->checkouts->sum('quantity'),
             ])->values()->all(),
+            'overdue_checkouts' => $assets->flatMap(fn (Asset $a) => $a->checkouts)
+                ->filter(fn (AssetCheckout $c) => $c->isOverdue($today))
+                ->map(fn (AssetCheckout $c) => [
+                    'asset_id' => $c->asset_id,
+                    'name' => $assets->firstWhere('id', $c->asset_id)?->name,
+                    'quantity' => $c->quantity,
+                    'holder' => $c->holder,
+                    'due_back_on' => $c->due_back_on?->toDateString(),
+                ])->values()->all(),
             'categories' => AssetCategory::orderBy('position')->get()->map(fn (AssetCategory $c) => ['id' => $c->id, 'name' => $c->name])->all(),
             // Ringkasan per kategori (spek 8.3) — aset dimiliki saja; totalnya = kartu di atas.
             'by_category' => $owned->groupBy(fn (Asset $a) => $a->category->name)
@@ -177,6 +195,9 @@ class AssetController extends Controller
         $month = $this->periods->current();
         $today = today()->toImmutable();
         $asset->load(['category', 'investment.contribution.owner', 'maintenances.creator', 'photos']);
+        // Peminjaman (spek 8.4): semua yang belum kembali + 10 riwayat terakhir.
+        $open = $asset->checkouts()->whereNull('returned_on')->with('order.customer')->get();
+        $history = $asset->checkouts()->whereNotNull('returned_on')->with('order.customer')->limit(10)->get();
         $owner = $asset->investment?->contribution?->owner;
 
         return Inertia::render('asset::show', [
@@ -185,6 +206,8 @@ class AssetController extends Controller
                 'funded_by' => $owner !== null ? "Modal {$owner->name}" : ($asset->investment !== null ? 'Kas usaha' : null),
                 // Foto alat & nota (spek 8.2) — URL ber-auth, bukan publik.
                 'photos' => $asset->photos->map(fn (AssetPhoto $p) => $p->toProps())->values()->all(),
+                'checkouts' => $open->concat($history)->map(fn (AssetCheckout $c) => $c->toProps($today))->values()->all(),
+                'available_units' => $asset->units - (int) $open->sum('quantity'),
                 'maintenances' => $asset->maintenances->sortBy('performed_on')->map(fn (MaintenanceRecord $m) => [
                     'id' => $m->id,
                     'performed_on' => $m->performed_on->toDateString(),
@@ -196,6 +219,17 @@ class AssetController extends Controller
             ],
             'maintenance_balance' => $funds->balance(Fund::Maintenance),
             'today' => $today->toDateString(),
+            // Order studio/event yang bisa dikaitkan ke peminjaman (spek 8.4).
+            'order_options' => Order::with('customer')
+                ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
+                ->where('work_status', '!=', WorkStatus::Cancelled)
+                ->whereDate('service_date', '>=', $today->subDays(30))
+                ->orderBy('service_date')
+                ->get()
+                ->map(fn (Order $o) => [
+                    'id' => $o->id, 'number' => $o->number, 'customer_name' => $o->customer?->name,
+                    'service_date' => $o->service_date->toDateString(),
+                ])->all(),
         ]);
     }
 

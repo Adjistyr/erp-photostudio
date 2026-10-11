@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Asset\Models\AssetCheckout;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
@@ -52,7 +53,7 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $list = $this->listQuery($request);
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset'])
             ->search($list)
             ->orderByDesc('id')
             ->paginate(ListQuery::PER_PAGE)
@@ -151,7 +152,7 @@ class OrderController extends Controller
         $month = Periods::orCurrent($request->query('month'));
         $start = Periods::start($month);
 
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
             ->whereBetween('service_date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ->orderBy('service_date')
@@ -480,6 +481,12 @@ class OrderController extends Controller
             'events' => $o->events->map(fn (OrderEvent $e) => [
                 'id' => $e->id, 'type' => $e->type->value, 'changes' => $e->changes,
                 'user_name' => $e->user?->name, 'at' => $e->created_at->toIso8601String(),
+            ])->values()->all(),
+            // Alat yang dibawa (spek 8.4, modul Aset) — baca saja di Sheet order.
+            'asset_checkouts' => $o->assetCheckouts->map(fn (AssetCheckout $c) => [
+                'id' => $c->id, 'asset_id' => $c->asset_id, 'asset_code' => $c->asset->code, 'asset_name' => $c->asset->name,
+                'quantity' => $c->quantity, 'holder' => $c->holder, 'due_back_on' => $c->due_back_on?->toDateString(),
+                'returned_on' => $c->returned_on?->toDateString(), 'overdue' => $c->isOverdue(today()),
             ])->values()->all(),
             'job_costs' => $o->jobCosts->sortBy('incurred_on')->map(fn (JobCost $j) => [
                 'id' => $j->id, 'incurred_on' => $j->incurred_on->toDateString(), 'category' => $j->category,
