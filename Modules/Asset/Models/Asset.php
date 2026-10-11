@@ -15,9 +15,15 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
 
 /**
  * @property int $id
+ * @property string $code unik, huruf besar (spek 8.1)
  * @property string $name
- * @property string $category
+ * @property int $asset_category_id
+ * @property string|null $brand
  * @property string|null $model
+ * @property string|null $serial_number teks bebas; unit > 1 dipisah koma
+ * @property CarbonImmutable|null $warranty_until boleh lampau
+ * @property string|null $location
+ * @property string|null $notes
  * @property int $units
  * @property int $unit_price
  * @property CarbonImmutable $purchased_on
@@ -32,33 +38,18 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Investment|null $investment
+ * @property-read AssetCategory $category
  * @property-read Collection<int, AssetMaintenance> $maintenances
  */
 #[Fillable([
-    'name', 'category', 'model', 'units', 'unit_price', 'purchased_on',
+    'code', 'name', 'asset_category_id', 'brand', 'model', 'serial_number', 'warranty_until', 'location', 'notes',
+    'units', 'unit_price', 'purchased_on',
     'maintenance_percent', 'useful_life_months', 'maintenance_interval_months',
     'status', 'disposed_on', 'disposal_reason', 'sale_price', 'investment_id', 'created_by',
 ])]
 class Asset extends Model
 {
     use RecordsCreator;
-
-    /**
-     * Kategori + default umur ekonomis & interval perawatan (bulan). Owner
-     * jarang tahu angkanya — default terisi saat kategori dipilih, dan tetap
-     * bisa diubah. Interval null = tanpa jadwal berkala.
-     *
-     * @var list<array{name: string, useful_life_months: int, maintenance_interval_months: int|null}>
-     */
-    public const CATEGORIES = [
-        ['name' => 'Kamera', 'useful_life_months' => 48, 'maintenance_interval_months' => 6],
-        ['name' => 'Lensa', 'useful_life_months' => 48, 'maintenance_interval_months' => 12],
-        ['name' => 'Lighting', 'useful_life_months' => 48, 'maintenance_interval_months' => 12],
-        ['name' => 'Printer', 'useful_life_months' => 36, 'maintenance_interval_months' => 1],
-        ['name' => 'Aksesori', 'useful_life_months' => 24, 'maintenance_interval_months' => null],
-        ['name' => 'Komputer', 'useful_life_months' => 36, 'maintenance_interval_months' => 12],
-        ['name' => 'Properti & furnitur', 'useful_life_months' => 36, 'maintenance_interval_months' => null],
-    ];
 
     /** Alasan aset dilepas. Hanya "Dijual" yang punya hasil jual. */
     public const DISPOSAL_REASONS = ['Dijual', 'Rusak total', 'Hilang'];
@@ -76,8 +67,25 @@ class Asset extends Model
             'maintenance_interval_months' => 'integer',
             'status' => AssetStatus::class,
             'disposed_on' => 'immutable_date',
+            'warranty_until' => 'immutable_date',
             'sale_price' => 'integer',
         ];
+    }
+
+    /**
+     * Kategori dikelola owner (spek 8.1; dulu konstanta CATEGORIES di sini).
+     *
+     * @return BelongsTo<AssetCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(AssetCategory::class, 'asset_category_id');
+    }
+
+    /** "Canon EOS M50" — merek + model, null bila keduanya kosong. */
+    public function brandModel(): ?string
+    {
+        return trim(($this->brand ?? '').' '.($this->model ?? '')) ?: null;
     }
 
     /** @return BelongsTo<Investment, $this> */

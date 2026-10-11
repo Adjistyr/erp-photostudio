@@ -74,7 +74,7 @@ Owner ──< SetoranOwner      (uang masuk dari owner: pinjaman / modal — buk
 
 PosDana ──< MutasiDana      (dana maintenance & cadangan: alokasi masuk, pemakaian keluar)
 
-Aset ──< ServisAset         (daftar alat → alokasi maintenance otomatis; riwayat perawatan)
+KategoriAset ──< Aset ──< ServisAset   (daftar alat → alokasi maintenance otomatis; riwayat perawatan; kategori dikelola owner)
 
 Investasi                   (renovasi, beli alat — di luar laba rugi, dibiayai SetoranOwner modal; beli alat juga membuat Aset)
 ```
@@ -495,7 +495,9 @@ Di mockup, Juli 2026 memakai contoh omzet Rp 10.000.000 dari sheet client dengan
 
 Bonus di luar quotation Paket B. Sheet maintenance client pada dasarnya daftar aset — enam alat, jumlah unit, harga beli, 5% per bulan — dan selisih Rp 97.350 di sheet terjadi persis karena totalnya dihitung manual (unit lupa dikali). Karena itu alokasi dana maintenance **dihitung dari daftar aset**, bukan diketik.
 
-`Aset`: kode, nama, kategori, merek/model, jumlah unit, harga satuan, tanggal beli, % maintenance per bulan, umur ekonomis, interval perawatan, status (aktif / rusak / dilepas), data lepas (tanggal, alasan, harga jual), investasi yang membelinya.
+`Aset`: kode, nama, kategori, merek, model, nomor seri, garansi sampai, lokasi, catatan, jumlah unit, harga satuan, tanggal beli, % maintenance per bulan, umur ekonomis, interval perawatan, status (aktif / rusak / dilepas), data lepas (tanggal, alasan, harga jual), investasi yang membelinya.
+
+`KategoriAset` (sejak 11 Okt 2026, spek 8.1): dikelola owner — nama, prefiks kode, default umur ekonomis & interval perawatan untuk aset baru.
 
 `ServisAset`: aset, tanggal, jenis (perawatan rutin / perbaikan), keterangan, biaya.
 
@@ -508,6 +510,8 @@ Aturan:
 - **Nilai buku** garis lurus per umur ekonomis — **hanya informasi**, tidak masuk Laba Rugi. Keausan alat sudah dibebankan lewat alokasi maintenance; memasukkan penyusutan juga berarti membebankan hal yang sama dua kali. Ini **blocker**.
 - **Aset dilepas, tidak dihapus.** Menghapus mengubah alokasi bulan-bulan saat aset masih dimiliki dan menghilangkan riwayat servisnya. Hasil jual masuk **dana maintenance** untuk membeli pengganti — bukan omzet, karena bukan penjualan.
 - **Aset rusak tetap dialokasikan** — masih dimiliki, dan justru butuh dana servis.
+- **Identitas bisa dikoreksi, keuangan tidak** (spek 8.1). Nama, kode, kategori, merek, model, nomor seri, garansi, lokasi, catatan, umur ekonomis, dan interval perawatan bisa diubah kapan saja — juga setelah aset dilepas. Jumlah unit, harga, tanggal beli, persen maintenance, dan sumber dana terkunci: mengubahnya menggeser alokasi bulan lalu dan investasi yang tercatat.
+- **Kode aset** boleh diketik (mis. sesuai stiker label) atau dibiarkan kosong → otomatis `PREFIKS-NNN` per kategori (KAM-001). Unik. Alat bernomor seri sebaiknya dicatat satu per baris (unit 1); satu baris tetap boleh berisi beberapa unit untuk barang tanpa seri (baterai, memory card).
 - Per aset ditampilkan total biaya servis dibanding dana yang sudah disisihkan untuknya. Alat yang servisnya melebihi dana yang disisihkan adalah kandidat diganti, atau tanda persennya terlalu kecil.
 
 Default per kategori — **praktik umum studio foto UMKM, bukan data client**, dan dikonfirmasi saat demo:

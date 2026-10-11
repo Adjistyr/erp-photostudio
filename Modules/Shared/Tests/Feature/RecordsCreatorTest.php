@@ -119,8 +119,8 @@ class RecordsCreatorTest extends TestCase
 
         $this->get(route('capital.index'))->assertInertia(fn (Assert $page) => $page
             ->where('contributions.0.created_by_name', 'Agung'));
-        $names = collect($this->get(route('assets.index'))->inertiaPage()['props']['assets'])
-            ->firstWhere('id', $asset->id)['maintenances'];
+        // Riwayat servis kini di halaman detail aset (spek 8.1).
+        $names = $this->get(route('assets.show', $asset))->inertiaPage()['props']['asset']['maintenances'];
         $this->assertContains('Agung', array_column($names, 'created_by_name'));
     }
 }

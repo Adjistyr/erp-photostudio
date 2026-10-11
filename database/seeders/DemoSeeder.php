@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Asset\Enums\MaintenanceType;
 use Modules\Asset\Models\Asset;
+use Modules\Asset\Models\AssetCategory;
 use Modules\Asset\Models\AssetMaintenance;
 use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
@@ -232,21 +233,28 @@ class DemoSeeder extends Seeder
             'amount' => 15_809_000, 'owner_contribution_id' => $equity->id,
         ]);
 
-        $asset = fn (string $name, string $category, string $model, int $units, int $price, int $life, ?int $interval) => Asset::create([
-            'name' => $name, 'category' => $category, 'model' => $model,
-            'units' => $units, 'unit_price' => $price, 'purchased_on' => '2026-07-01',
-            'maintenance_percent' => 5, 'useful_life_months' => $life,
-            'maintenance_interval_months' => $interval, 'status' => AssetStatus::Active,
-            'investment_id' => $investment->id,
-        ]);
+        // Kategori diisi migrasi register aset (spek 8.1); kode otomatis per kategori.
+        $asset = function (string $name, string $category, string $brand, string $model, int $units, int $price, int $life, ?int $interval, array $extra = []) use ($investment) {
+            $cat = AssetCategory::where('name', $category)->sole();
 
-        // Urutan pembuatan = urutan id = urutan tampil (AST-01 … AST-06).
-        $asset('Kamera mirrorless', 'Kamera', 'Canon EOS M50', 1, 7_000_000, 48, 6);
-        $asset('Baterai kamera', 'Aksesori', 'Kingma LP-E12', 2, 120_000, 24, null);
-        $asset('Trigger flash', 'Aksesori', 'Godox X2T', 1, 565_000, 24, null);
-        $asset('Memory card', 'Aksesori', 'SanDisk 32GB', 2, 477_000, 24, null);
-        $lighting = $asset('Lighting studio', 'Lighting', 'Godox SK400 II', 2, 1_350_000, 48, 12);
-        $asset('Printer foto', 'Printer', 'Epson L8050', 1, 4_350_000, 36, 1);
+            return Asset::create([
+                'name' => $name, 'asset_category_id' => $cat->id, 'code' => $cat->nextCode(), 'brand' => $brand, 'model' => $model, ...$extra,
+                'units' => $units, 'unit_price' => $price, 'purchased_on' => '2026-07-01',
+                'maintenance_percent' => 5, 'useful_life_months' => $life,
+                'maintenance_interval_months' => $interval, 'status' => AssetStatus::Active,
+                'investment_id' => $investment->id,
+            ]);
+        };
+
+        // Urutan pembuatan = urutan id = urutan tampil.
+        $asset('Kamera mirrorless', 'Kamera', 'Canon', 'EOS M50', 1, 7_000_000, 48, 6,
+            ['serial_number' => '183052001234', 'warranty_until' => '2027-07-01', 'location' => 'Lemari kamera']);
+        $asset('Baterai kamera', 'Aksesori', 'Kingma', 'LP-E12', 2, 120_000, 24, null, ['location' => 'Lemari kamera']);
+        $asset('Trigger flash', 'Aksesori', 'Godox', 'X2T', 1, 565_000, 24, null, ['location' => 'Lemari kamera']);
+        $asset('Memory card', 'Aksesori', 'SanDisk', '32GB', 2, 477_000, 24, null);
+        $lighting = $asset('Lighting studio', 'Lighting', 'Godox', 'SK400 II', 2, 1_350_000, 48, 12, ['location' => 'Studio']);
+        $asset('Printer foto', 'Printer', 'Epson', 'L8050', 1, 4_350_000, 36, 1,
+            ['warranty_until' => '2026-07-01', 'location' => 'Meja POS']);
 
         AssetMaintenance::create([
             'asset_id' => $lighting->id, 'performed_on' => '2026-08-10',

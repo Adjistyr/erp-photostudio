@@ -31,7 +31,8 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Investasi | `Investment` · `investments` |
 | Pos dana (maintenance / cadangan) | `Fund` (enum: maintenance / reserve) |
 | Pemakaian dana | `FundWithdrawal` · `fund_withdrawals` |
-| Aset | `Asset` · `assets` |
+| Aset | `Asset` · `assets` (`code` unik huruf besar — otomatis `PREFIKS-NNN` per kategori bila kosong, aset sebelum spek 8.1 tetap `AST-NN`; `brand`, `model`, `serial_number`, `warranty_until`, `location`, `notes`). Field keuangan (`units`, `unit_price`, `purchased_on`, `maintenance_percent`, investasi) terkunci setelah simpan; identitas bisa diedit |
+| Kategori aset | `AssetCategory` · `asset_categories` (`name`, `code_prefix` unik; `useful_life_months` & `maintenance_interval_months` = default untuk aset BARU saja). Dikelola owner; terpakai → tidak bisa dihapus. FK `assets.asset_category_id` (dulu kolom teks `category`) |
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
 | Tutup buku (bulan final) | `PeriodClosing` · `period_closings` (`month`, `closed_at/by`, `reopened_at/by`; aktif = belum dibuka kembali) |
 | Template pesan (promo, terima kasih, reminder H-1, tagihan) | `MessageTemplate` · `message_templates` (`key` primary: `promo`, `thank_you`, `reminder`, `billing`; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`). Placeholder: semua `{nama}`; `thank_you` `{link}` hasil foto; `billing` `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}` invoice. Nama studio & rekening ditanam ke default dari `config/studio.php` |

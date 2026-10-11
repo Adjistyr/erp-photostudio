@@ -3,16 +3,19 @@
 namespace Modules\Asset\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Asset\Models\Asset;
+use Modules\Asset\Models\AssetCategory;
 use Modules\Asset\Models\AssetMaintenance as MaintenanceRecord;
 use Modules\Asset\Requests\DisposeAssetRequest;
 use Modules\Asset\Requests\StoreAssetMaintenanceRequest;
 use Modules\Asset\Requests\StoreAssetRequest;
+use Modules\Asset\Requests\UpdateAssetRequest;
 use Modules\Asset\Requests\UpdateAssetStatusRequest;
 use Modules\Finance\Actions\RecordInvestment;
 use Modules\Finance\Enums\Fund;
@@ -50,13 +53,13 @@ class AssetController extends Controller
     {
         $month = $this->periods->current();
         $rows = function () use ($month) {
-            foreach (Asset::with('maintenances')->orderBy('id')->lazy(200) as $a) {
+            foreach (Asset::with(['maintenances', 'category'])->orderBy('id')->lazy(200) as $a) {
                 $last = $a->maintenances->sortByDesc('performed_on')->first();
                 $next = $a->isDisposed() ? null : $this->maintenance->nextMaintenance($a);
                 yield [
-                    sprintf('AST-%02d', $a->id),
+                    $a->code,
                     $a->name,
-                    $a->category,
+                    $a->category->name,
                     $a->model,
                     $a->units,
                     $a->unit_price,
@@ -73,6 +76,12 @@ class AssetController extends Controller
                     $a->disposed_on?->toDateString(),
                     $a->disposal_reason,
                     $a->sale_price,
+                    // Kolom register (spek 8.1) di akhir — urutan kolom lama tetap.
+                    $a->brand,
+                    $a->serial_number,
+                    $a->warranty_until?->toDateString(),
+                    $a->location,
+                    $a->notes,
                 ];
             }
         };
@@ -81,14 +90,15 @@ class AssetController extends Controller
             'kode', 'nama', 'kategori', 'model', 'unit', 'harga_unit', 'nilai_beli', 'tanggal_beli',
             'umur_bulan', 'nilai_buku', 'persen_maintenance', 'interval_bulan', 'servis_terakhir',
             'servis_berikutnya', 'status', 'status_label', 'dilepas_pada', 'alasan_lepas', 'harga_jual',
+            'merek', 'nomor_seri', 'garansi_sampai', 'lokasi', 'catatan',
         ]);
     }
 
-    public function index(Funds $funds): Response
+    public function index(): Response
     {
         $month = $this->periods->current();
         $today = today()->toImmutable();
-        $assets = Asset::with(['investment.contribution.owner', 'maintenances.creator'])
+        $assets = Asset::with(['category', 'maintenances'])
             ->orderByRaw('disposed_on IS NOT NULL') // dilepas di bawah — tetap tampil sebagai riwayat
             ->orderBy('id')
             ->get();
@@ -96,6 +106,7 @@ class AssetController extends Controller
 
         return Inertia::render('asset::index', [
             'month' => $month,
+            'today' => $today->toDateString(),
             'summary' => [
                 'units' => $owned->sum('units'),
                 'kinds' => $owned->count(),
@@ -106,52 +117,66 @@ class AssetController extends Controller
             'due' => array_map(fn (DueMaintenance $d) => [
                 'asset_id' => $d->asset->id,
                 'name' => $d->asset->name,
-                'model' => $d->asset->model,
+                'model' => $d->asset->brandModel(),
                 'days_until' => $d->daysUntil,
             ], $this->maintenance->dueSoon()),
-            'assets' => $assets->map(function (Asset $a) use ($month, $today) {
-                $next = $a->isDisposed() ? null : $this->maintenance->nextMaintenance($a);
-                $owner = $a->investment?->contribution?->owner;
+            'assets' => $assets->map(fn (Asset $a) => $this->assetProps($a, $month, $today))->values()->all(),
+            'categories' => AssetCategory::orderBy('position')->get()->map(fn (AssetCategory $c) => ['id' => $c->id, 'name' => $c->name])->all(),
+        ]);
+    }
 
-                return [
-                    'id' => $a->id,
-                    // Kode tampil, bukan kolom: urutan id = urutan dibuat.
-                    'code' => sprintf('AST-%02d', $a->id),
-                    'name' => $a->name,
-                    'model' => $a->model,
-                    'category' => $a->category,
-                    'units' => $a->units,
-                    'unit_price' => $a->unit_price,
-                    'purchase_total' => $a->purchaseTotal(),
-                    'purchased_on' => $a->purchased_on->toDateString(),
-                    'maintenance_percent' => $a->maintenance_percent,
-                    'useful_life_months' => $a->useful_life_months,
-                    'maintenance_interval_months' => $a->maintenance_interval_months,
-                    'status' => $a->status->value,
-                    'disposed_on' => $a->disposed_on?->toDateString(),
-                    'disposal_reason' => $a->disposal_reason,
-                    'sale_price' => $a->sale_price,
-                    'allocation' => $this->maintenance->allocationFor($a, $month),
-                    'book_value' => $this->maintenance->bookValue($a, $month),
-                    'accumulated' => $this->maintenance->accumulated($a),
-                    'next_maintenance' => $next?->toDateString(),
-                    'days_until_next' => $next === null ? null : (int) $today->diffInDays($next, false),
-                    'funded_by' => $owner !== null ? "Modal {$owner->name}" : ($a->investment !== null ? 'Kas usaha' : null),
-                    'maintenances' => $a->maintenances->sortBy('performed_on')->map(fn (MaintenanceRecord $m) => [
-                        'id' => $m->id,
-                        'performed_on' => $m->performed_on->toDateString(),
-                        'type' => $m->type->value,
-                        'description' => $m->description,
-                        'cost' => $m->cost,
-                        'created_by_name' => $m->creator?->name,
-                    ])->values()->all(),
-                ];
-            })->values()->all(),
-            'owners' => Owner::orderBy('id')->get(['id', 'name']),
-            'categories' => Asset::CATEGORIES,
+    /** Detail aset (spek 8.1) — pengganti Sheet: identitas, keuangan, riwayat servis. */
+    public function show(Asset $asset, Funds $funds): Response
+    {
+        $month = $this->periods->current();
+        $today = today()->toImmutable();
+        $asset->load(['category', 'investment.contribution.owner', 'maintenances.creator']);
+        $owner = $asset->investment?->contribution?->owner;
+
+        return Inertia::render('asset::show', [
+            'asset' => [
+                ...$this->assetProps($asset, $month, $today),
+                'funded_by' => $owner !== null ? "Modal {$owner->name}" : ($asset->investment !== null ? 'Kas usaha' : null),
+                'maintenances' => $asset->maintenances->sortBy('performed_on')->map(fn (MaintenanceRecord $m) => [
+                    'id' => $m->id,
+                    'performed_on' => $m->performed_on->toDateString(),
+                    'type' => $m->type->value,
+                    'description' => $m->description,
+                    'cost' => $m->cost,
+                    'created_by_name' => $m->creator?->name,
+                ])->values()->all(),
+            ],
             'maintenance_balance' => $funds->balance(Fund::Maintenance),
             'today' => $today->toDateString(),
         ]);
+    }
+
+    /** Tambah = halaman penuh (spek 8.1), bukan dialog. */
+    public function create(): Response
+    {
+        return Inertia::render('asset::form', ['asset' => null, ...$this->formProps()]);
+    }
+
+    public function edit(Asset $asset): Response
+    {
+        $asset->load('category');
+
+        return Inertia::render('asset::form', [
+            'asset' => $this->assetProps($asset, $this->periods->current(), today()->toImmutable()),
+            ...$this->formProps(),
+        ]);
+    }
+
+    /** Identitas saja — field keuangan terkunci (UpdateAssetRequest). */
+    public function update(UpdateAssetRequest $request, Asset $asset): RedirectResponse
+    {
+        $data = $request->identityData();
+        // Kode wajib ada untuk aset tersimpan; dikosongkan → tetap kode lama.
+        $asset->update([...$data, 'code' => $data['code'] ?? $asset->code]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "{$asset->name} diperbarui."]);
+
+        return to_route('assets.show', $asset);
     }
 
     /**
@@ -162,23 +187,23 @@ class AssetController extends Controller
     public function store(StoreAssetRequest $request, RecordInvestment $recordInvestment): RedirectResponse
     {
         $data = $request->validated();
+        $identity = $request->identityData();
         $amount = $data['unit_price'] * $data['units'];
-        $name = trim($data['name']);
+        $name = $identity['name'];
         $description = $data['units'] > 1 ? "{$name} × {$data['units']}" : $name;
         $owner = isset($data['paid_by']) ? Owner::findOrFail($request->integer('paid_by')) : null;
 
-        DB::transaction(function () use ($recordInvestment, $data, $amount, $name, $description, $owner) {
+        $asset = DB::transaction(function () use ($recordInvestment, $data, $identity, $amount, $description, $owner) {
             $investment = $recordInvestment->execute($description, $amount, $data['purchased_on'], $owner);
-            Asset::create([
-                'name' => $name,
-                'category' => $data['category'],
-                'model' => trim((string) ($data['model'] ?? '')) ?: null,
+
+            return Asset::create([
+                ...$identity,
+                // Kode kosong → PREFIKS-NNN berikutnya untuk kategorinya.
+                'code' => $identity['code'] ?? AssetCategory::findOrFail($identity['asset_category_id'])->nextCode(),
                 'units' => $data['units'],
                 'unit_price' => $data['unit_price'],
                 'purchased_on' => $data['purchased_on'],
                 'maintenance_percent' => $data['maintenance_percent'],
-                'useful_life_months' => $data['useful_life_months'],
-                'maintenance_interval_months' => $data['maintenance_interval_months'] ?? null,
                 'status' => AssetStatus::Active,
                 'investment_id' => $investment->id,
             ]);
@@ -187,7 +212,7 @@ class AssetController extends Controller
         $source = $owner === null ? 'investasi dari kas usaha' : "investasi dan modal {$owner->name}";
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$name} tercatat — juga sebagai {$source}."]);
 
-        return to_route('assets.index');
+        return to_route('assets.show', $asset);
     }
 
     /** Servis — biaya dari dana maintenance, tidak masuk Laba Rugi. */
@@ -206,7 +231,7 @@ class AssetController extends Controller
             : 'Servis tanpa biaya tercatat — jadwal perawatan dihitung ulang.';
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
-        return to_route('assets.index');
+        return back();
     }
 
     public function updateStatus(UpdateAssetStatusRequest $request, Asset $asset): RedirectResponse
@@ -217,7 +242,7 @@ class AssetController extends Controller
         $label = $status === AssetStatus::Broken ? 'ditandai rusak' : 'ditandai aktif kembali';
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$asset->name} {$label}. Alokasi maintenance tetap berjalan selama aset dimiliki."]);
 
-        return to_route('assets.index');
+        return back();
     }
 
     /** Hasil jual masuk dana maintenance lewat Funds (bukan omzet). */
@@ -236,7 +261,7 @@ class AssetController extends Controller
             : "{$asset->name} dilepas — riwayatnya tetap tersimpan.";
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
-        return to_route('assets.index');
+        return back();
     }
 
     /** Hapus servis salah catat — biayanya kembali ke dana maintenance, jadwal dihitung ulang. */
@@ -247,5 +272,64 @@ class AssetController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => "Servis {$asset->name} dihapus."]);
 
         return back();
+    }
+
+    /**
+     * Bentuk satu aset untuk daftar, detail, dan form — satu sumber.
+     *
+     * @return array<string, mixed>
+     */
+    private function assetProps(Asset $a, string $month, CarbonImmutable $today): array
+    {
+        $next = $a->isDisposed() ? null : $this->maintenance->nextMaintenance($a);
+
+        return [
+            'id' => $a->id,
+            'code' => $a->code,
+            'name' => $a->name,
+            'asset_category_id' => $a->asset_category_id,
+            'category' => $a->category->name,
+            'brand' => $a->brand,
+            'model' => $a->model,
+            'serial_number' => $a->serial_number,
+            'warranty_until' => $a->warranty_until?->toDateString(),
+            'location' => $a->location,
+            'notes' => $a->notes,
+            'units' => $a->units,
+            'unit_price' => $a->unit_price,
+            'purchase_total' => $a->purchaseTotal(),
+            'purchased_on' => $a->purchased_on->toDateString(),
+            'maintenance_percent' => $a->maintenance_percent,
+            'useful_life_months' => $a->useful_life_months,
+            'maintenance_interval_months' => $a->maintenance_interval_months,
+            'status' => $a->status->value,
+            'disposed_on' => $a->disposed_on?->toDateString(),
+            'disposal_reason' => $a->disposal_reason,
+            'sale_price' => $a->sale_price,
+            'allocation' => $this->maintenance->allocationFor($a, $month),
+            'book_value' => $this->maintenance->bookValue($a, $month),
+            'accumulated' => $this->maintenance->accumulated($a),
+            'next_maintenance' => $next?->toDateString(),
+            'days_until_next' => $next === null ? null : (int) $today->diffInDays($next, false),
+        ];
+    }
+
+    /**
+     * Pilihan form: kategori (dengan kode berikutnya), owner, dan saran merek
+     * & lokasi dari yang sudah ada — supaya "Canon" tidak jadi dua ejaan.
+     *
+     * @return array<string, mixed>
+     */
+    private function formProps(): array
+    {
+        $distinct = fn (string $column) => Asset::whereNotNull($column)->distinct()->orderBy($column)->pluck($column)->all();
+
+        return [
+            'categories' => AssetCategory::orderBy('position')->get()->map(fn (AssetCategory $c) => $c->toProps())->all(),
+            'owners' => Owner::orderBy('id')->get(['id', 'name']),
+            'brands' => $distinct('brand'),
+            'locations' => $distinct('location'),
+            'today' => today()->toDateString(),
+        ];
     }
 }

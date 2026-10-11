@@ -5,6 +5,7 @@ namespace Modules\Finance\Tests\Feature;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Asset\Enums\MaintenanceType;
 use Modules\Asset\Models\Asset;
+use Modules\Asset\Models\AssetCategory;
 use Modules\Asset\Models\AssetMaintenance as MaintenanceRecord;
 use Modules\Finance\Enums\Fund;
 use Modules\Finance\Models\Investment;
@@ -50,7 +51,7 @@ class AssetMaintenanceTest extends DemoDataTestCase
     public function test_new_asset_does_not_change_past_months()
     {
         Asset::create([
-            'name' => 'Lensa 50mm', 'category' => 'Lensa', 'units' => 1, 'unit_price' => 2_000_000,
+            'name' => 'Lensa 50mm', 'asset_category_id' => AssetCategory::where('name', 'Lensa')->sole()->id, 'code' => 'LEN-001', 'units' => 1, 'unit_price' => 2_000_000,
             'purchased_on' => '2026-09-05', 'maintenance_percent' => 5, 'useful_life_months' => 48,
             'maintenance_interval_months' => 12, 'status' => AssetStatus::Active,
         ]);

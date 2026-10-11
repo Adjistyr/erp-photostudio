@@ -28,12 +28,15 @@ export function ConfirmDelete({
     title,
     description,
     label,
+    hint = 'Kalau salah catat, catat ulang setelah dihapus.',
 }: {
     url: string;
     title: string;
     description: string;
     /** Nama yang dihapus, untuk aria-label tombol ikon. */
     label: string;
+    /** Kalimat penutup; default untuk catatan uang. Data master (kategori) memberi kalimat sendiri. */
+    hint?: string;
 }) {
     const [open, setOpen] = useState(false);
     const form = useForm({});
@@ -64,8 +67,7 @@ export function ConfirmDelete({
                 <AlertDialogHeader>
                     <AlertDialogTitle>{title}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        {description} Kalau salah catat, catat ulang setelah
-                        dihapus.
+                        {description} {hint}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <InputError message={errors.delete} />
