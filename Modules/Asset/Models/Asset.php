@@ -39,6 +39,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property Carbon|null $updated_at
  * @property-read Investment|null $investment
  * @property-read AssetCategory $category
+ * @property-read Collection<int, AssetPhoto> $photos foto alat & nota (spek 8.2)
  * @property-read Collection<int, AssetMaintenance> $maintenances
  */
 #[Fillable([
@@ -80,6 +81,16 @@ class Asset extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(AssetCategory::class, 'asset_category_id');
+    }
+
+    /**
+     * Foto alat & nota (spek 8.2), urut jenis lalu posisi — foto alat pertama = sampul.
+     *
+     * @return HasMany<AssetPhoto, $this>
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(AssetPhoto::class)->orderBy('position')->orderBy('id');
     }
 
     /** "Canon EOS M50" — merek + model, null bila keduanya kosong. */

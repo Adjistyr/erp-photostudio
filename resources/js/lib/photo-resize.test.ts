@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import { fitWithin } from '@/modules/catalog/lib/photo-resize';
+import { fitWithin } from '@/lib/photo-resize';
 
 test('fitWithin: foto kecil tidak diperbesar', () => {
     assert.deepEqual(fitWithin(800, 600), { width: 800, height: 600 });

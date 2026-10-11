@@ -57,6 +57,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | | | #55 | 7.2 Tambah/Edit katalog jadi halaman |
 | | | #56 | 7.3 Varian produk |
 | | | #57 | 8.1 Register aset |
+| | | #58 | 8.2 Foto alat & nota |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 
@@ -81,7 +82,7 @@ Kode yang menang bila spek tidak cocok — speknya tidak ditulis ulang, alasanny
 
 ### Data uji lokal (bukan seed)
 
-DB lokal berisi data hasil verifikasi manual: aset "Drone DJI" (DRN-001) + kategori Drone, merek/lokasi/garansi di "Printer foto", servis Head cleaning 11 Okt, foto di "Cetak 10R + Bingkai" (bertanda Profil), item baru "Gantungan Kunci Foto Kayu" dan "Bingkai Kayu A4", varian Kayu/Hitam di "Cetak 10R + Bingkai" dengan penjualan ORD-0018, ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` (file foto tidak ikut terhapus oleh reset DB).
+DB lokal berisi data hasil verifikasi manual: aset "Drone DJI" (DRN-001) + kategori Drone + 2 foto & 2 nota (file di `storage/app/private/assets/`), merek/lokasi/garansi di "Printer foto", servis Head cleaning 11 Okt, foto di "Cetak 10R + Bingkai" (bertanda Profil), item baru "Gantungan Kunci Foto Kayu" dan "Bingkai Kayu A4", varian Kayu/Hitam di "Cetak 10R + Bingkai" dengan penjualan ORD-0018, ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` dan `storage/app/private/assets` (file foto tidak ikut terhapus oleh reset DB).
 
 ## 4. Langkah berikutnya
 
@@ -90,7 +91,7 @@ Fase 0–4 selesai. Sisa di `docs/specs/README.md`:
 - **5.1 Peran & hak akses** — hanya setelah owner memastikan ada staf admin yang akan input.
 - **5.2 Shift kasir tidak dikerjakan** — keputusan 9 Okt 2026: POS tidak memakai shift (tidak ada buka/tutup laci). Pencocokan laci tetap lewat Kas Harian (3.3) kolom Tunai.
 - **7.1 Galeri foto katalog** (#54), **7.2 form katalog jadi halaman** (#55), dan **7.3 varian produk** (#56) selesai. Endpoint company profile (produk terpisah) belum dibuat; aturan field publik ada di spek 7.1, varian di company profile diputuskan saat itu. Endpoint publik untuk company profile belum dibuat — aturan field yang boleh keluar ada di speknya.
-- **Fase 8 — Aset jadi register alat** (keputusan 11 Okt 2026: daftar alat saja, tetap jenis × jumlah, field keuangan terkunci): 8.1 selesai (#57); berikutnya **8.2 foto alat & nota**, lalu **8.3 peminjaman alat ke event + ringkasan per kategori + proyeksi penggantian**.
+- **Fase 8 — Aset jadi register alat** (keputusan 11 Okt 2026: daftar alat saja, tetap jenis × jumlah, field keuangan terkunci): 8.1 (#57) dan 8.2 foto alat & nota (#58) selesai; berikutnya **8.3 peminjaman alat ke event + ringkasan per kategori + proyeksi penggantian**.
 - **6.x** (serial + garansi, proyeksi penggantian, bundel, termin, riwayat harga, sumber lead, lampiran bukti transfer) — sesuai kebutuhan owner.
 
 Per item: branch dari `develop` (`feat/<modul>-<item>`), kerjakan sesuai spek (test ditulis bersamaan), checklist spek dipindah ke body PR, PR ke `develop`, setelah merge ubah status di `docs/specs/README.md` → ✅ + nomor PR. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.

@@ -5,11 +5,11 @@
  * dibuang, ukuran akhir ditentukan di sana).
  */
 
-/** Sama dengan StoreCatalogPhoto::MAX_SIDE. */
+/** Sama dengan ImageEncoder::MAX_SIDE (dulu StoreCatalogPhoto, spek 8.2). */
 export const MAX_SIDE = 1600;
 /** Sama dengan StoreCatalogPhotosRequest (max:2048 KB). */
 export const MAX_BYTES = 2 * 1024 * 1024;
-/** Sama dengan CatalogItemPhoto::MAX_PER_ITEM. */
+/** Sama dengan CatalogItemPhoto::MAX_PER_ITEM (galeri katalog). */
 export const MAX_PHOTOS = 8;
 
 /** Sisi terpanjang ≤ `max`, rasio tetap; gambar kecil tidak diperbesar. */
