@@ -32,6 +32,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Pos dana (maintenance / cadangan) | `Fund` (enum: maintenance / reserve) |
 | Pemakaian dana | `FundWithdrawal` · `fund_withdrawals` |
 | Aset | `Asset` · `assets` (`code` unik huruf besar — otomatis `PREFIKS-NNN` per kategori bila kosong, aset sebelum spek 8.1 tetap `AST-NN`; `brand`, `model`, `serial_number`, `warranty_until`, `location`, `notes`). Field keuangan (`units`, `unit_price`, `purchased_on`, `maintenance_percent`, investasi) terkunci setelah simpan; identitas bisa diedit |
+| Foto alat & nota aset (spek 8.2) | `AssetPhoto` · `asset_photos` (`kind` item / receipt; maks 8 / 4; `path`, `thumb_path` null untuk PDF, `mime`, `original_name`, `position`). File di disk **`local` (privat)** `assets/{aset}/`, disajikan route ber-auth `assets.photos.show` — bukan URL publik |
 | Kategori aset | `AssetCategory` · `asset_categories` (`name`, `code_prefix` unik; `useful_life_months` & `maintenance_interval_months` = default untuk aset BARU saja). Dikelola owner; terpakai → tidak bisa dihapus. FK `assets.asset_category_id` (dulu kolom teks `category`) |
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
 | Tutup buku (bulan final) | `PeriodClosing` · `period_closings` (`month`, `closed_at/by`, `reopened_at/by`; aktif = belum dibuka kembali) |

@@ -8,10 +8,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Asset\Enums\AssetPhotoKind;
 use Modules\Asset\Enums\AssetStatus;
 use Modules\Asset\Models\Asset;
 use Modules\Asset\Models\AssetCategory;
 use Modules\Asset\Models\AssetMaintenance as MaintenanceRecord;
+use Modules\Asset\Models\AssetPhoto;
 use Modules\Asset\Requests\DisposeAssetRequest;
 use Modules\Asset\Requests\StoreAssetMaintenanceRequest;
 use Modules\Asset\Requests\StoreAssetRequest;
@@ -98,7 +100,8 @@ class AssetController extends Controller
     {
         $month = $this->periods->current();
         $today = today()->toImmutable();
-        $assets = Asset::with(['category', 'maintenances'])
+        // Sampul (foto alat pertama, spek 8.2) untuk thumbnail di daftar.
+        $assets = Asset::with(['category', 'maintenances', 'photos' => fn ($q) => $q->where('kind', AssetPhotoKind::Item)])
             ->orderByRaw('disposed_on IS NOT NULL') // dilepas di bawah — tetap tampil sebagai riwayat
             ->orderBy('id')
             ->get();
@@ -120,7 +123,10 @@ class AssetController extends Controller
                 'model' => $d->asset->brandModel(),
                 'days_until' => $d->daysUntil,
             ], $this->maintenance->dueSoon()),
-            'assets' => $assets->map(fn (Asset $a) => $this->assetProps($a, $month, $today))->values()->all(),
+            'assets' => $assets->map(fn (Asset $a) => [
+                ...$this->assetProps($a, $month, $today),
+                'photo_url' => ($cover = $a->photos->first()) ? $cover->toProps()['thumb_url'] : null,
+            ])->values()->all(),
             'categories' => AssetCategory::orderBy('position')->get()->map(fn (AssetCategory $c) => ['id' => $c->id, 'name' => $c->name])->all(),
         ]);
     }
@@ -130,13 +136,15 @@ class AssetController extends Controller
     {
         $month = $this->periods->current();
         $today = today()->toImmutable();
-        $asset->load(['category', 'investment.contribution.owner', 'maintenances.creator']);
+        $asset->load(['category', 'investment.contribution.owner', 'maintenances.creator', 'photos']);
         $owner = $asset->investment?->contribution?->owner;
 
         return Inertia::render('asset::show', [
             'asset' => [
                 ...$this->assetProps($asset, $month, $today),
                 'funded_by' => $owner !== null ? "Modal {$owner->name}" : ($asset->investment !== null ? 'Kas usaha' : null),
+                // Foto alat & nota (spek 8.2) — URL ber-auth, bukan publik.
+                'photos' => $asset->photos->map(fn (AssetPhoto $p) => $p->toProps())->values()->all(),
                 'maintenances' => $asset->maintenances->sortBy('performed_on')->map(fn (MaintenanceRecord $m) => [
                     'id' => $m->id,
                     'performed_on' => $m->performed_on->toDateString(),

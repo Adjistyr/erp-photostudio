@@ -24,6 +24,7 @@ import {
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { PageActions } from '@/components/page-actions';
+import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,7 +78,8 @@ interface Props {
         model: string | null;
         days_until: number;
     }[];
-    assets: AssetRow[];
+    /** + thumbnail sampul (foto alat pertama, spek 8.2). */
+    assets: (AssetRow & { photo_url: string | null })[];
     categories: { id: number; name: string }[];
 }
 
@@ -208,7 +210,6 @@ export default function AssetsIndex(props: Props) {
                             <TableRow>
                                 <TableHead>Kode</TableHead>
                                 <TableHead>Aset</TableHead>
-                                <TableHead>Kategori</TableHead>
                                 <KepalaUang>Unit</KepalaUang>
                                 <KepalaUang>Harga beli</KepalaUang>
                                 <KepalaUang>Maintenance / bln</KepalaUang>
@@ -219,7 +220,13 @@ export default function AssetsIndex(props: Props) {
                         </TableHeader>
                         <TableBody>
                             {visible.map((a) => {
-                                const sub = [brandModel(a), a.location]
+                                // Kategori di baris kecil, bukan kolom sendiri (spek 8.2):
+                                // thumbnail sampul butuh ruang, kategori tetap bisa difilter.
+                                const sub = [
+                                    a.category,
+                                    brandModel(a),
+                                    a.location,
+                                ]
                                     .filter(Boolean)
                                     .join(' · ');
                                 return (
@@ -231,25 +238,32 @@ export default function AssetsIndex(props: Props) {
                                     >
                                         <SelKode>{a.code}</SelKode>
                                         <TableCell className="whitespace-normal">
-                                            {/* Link untuk keyboard & buka-di-tab-baru; baris tetap bisa diklik. */}
-                                            <Link
-                                                href={AssetController.show(
-                                                    a.id,
-                                                )}
-                                                className="font-medium hover:underline"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                {a.name}
-                                            </Link>
-                                            {sub && (
-                                                <span className="block text-xs text-muted-foreground">
-                                                    {sub}
+                                            <span className="flex items-center gap-2">
+                                                <ProductPhoto
+                                                    url={a.photo_url}
+                                                    className="size-8 rounded-md"
+                                                />
+                                                <span>
+                                                    {/* Link untuk keyboard & buka-di-tab-baru; baris tetap bisa diklik. */}
+                                                    <Link
+                                                        href={AssetController.show(
+                                                            a.id,
+                                                        )}
+                                                        className="font-medium hover:underline"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
+                                                    >
+                                                        {a.name}
+                                                    </Link>
+                                                    {sub && (
+                                                        <span className="block text-xs text-muted-foreground">
+                                                            {sub}
+                                                        </span>
+                                                    )}
                                                 </span>
-                                            )}
+                                            </span>
                                         </TableCell>
-                                        <TableCell>{a.category}</TableCell>
                                         <TableCell className="text-right font-mono">
                                             {a.units}
                                         </TableCell>

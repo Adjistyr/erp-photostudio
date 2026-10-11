@@ -9,9 +9,11 @@ import { Pencil, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
+import AssetPhotoController from '@/actions/Modules/Asset/Controllers/AssetPhotoController';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { KELAS_DENSITY, KepalaUang, SelUang } from '@/components/data-table';
 import { PageActions } from '@/components/page-actions';
+import { PhotoGallery } from '@/components/photo-gallery';
 import { RecordedBy } from '@/components/recorded-by';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +31,12 @@ import {
 } from '@/modules/asset/components/asset-badges';
 import { DisposeDialog } from '@/modules/asset/components/dispose-dialog';
 import { ServiceDialog } from '@/modules/asset/components/service-dialog';
-import { MAINTENANCE_LABEL, brandModel } from '@/modules/asset/types';
+import {
+    MAINTENANCE_LABEL,
+    MAX_ITEM_PHOTOS,
+    MAX_RECEIPTS,
+    brandModel,
+} from '@/modules/asset/types';
 import type { AssetDetail } from '@/modules/asset/types';
 import { index as assetsIndex } from '@/routes/assets';
 
@@ -45,6 +52,9 @@ export default function AssetShow({
     const [dialog, setDialog] = useState<'service' | 'dispose' | null>(null);
     const totalService = a.maintenances.reduce((s, m) => s + m.cost, 0);
     const bm = brandModel(a);
+    const items = a.photos.filter((p) => p.kind === 'item');
+    const receipts = a.photos.filter((p) => p.kind === 'receipt');
+    const urls = (id: number) => ({ asset: a.id, photo: id });
 
     return (
         <>
@@ -194,6 +204,38 @@ export default function AssetShow({
                             </TableBody>
                         </Table>
                     </Section>
+                </div>
+
+                {/* Foto alat & nota (spek 8.2) — privat, dibuka lewat route ber-auth. */}
+                <div className="grid grid-cols-1 gap-6 rounded-lg border p-4 xl:grid-cols-2">
+                    <PhotoGallery
+                        title="Foto alat"
+                        itemName={a.name}
+                        photos={items}
+                        max={MAX_ITEM_PHOTOS}
+                        uploadUrl={AssetPhotoController.store(a.id).url}
+                        uploadData={{ kind: 'item' }}
+                        deleteUrl={(id) =>
+                            AssetPhotoController.destroy(urls(id)).url
+                        }
+                        coverUrl={(id) =>
+                            AssetPhotoController.cover(urls(id)).url
+                        }
+                        hint="Kondisi alat saat beli, rusak, atau sebelum dijual. Foto pertama jadi sampul di daftar."
+                    />
+                    <PhotoGallery
+                        title="Nota & garansi"
+                        itemName={a.name}
+                        photos={receipts}
+                        max={MAX_RECEIPTS}
+                        uploadUrl={AssetPhotoController.store(a.id).url}
+                        uploadData={{ kind: 'receipt' }}
+                        deleteUrl={(id) =>
+                            AssetPhotoController.destroy(urls(id)).url
+                        }
+                        allowPdf
+                        hint="Foto nota, kartu garansi, atau PDF nota marketplace — untuk klaim garansi & asuransi."
+                    />
                 </div>
 
                 <Section title="Riwayat servis">

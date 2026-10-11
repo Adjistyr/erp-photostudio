@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Asset\Controllers\AssetCategoryController;
 use Modules\Asset\Controllers\AssetController;
+use Modules\Asset\Controllers\AssetPhotoController;
 
 Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('assets', [AssetController::class, 'index'])->name('assets.index');
@@ -13,6 +14,13 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('assets/{asset}', [AssetController::class, 'show'])->name('assets.show');
     Route::get('assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
     Route::put('assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
+    // Foto alat & nota (spek 8.2) — privat, `show` menyajikan file ber-auth.
+    Route::post('assets/{asset}/photos', [AssetPhotoController::class, 'store'])->name('assets.photos.store');
+    Route::scopeBindings()->group(function () {
+        Route::get('assets/{asset}/photos/{photo}', [AssetPhotoController::class, 'show'])->name('assets.photos.show');
+        Route::delete('assets/{asset}/photos/{photo}', [AssetPhotoController::class, 'destroy'])->name('assets.photos.destroy');
+        Route::patch('assets/{asset}/photos/{photo}/cover', [AssetPhotoController::class, 'cover'])->name('assets.photos.cover');
+    });
     // Kategori aset dikelola owner (spek 8.1). Tidak ada halaman per kategori.
     Route::resource('asset-categories', AssetCategoryController::class)
         ->only(['index', 'store', 'update', 'destroy'])

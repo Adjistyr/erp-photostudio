@@ -48,10 +48,26 @@ export interface AssetRow {
     days_until_next: number | null;
 }
 
-/** Detail aset — baris + sumber dana + riwayat servis. */
+/** Foto alat / nota (spek 8.2) — URL ber-auth, bukan publik. */
+export interface AssetPhoto {
+    id: number;
+    kind: 'item' | 'receipt';
+    url: string;
+    /** null untuk PDF. */
+    thumb_url: string | null;
+    is_pdf: boolean;
+    name: string;
+}
+
+/** Sama dengan AssetPhotoKind::max(). */
+export const MAX_ITEM_PHOTOS = 8;
+export const MAX_RECEIPTS = 4;
+
+/** Detail aset — baris + sumber dana + riwayat servis + foto. */
 export interface AssetDetail extends AssetRow {
     funded_by: string | null;
     maintenances: MaintenanceRow[];
+    photos: AssetPhoto[];
 }
 
 export interface AssetCategoryOption {
