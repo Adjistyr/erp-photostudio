@@ -247,12 +247,28 @@ class OrderController extends Controller
             ? "{$order->number} tersimpan untuk {$customer->name} (customer baru)."
             : "{$order->number} tersimpan."]);
 
-        return to_route('orders.index');
+        // Ke halaman detail order baru (spek 7.4).
+        return to_route('orders.show', $order);
     }
 
     /**
-     * Edit order studio/event (spek 1.2). 404, bukan 403: order retail/batal
-     * memang tidak punya halaman edit dan tombolnya tidak ditampilkan.
+     * Detail order — halaman penuh (spek 7.4), dulu Sheet di daftar.
+     */
+    public function show(Order $order): Response
+    {
+        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset']);
+
+        return Inertia::render('order::show', [
+            'order' => $this->orderProps($order),
+            // Profil studio untuk bukti bayar setelah Catat Pembayaran.
+            'studio' => config('studio'),
+        ]);
+    }
+
+    /**
+     * Edit order (spek 1.2; retail sejak 7.4 — customer & catatan saja). 404,
+     * bukan 403: order batal memang tidak punya halaman edit dan tombolnya
+     * tidak ditampilkan.
      */
     public function edit(Order $order): Response
     {
@@ -265,9 +281,10 @@ class OrderController extends Controller
             'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
             // Paket aktif berkategori dikenal (sama dengan create) + paket yang
             // dirujuk baris lama walau sudah nonaktif — supaya namanya tampil.
-            'catalog' => CatalogItem::where('type', CatalogItemType::Service)
+            // Baris lama jenis apa pun (produk di order retail, spek 7.4).
+            'catalog' => CatalogItem::query()
                 ->where(fn ($q) => $q
-                    ->where(fn ($q) => $q->where('is_active', true)->whereIn('category', ServiceCategory::values()))
+                    ->where(fn ($q) => $q->where('type', CatalogItemType::Service)->where('is_active', true)->whereIn('category', ServiceCategory::values()))
                     ->orWhereIn('id', $kept))
                 ->orderBy('name')
                 ->get(['id', 'name', 'price', 'category', 'is_active']),
@@ -290,7 +307,8 @@ class OrderController extends Controller
         // membandingkan customer yang sebenarnya — "customer baru" yang ternyata
         // cocok dengan customer order ini bukan perubahan.
         $changes = DB::transaction(function () use ($request, $order, $events, $findOrCreate) {
-            $customerId = $request->resolveCustomer($findOrCreate)->id;
+            // Retail walk-in boleh tanpa customer (spek 7.4) — aturan request menjamin studio/event terisi.
+            $customerId = $request->resolveCustomerOrNull($findOrCreate)?->id;
             $changes = $request->changes($order, $customerId);
             if ($changes === []) {
                 return [];
@@ -331,7 +349,8 @@ class OrderController extends Controller
             ? 'Tidak ada yang berubah.'
             : "{$order->number} diperbarui."]);
 
-        return to_route('orders.index');
+        // Kembali ke halaman detail (spek 7.4), bukan daftar.
+        return to_route('orders.show', $order);
     }
 
     /**
@@ -355,7 +374,8 @@ class OrderController extends Controller
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number}: status jadi {$next->label()}."]);
 
-        return to_route('orders.index');
+        // Dari halaman detail (spek 7.4) — kembali ke sana.
+        return back();
     }
 
     /**
@@ -380,7 +400,8 @@ class OrderController extends Controller
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number}: status kembali ke {$previous->label()}."]);
 
-        return to_route('orders.index');
+        // Dari halaman detail (spek 7.4) — kembali ke sana.
+        return back();
     }
 
     /**
@@ -409,7 +430,8 @@ class OrderController extends Controller
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$order->number} dibatalkan."]);
 
-        return to_route('orders.index');
+        // Dari halaman detail (spek 7.4) — kembali ke sana.
+        return back();
     }
 
     public function updateResultLink(OrderResultLinkRequest $request, Order $order, RecordOrderEvent $events): RedirectResponse
@@ -422,7 +444,8 @@ class OrderController extends Controller
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => "Link hasil {$order->number} disimpan."]);
 
-        return to_route('orders.index');
+        // Dari halaman detail (spek 7.4) — kembali ke sana.
+        return back();
     }
 
     /** @return array<string, mixed> */

@@ -31,6 +31,21 @@ class OrdersPageTest extends TestCase
         return Order::where('number', $number)->sole();
     }
 
+    public function test_show_page_renders_full_order_detail()
+    {
+        $order = $this->order('ORD-0011');
+
+        $this->get(route('orders.show', $order))->assertInertia(fn (Assert $page) => $page
+            ->component('order::show')
+            ->where('order.number', 'ORD-0011')
+            ->where('order.editable', true)
+            ->has('order.payments', 1)
+            ->has('order.job_costs', 2)
+            ->has('order.events')
+            ->has('studio'));
+        $this->get(route('orders.show', 999999))->assertNotFound();
+    }
+
     public function test_guest_is_redirected_to_login()
     {
         auth()->logout();
@@ -61,7 +76,9 @@ class OrdersPageTest extends TestCase
 
     public function test_advance_moves_exactly_one_step()
     {
-        $this->patch(route('orders.advance', $this->order('ORD-0005')))->assertRedirect(route('orders.index'));
+        // Aksi dari halaman detail kembali ke sana (spek 7.4).
+        $order = $this->order('ORD-0005');
+        $this->from(route('orders.show', $order))->patch(route('orders.advance', $order))->assertRedirect(route('orders.show', $order));
 
         $this->assertSame(WorkStatus::Scheduled, $this->order('ORD-0005')->work_status);
     }
@@ -69,7 +86,8 @@ class OrdersPageTest extends TestCase
     public function test_revert_moves_exactly_one_step_back_and_records_event()
     {
         // ORD-0008: Selesai Dikerjakan.
-        $this->patch(route('orders.revert', $this->order('ORD-0008')))->assertRedirect(route('orders.index'));
+        $this->from(route('orders.show', $this->order('ORD-0008')))->patch(route('orders.revert', $this->order('ORD-0008')))
+            ->assertRedirect(route('orders.show', $this->order('ORD-0008')));
 
         $order = $this->order('ORD-0008');
         $this->assertSame(WorkStatus::InProgress, $order->work_status);
@@ -139,8 +157,8 @@ class OrdersPageTest extends TestCase
     {
         $revenueBefore = app(ProfitAndLoss::class)->revenue('2026-08');
 
-        $this->patch(route('orders.cancel', $this->order('ORD-0008')), ['reason' => 'Customer pindah kota'])
-            ->assertRedirect(route('orders.index'));
+        $this->from(route('orders.show', $this->order('ORD-0008')))->patch(route('orders.cancel', $this->order('ORD-0008')), ['reason' => 'Customer pindah kota'])
+            ->assertRedirect(route('orders.show', $this->order('ORD-0008')));
 
         $order = $this->order('ORD-0008');
         $this->assertSame(WorkStatus::Cancelled, $order->work_status);

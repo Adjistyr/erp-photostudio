@@ -82,7 +82,7 @@ class OrderCreateTest extends TestCase
 
     public function test_store_with_deposit_is_scheduled_and_snapshots_catalog_price()
     {
-        $this->store([
+        $response = $this->store([
             'business_line' => 'event',
             'service_time' => '08:00',
             'location' => 'Gedung Serbaguna',
@@ -93,9 +93,12 @@ class OrderCreateTest extends TestCase
             ],
             'dp' => 3_000_000,
             'dp_method' => 'cash',
-        ])->assertRedirect(route('orders.index'))->assertSessionHasNoErrors();
+        ]);
+        $response->assertSessionHasNoErrors();
 
         $order = $this->newest();
+        // Ke halaman detail order baru (spek 7.4).
+        $response->assertRedirect(route('orders.show', $order));
         $this->assertSame('ORD-0013', $order->number);
         $this->assertSame(WorkStatus::Scheduled, $order->work_status);
         $this->assertSame('08:00:00', $order->service_time);

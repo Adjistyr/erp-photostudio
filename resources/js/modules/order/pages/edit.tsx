@@ -66,16 +66,18 @@ export default function OrdersEdit({
         })),
     });
     const { data, setData, errors, processing } = form;
-    // Error `order` (retail/batal) dan baris item tidak ada di tipe form.
+    // Error `order` (order batal) dan baris item tidak ada di tipe form.
     const allErrors: Record<string, string | undefined> = errors;
-    // Hanya studio & event yang punya halaman ini (server 404 untuk retail).
+    // Retail sejak spek 7.4 juga punya halaman ini (item & tanggal terkunci —
+    // selalu Diserahkan), jadi diperlakukan seperti studio untuk pilihan paket.
     const line: OrderType =
         order.business_line === 'event' ? 'event' : 'studio';
 
     const total = orderTotal(data.items, catalog);
     const belowPaid = total < order.paid;
     const complete =
-        hasCustomer(data) &&
+        // Retail walk-in boleh tanpa customer (spek 7.4).
+        (order.business_line === 'retail' || hasCustomer(data)) &&
         data.service_date !== '' &&
         total > 0 &&
         rowsComplete(data.items);
@@ -152,7 +154,9 @@ export default function OrdersEdit({
                             variant="outline"
                             className="flex-1"
                             nativeButton={false}
-                            render={<Link href={ordersIndex()} />}
+                            render={
+                                <Link href={OrderController.show(order.id)} />
+                            }
                         >
                             Batal
                         </Button>

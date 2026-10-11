@@ -94,7 +94,8 @@ class OrderUpdateTest extends TestCase
         $order->refresh();
 
         $this->update($order, ['service_date' => '2026-09-12', 'service_time' => '15:30'])
-            ->assertRedirect(route('orders.index'))
+            // Kembali ke halaman detail (spek 7.4).
+            ->assertRedirect(route('orders.show', $order))
             ->assertSessionHasNoErrors();
 
         $order->refresh();
@@ -165,13 +166,36 @@ class OrderUpdateTest extends TestCase
         $this->assertSame($before, OrderEvent::count());
     }
 
-    public function test_retail_and_cancelled_orders_cannot_be_edited()
+    public function test_cancelled_order_cannot_be_edited()
     {
-        foreach (['ORD-0002', 'ORD-0004'] as $number) {
-            $order = $this->order($number);
-            $this->get(route('orders.edit', $order))->assertNotFound();
-            $this->update($order, ['notes' => 'x'])->assertSessionHasErrors('order');
-        }
+        $order = $this->order('ORD-0004');
+        $this->get(route('orders.edit', $order))->assertNotFound();
+        $this->update($order, ['notes' => 'x'])->assertSessionHasErrors(['order' => 'Order yang dibatalkan tidak bisa diubah.']);
+    }
+
+    public function test_retail_order_allows_customer_and_notes_only()
+    {
+        // Retail walk-in (tanpa customer), Diserahkan.
+        $order = Order::where('business_line', 'retail')->whereNull('customer_id')->orderBy('id')->firstOrFail();
+        $this->assertNull($order->customer_id);
+        $this->get(route('orders.edit', $order))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('locked.items', true)
+            // Nama produk baris lama ikut terkirim walau bukan jasa.
+            ->where('catalog', fn ($c) => collect($c)->pluck('id')->contains($order->items->first()->catalog_item_id)));
+
+        // Walk-in tetap boleh tanpa customer — cukup catatan.
+        $this->update($order, ['notes' => 'Cetak ulang besok'])->assertSessionHasNoErrors();
+        $this->assertSame([null, 'Cetak ulang besok'], [$order->refresh()->customer_id, $order->notes]);
+
+        // Customer dicatat belakangan (pelanggan minta struk dikirim WA).
+        $this->update($order, ['new_customer' => ['name' => 'Pelanggan Baru', 'phone' => '0812 3456 7890']])->assertSessionHasNoErrors();
+        $this->assertSame('Pelanggan Baru', $order->refresh()->customer?->name);
+
+        // Item & tanggal tetap terkunci (Diserahkan, K1).
+        $line = $order->items->first();
+        $this->update($order, ['items' => [['id' => $line->id, 'catalog_item_id' => $line->catalog_item_id, 'quantity' => $line->quantity + 1]]])
+            ->assertSessionHasErrors('items');
+        $this->update($order, ['service_date' => '2026-08-01'])->assertSessionHasErrors('service_date');
     }
 
     public function test_delivered_order_allows_only_notes_and_customer()
@@ -244,7 +268,7 @@ class OrderUpdateTest extends TestCase
         $updatedAt = $order->updated_at;
 
         $this->update($order)
-            ->assertRedirect(route('orders.index'))
+            ->assertRedirect(route('orders.show', $order))
             ->assertSessionHas('inertia.flash_data.toast.message', 'Tidak ada yang berubah.');
 
         $this->assertSame($before, OrderEvent::count());
@@ -268,7 +292,8 @@ class OrderUpdateTest extends TestCase
 
         $this->assertTrue($orders['ORD-0005']['editable']);
         $this->assertTrue($orders['ORD-0001']['editable']);
-        $this->assertFalse($orders['ORD-0002']['editable']);
+        // Retail bisa diubah sejak spek 7.4 (customer & catatan).
+        $this->assertTrue($orders['ORD-0002']['editable']);
         $this->assertFalse($orders['ORD-0004']['editable']);
     }
 

@@ -16,6 +16,8 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('orders/calendar', [OrderController::class, 'calendar'])->name('orders.calendar');
     Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
     // Setelah orders/create & orders/calendar supaya "create" tidak dibaca sebagai {order}.
+    // Detail = halaman penuh (spek 7.4).
+    Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
     Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
     Route::patch('orders/{order}/advance', [OrderController::class, 'advance'])->name('orders.advance');

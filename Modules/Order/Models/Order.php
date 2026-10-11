@@ -310,9 +310,13 @@ class Order extends Model
      * diserahkan saat itu juga — koreksinya hapus pembayaran / retur) dan
      * bukan order batal.
      */
+    /**
+     * Order batal tidak bisa diubah. Retail bisa (spek 7.4): selalu Diserahkan,
+     * jadi item & tanggal terkunci (K1) — yang bisa diubah hanya customer & catatan.
+     */
     public function isEditable(): bool
     {
-        return $this->business_line !== BusinessLine::Retail && ! $this->isCancelled();
+        return ! $this->isCancelled();
     }
 
     /** Setelah diserahkan, jadwal & item terkunci — hanya catatan & customer (K1). */

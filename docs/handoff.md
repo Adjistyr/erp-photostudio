@@ -60,6 +60,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | | | #58 | 8.2 Foto alat & nota |
 | | | #59 | 8.3 Ringkasan per kategori + proyeksi penggantian |
 | | | #60 | 8.4 Peminjaman alat ke event |
+| | | #62 | 7.4 Detail order jadi halaman + edit retail |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 

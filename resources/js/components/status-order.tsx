@@ -19,6 +19,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatRp } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
     LINE_COLOR,
@@ -145,5 +146,20 @@ export function LineMark({ line }: { line: BusinessLine }) {
             />
             <span className="text-sm">{LINE_LABEL[line]}</span>
         </span>
+    );
+}
+
+/** Tanda ada pengembalian uang (spek 4.2) — status bayar sendiri tidak berubah. */
+export function RefundBadge({ amount }: { amount: number }) {
+    if (amount <= 0) return null;
+
+    return (
+        <Badge
+            variant="outline"
+            className="border-destructive text-destructive"
+            title={`Dikembalikan ${formatRp(amount)}`}
+        >
+            Retur
+        </Badge>
     );
 }
