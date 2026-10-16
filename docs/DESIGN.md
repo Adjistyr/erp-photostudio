@@ -1,7 +1,7 @@
 # DESIGN.md — Sistem Desain ERP Photo Studio
 
-Dokumen: 26 Agustus 2026
-Basis: shadcn/ui + Tailwind, target **web desktop**, bahasa UI **Indonesia**
+Dokumen: 26 Agustus 2026 — bagian 2, R2–R4, R6, R8, R9 dan "Konvensi halaman" diperbarui 17 Oktober 2026 (sistem desain ala master-outlet)
+Basis: shadcn/ui base-maia (Base UI) + Tailwind v4, target **web desktop**, bahasa UI **Indonesia**
 Turunan dari: [business-flow.md](./business-flow.md)
 
 ---
@@ -41,121 +41,155 @@ Pembagian kerjanya: **frontmatter hanya untuk nilai warna bernama unik, prosa un
 
 ## 2. Design Tokens
 
-Basis dari theme shadcn yang dipilih, dengan tiga penambahan yang dijelaskan di R3 dan R6.
+Sejak 17 Oktober 2026 tampilan mengikuti sistem desain **master-outlet (v3)** — proyek saudara dengan stack yang sama (React + Base UI + shadcn base-maia): kanvas hangat `#f5f5f3`, panel putih membulat tanpa garis, tombol utama **hampir hitam** berbentuk pil, teal sebagai `--brand` (logo, aksen), font Inter, `--radius` 0.625rem. Token tambahan proyek ini (status semantik R3, chart kategorikal R6) dipertahankan dan di-tune ulang supaya duduk di atas netral hangat dengan jaminan kontras yang sama.
+
+Sumber kebenaran: `resources/css/app.css`. Netral ditulis hex supaya bisa dicocokkan dengan file desain sumber lewat search; warna semantik & chart tetap oklch karena di-tune per lightness/chroma.
 
 ```css
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.148 0.004 228.8);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.148 0.004 228.8);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.148 0.004 228.8);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
-  --accent: oklch(0.963 0.002 197.1);
-  --accent-foreground: oklch(0.218 0.008 223.9);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.925 0.005 214.3);
-  --input: oklch(0.925 0.005 214.3);
-  --ring: oklch(0.723 0.014 214.4);
-  --radius: 0.875rem;
+  --background: #f5f5f3;   /* kanvas */
+  --foreground: #1b1b19;
+  --card: #ffffff;         /* panel */
+  --card-foreground: #1b1b19;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b19;
+  --primary: #1b1b19;      /* tombol utama hampir hitam */
+  --primary-foreground: #ffffff;
+  --brand: oklch(0.508 0.118 165.612);  /* teal — logo, aksen */
+  --brand-foreground: #ffffff;
+  --secondary: #f0f0ee;
+  --secondary-foreground: #1b1b19;
+  --muted: #f3f3f1;
+  --muted-foreground: #6b6b64;
+  --accent: #f3f3f1;
+  --accent-foreground: #1b1b19;
+  --destructive: oklch(0.56 0.215 27);  /* #d61d22 */
+  --border: #ececea;
+  --input: #e3e3df;
+  --ring: #a3a39c;
+  --radius: 0.625rem;
 
   /* TAMBAHAN — status semantik (lihat R3) */
-  --success: oklch(0.596 0.145 163.2);
-  --success-foreground: oklch(0.98 0.02 163);
-  --success-subtle: oklch(0.955 0.035 163.2);
-  --success-subtle-foreground: oklch(0.465 0.125 163.2);
-  --warning: oklch(0.646 0.155 58.3);
-  --warning-foreground: oklch(0.98 0.02 80);
-  --warning-subtle: oklch(0.960 0.045 80);
-  --warning-subtle-foreground: oklch(0.480 0.115 58.3);
-  --destructive-subtle: oklch(0.955 0.030 27.3);
-  --destructive-subtle-foreground: oklch(0.505 0.200 27.3);
+  --success: oklch(0.53 0.13 150);
+  --success-foreground: #ffffff;
+  --success-subtle: oklch(0.955 0.04 150);
+  --success-subtle-foreground: oklch(0.43 0.11 150);
+  --warning: oklch(0.55 0.13 58);
+  --warning-foreground: #ffffff;
+  --warning-subtle: oklch(0.96 0.05 85);
+  --warning-subtle-foreground: oklch(0.47 0.115 58);
+  --destructive-subtle: oklch(0.955 0.03 25);
+  --destructive-subtle-foreground: oklch(0.5 0.19 27);
 
-  /* DIGANTI — chart kategorikal, bukan monokrom (lihat R6) */
+  /* Chart kategorikal, peran tetap (lihat R6) */
   --chart-1: oklch(0.546 0.245 262.881);  /* biru   — Retail        */
-  --chart-2: oklch(0.769 0.188 70.1);     /* amber  — Studio        */
-  --chart-3: oklch(0.627 0.265 303.9);    /* ungu   — Event         */
-  --chart-4: oklch(0.696 0.170 162.5);    /* hijau  — Laba / masuk  */
-  --chart-5: oklch(0.645 0.246 16.4);     /* merah  — Biaya / keluar*/
+  --chart-2: oklch(0.65 0.16 60);         /* amber  — Studio        */
+  --chart-3: oklch(0.58 0.24 304);        /* ungu   — Event         */
+  --chart-4: oklch(0.6 0.15 152);         /* hijau  — Laba / masuk  */
+  --chart-5: oklch(0.6 0.22 22);          /* merah  — Biaya / keluar*/
 
-  --sidebar: oklch(0.987 0.002 197.1);
-  --sidebar-foreground: oklch(0.148 0.004 228.8);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.963 0.002 197.1);
-  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
-  --sidebar-border: oklch(0.925 0.005 214.3);
-  --sidebar-ring: oklch(0.723 0.014 214.4);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1b1b19;
+  --sidebar-primary: #1b1b19;   /* item menu aktif = pil hampir hitam */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0ee;
+  --sidebar-accent-foreground: #1b1b19;
+  --sidebar-border: #ececea;
+  --sidebar-ring: #a3a39c;
 }
 
+/* Sumber tidak punya tema gelap — ini turunannya: netral hangat yang sama
+   digelapkan, tombol utama dibalik jadi hampir putih (peran "kontras
+   tertinggi" tetap), brand/semantik/chart dinaikkan lightness-nya. */
 .dark {
-  --background: oklch(0.148 0.004 228.8);
-  --foreground: oklch(0.987 0.002 197.1);
-  --card: oklch(0.218 0.008 223.9);
-  --card-foreground: oklch(0.987 0.002 197.1);
-  --popover: oklch(0.218 0.008 223.9);
-  --popover-foreground: oklch(0.987 0.002 197.1);
-
-  /* DIGANTI dari oklch(0.424 0.199 265.638) — nilai lama kontrasnya
-     hanya 1.96 di atas --card, jadi teks/link/garis chart tidak terbaca.
-     Disamakan dengan --sidebar-primary supaya sidebar & konten konsisten. */
-  --primary: oklch(0.623 0.214 259.815);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.275 0.011 216.9);
-  --muted-foreground: oklch(0.723 0.014 214.4);
-  --accent: oklch(0.275 0.011 216.9);
-  --accent-foreground: oklch(0.987 0.002 197.1);
+  --background: #141413;
+  --foreground: #f5f5f3;
+  --card: #1f1f1d;
+  --card-foreground: #f5f5f3;
+  --popover: #1f1f1d;
+  --popover-foreground: #f5f5f3;
+  --primary: #f5f5f3;
+  --primary-foreground: #1b1b19;
+  --brand: oklch(0.72 0.13 165);
+  --brand-foreground: #0f2a21;
+  --secondary: #2a2a27;
+  --secondary-foreground: #f5f5f3;
+  --muted: #2a2a27;
+  --muted-foreground: #a3a39c;
+  --accent: #2a2a27;
+  --accent-foreground: #f5f5f3;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.56 0.021 213.5);
+  --ring: #6b6b64;
 
-  --success: oklch(0.696 0.170 162.5);
-  --success-foreground: oklch(0.16 0.03 163);
-  --success-subtle: oklch(0.290 0.055 163.2);
-  --success-subtle-foreground: oklch(0.800 0.150 163.2);
-  --warning: oklch(0.769 0.188 70.1);
-  --warning-foreground: oklch(0.16 0.03 80);
-  --warning-subtle: oklch(0.300 0.060 70.1);
-  --warning-subtle-foreground: oklch(0.840 0.150 80);
-  --destructive-subtle: oklch(0.300 0.070 27.3);
-  --destructive-subtle-foreground: oklch(0.790 0.130 22.2);
+  --success: oklch(0.74 0.15 150);
+  --success-foreground: #10230f;
+  --success-subtle: oklch(0.3 0.05 150);
+  --success-subtle-foreground: oklch(0.84 0.13 150);
+  --warning: oklch(0.78 0.15 75);
+  --warning-foreground: #2a1c05;
+  --warning-subtle: oklch(0.31 0.055 70);
+  --warning-subtle-foreground: oklch(0.86 0.13 82);
+  --destructive-subtle: oklch(0.3 0.07 25);
+  --destructive-subtle-foreground: oklch(0.8 0.12 22);
 
-  /* --chart-1..5 sengaja tidak di-override: kelima warna sudah lolos
-     kontras >= 3.0 terhadap --background terang maupun --card gelap. */
+  --chart-1: oklch(0.66 0.19 260);
+  --chart-2: oklch(0.78 0.16 70);
+  --chart-3: oklch(0.68 0.21 304);
+  --chart-4: oklch(0.72 0.16 152);
+  --chart-5: oklch(0.68 0.2 20);
 
-  --sidebar: oklch(0.218 0.008 223.9);
-  --sidebar-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.275 0.011 216.9);
-  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+  --sidebar: #1f1f1d;
+  --sidebar-foreground: #f5f5f3;
+  --sidebar-primary: #f5f5f3;
+  --sidebar-primary-foreground: #1b1b19;
+  --sidebar-accent: #2a2a27;
+  --sidebar-accent-foreground: #f5f5f3;
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.56 0.021 213.5);
+  --sidebar-ring: #6b6b64;
 }
 ```
+
+Penyimpangan dari token sumber, masing-masing dengan alasan:
+
+| Token | Sumber | Di sini | Alasan |
+|---|---|---|---|
+| `--destructive` | `#dc2626` | `oklch(0.56 0.215 27)` | `#dc2626` hanya 4.42 di atas kanvas; angka negatif (R5) juga tampil di luar panel |
+| `--sidebar-primary` | teal | `#1b1b19` | item menu aktif sumber memakai `bg-primary`; di sini lewat token sidebar supaya Sidebar shadcn tetap satu-satunya pemakai |
+| `--chart-1..5` | monokrom | kategorikal | R6 |
+| `--success*` hue | — | 150, bukan 163 | 163 nyaris sama dengan teal `--brand`; "Lunas" tidak boleh terbaca sebagai warna merek |
+| `.dark` | (tidak ada) | turunan netral hangat | sumber hanya terang |
+
+**Kontras terukur** (WCAG 2.x, dihitung dari nilai di atas; kanvas / panel):
+
+| Pasangan | Terang | Gelap |
+|---|---|---|
+| `--foreground` | 15.80 / 17.25 | 16.89 / 15.12 |
+| `--muted-foreground` | 4.92 / 5.37 | 7.26 / 6.51 |
+| `--brand` (teks/ikon) | 4.92 / 5.37 | 7.88 / 7.06 |
+| `--destructive` (teks) | 4.76 / 5.19 | 6.37 / 5.71 |
+| `--success` (teks) | 4.56 / 4.97 | 8.48 / 7.59 |
+| `--warning` (teks) | 4.64 / 5.06 | 9.02 / 8.08 |
+| `--primary-foreground` di `--primary` | 17.25 | 15.80 |
+
+Semua teks semantik ≥ 4.5 di kanvas maupun panel, dua tema. Badge dan chart: lihat R3 dan R6.
 
 ### Peta pemakaian token
 
 | Kebutuhan | Token |
 |---|---|
-| Aksi utama (Simpan, Bayar, Buat Order) | `--primary` |
-| Aksi sekunder (Batal, Kembali) | `--secondary` / ghost |
+| Aksi utama (Simpan, Bayar, Buat Order) | `--primary` (pil hampir hitam) |
+| Aksi sekunder (Batal, Kembali) | `outline` (panel putih + garis `--input`) / ghost |
 | Aksi merusak (Hapus, Batalkan Order) | `--destructive` |
+| Logo, aksen merek, avatar inisial | `--brand` |
+| Kanvas halaman | `--background` |
+| Panel isi (Card, Panel, Table, empty state) | `--card` |
 | Lunas, Laba, tren naik yang bagus | `--success` |
 | DP/Sebagian, jatuh tempo dekat, perlu perhatian | `--warning` |
 | Belum Bayar, Batal, Rugi, lewat jatuh tempo | `--destructive` |
 | Label kolom, hint, metadata, satuan | `--muted-foreground` |
-| Garis tabel, pemisah section | `--border` |
+| Garis tabel, pemisah section | `--border` (antar baris tabel: `--secondary`) |
 
 ---
 
@@ -177,40 +211,44 @@ Ini **blocker** — harus diperbaiki sebelum merge.
 
 ---
 
-### R2 — Tipografi: satu sans, satu mono, angka wajib tabular
+### R2 — Tipografi: Inter, mono hanya untuk ID, angka wajib tabular
 
 ```
-Sans    : DM Sans        (dari preset shadcn b311momZs0)
-Heading : Outfit         (dari preset)
-Mono    : JetBrains Mono (ditambah manual) — nomor invoice, ID order, kolom uang
+Sans    : Inter Variable  (@fontsource-variable/inter, self-hosted) — sama dengan master-outlet
+Heading : Inter           (token --font-heading menunjuk --font-sans)
+Mono    : JetBrains Mono  — HANYA nomor invoice, ID order, kode, nomor rekening
 ```
 
-Sans dan heading mengikuti preset, bukan Inter seperti rancangan awal: preset yang jadi sumber kebenaran token, dan mengubah fontnya berarti menyimpang dari sistem desain yang justru dipilih supaya konsisten. Mono tidak ada di preset mana pun sehingga ditambahkan sebagai dependency terpisah.
+DM Sans + Outfit (preset `b311momZs0`) diganti Inter supaya satu sistem desain dengan master-outlet; dependensinya dicabut.
 
 | Peran | Ukuran / Berat | Catatan |
 |---|---|---|
-| Judul halaman | 24px / 600 | |
-| Angka KPI dashboard | 30px / 600 | tabular-nums |
-| Judul card / section | 16px / 600 | |
-| Body & isi cell tabel | 14px / 400 | |
+| Judul halaman (`PageHeader`) | 34px / 500, tracking −0.02em (28px di < md) | |
+| Angka KPI dashboard | 30px / 500, tracking −0.02em | `SummaryCard` |
+| Judul panel (`Panel`) | 18px / 500, tracking −0.01em | `CardTitle` 16px / 500 |
+| Body | 14px / 400 | |
+| Isi cell tabel | 13px / 400 | |
 | Header kolom tabel | 12px / 500 | `--muted-foreground`, bukan uppercase |
 | Label form, hint, caption | 12px / 500 | |
+| Label grup menu | 11px / 600, uppercase | satu-satunya uppercase |
 
-**Setiap angka uang, kuantitas, persen, dan tanggal wajib `font-variant-numeric: tabular-nums`.** Font proporsional memberi lebar berbeda tiap digit — angka `1` jauh lebih sempit dari `8`. Di kolom Rp yang rata kanan, ini bikin digit tidak sejajar antar baris, dan owner kehilangan kemampuan scan cepat "mana tagihan paling besar". Layar piutang adalah layar yang paling sering dibuka (business-flow 5.4), jadi ini bukan detail kosmetik.
+**Setiap angka uang, kuantitas, persen, dan tanggal wajib tabular.** Font proporsional memberi lebar berbeda tiap digit — angka `1` jauh lebih sempit dari `8`. Di kolom Rp yang rata kanan, ini bikin digit tidak sejajar antar baris, dan owner kehilangan kemampuan scan cepat "mana tagihan paling besar". Layar piutang adalah layar yang paling sering dibuka (business-flow 5.4), jadi ini bukan detail kosmetik.
+
+**Cara memenuhinya sekarang: `tabular-nums` global di `body`, bukan mono.** Alasan lama memakai mono untuk uang adalah gotcha bahwa `tabular-nums` diam-diam no-op kalau font tidak punya fitur OpenType `tnum`. Untuk Inter itu sudah diverifikasi, bukan diasumsikan: subset `inter-latin-wght-normal.woff2` yang di-self-host memuat fitur GSUB `tnum` (juga `pnum`, `frac`, `calt`; dicek dengan fontTools 17 Okt 2026), dan digit bawaannya memang proporsional (lebar advance `0`=1292 vs `1`=833 unit) — jadi `tnum` benar-benar mengubah lebarnya. Dipasang global di `app.css` supaya tidak ada kolom yang lupa diberi kelas.
 
 ```tsx
-// ❌ Salah — kolom Rp zigzag
+// ✅ Benar — angka sudah tabular dari body; cukup rata kanan
+<SelUang nominal={order.total} />
 <td className="text-right">{formatRp(order.total)}</td>
-
-// ✅ Benar — mono sudah tabular secara bawaan
-<td className="text-right font-mono">{formatRp(order.total)}</td>
 ```
 
-**Gotcha yang menentukan cara memenuhi aturan ini.** `tabular-nums` itu `font-variant-numeric`, dan kalau font yang aktif tidak punya fitur OpenType `tnum`, browser **diam-diam mengabaikannya tanpa error**. Kolom Rp balik zigzag dan tidak ada yang memberi tahu. Karena itu kolom uang dan angka KPI memakai **mono** — lebar digitnya sama secara bawaan, jadi tidak bergantung pada fitur font yang mungkin tidak ada. `tabular-nums` boleh dipakai sebagai tambahan, tapi tidak boleh jadi satu-satunya andalan.
+Kalau font sans diganti lagi, **ulangi verifikasi `tnum`** pada file woff2 yang benar-benar di-bundle — itu satu-satunya syarat aturan ini tetap terpenuhi.
+
+**Mono tetap untuk ID** (`SelKode`, nomor invoice/order, nomor rekening): subset Inter tidak membawa fitur `zero`/`cv*`, sehingga `0`/`O` dan `1`/`l`/`I` sulit dibedakan pada kode yang dibacakan owner ke customer atau dicocokkan dengan mutasi bank. `font-mono` yang masih menempel di sel uang halaman lama tidak salah (mono juga tabular) — page pass berikutnya mencabutnya.
 
 Ini **blocker** untuk semua kolom numerik di tabel dan semua angka KPI.
 
-Radius `--radius` bernilai `0.875rem` (14px). Nilai itu pas untuk card dan dialog, tapi terlalu bulat untuk elemen kecil di layar padat. Badge, input di dalam tabel, dan chip filter di-override ke `rounded-md`. Not a blocker — approve dengan komentar kalau terlewat.
+Radius `--radius` 0.625rem (10px). Bentuknya mengikuti master-outlet: tombol, input, select, badge, dan tab berbentuk **pil** (`rounded-4xl`); panel/card/tabel `rounded-3xl`; textarea `rounded-xl`. Pengecualian `rounded-md` lama untuk badge gugur — pil kecil tidak lagi "terlalu bulat" pada radius dasar 10px. Not a blocker — approve dengan komentar kalau terlewat.
 
 ---
 
@@ -237,11 +275,11 @@ Titik aktif pakai `--foreground`, titik non-aktif pakai `--border`.
 
 | Status | Background | Teks | Kontras |
 |---|---|---|---|
-| Belum Bayar | `--destructive-subtle` | `--destructive-subtle-foreground` | 5.60 / 6.77 |
-| DP / Sebagian | `--warning-subtle` | `--warning-subtle-foreground` | 5.99 / 8.32 |
-| Lunas | `--success-subtle` | `--success-subtle-foreground` | 5.63 / 7.86 |
+| Belum Bayar | `--destructive-subtle` | `--destructive-subtle-foreground` | 5.69 / 7.08 |
+| DP / Sebagian | `--warning-subtle` | `--warning-subtle-foreground` | 6.27 / 8.60 |
+| Lunas | `--success-subtle` | `--success-subtle-foreground` | 6.85 / 8.58 |
 
-(kontras light / dark, keduanya lolos WCAG AA 4.5)
+(kontras teks di atas tint-nya, light / dark, semua lolos WCAG AA 4.5). Badge berbentuk pil, variant `danger` / `warning` / `success` di `Badge`.
 
 Badge DP menampilkan persentasenya: `DP 40%`, bukan `DP` saja. Angka itu yang menentukan apakah tagihan perlu dikejar sekarang atau bisa nanti.
 
@@ -249,7 +287,7 @@ Badge DP menampilkan persentasenya: `DP 40%`, bukan `DP` saja. Angka itu yang me
 
 Ini **blocker** — badge status muncul di Dashboard, Order List, Kalender, Piutang, dan Customer Detail. Kalau tidak seragam, setiap layar jadi bahasa sendiri.
 
-> Catatan dark mode: tint badge (`*-subtle`) hanya berbeda 1.24–1.26 dari `--card`. Ini disengaja — yang bekerja adalah warna teksnya. Badge netral bahkan hanya 1.17, memang dimaksudkan mundur ke belakang.
+> Catatan: tint badge (`*-subtle`) hanya berbeda 1.12–1.16 (terang) / 1.18–1.24 (gelap) dari `--card`. Ini disengaja — yang bekerja adalah warna teksnya. Badge netral (`secondary`) memang dimaksudkan mundur ke belakang.
 
 ---
 
@@ -261,12 +299,13 @@ Default generator UI cenderung lega — padding besar, baris tinggi. Pada ERP it
 |---|---|
 | Tinggi baris tabel | 44px |
 | Padding cell | 12px horizontal, 10px vertikal |
-| Tinggi header tabel | 40px, sticky saat scroll |
-| Padding card | 20px |
+| Tinggi header tabel | 40px (`TabelData`; `Table` polos 44px), baris pil `--background` di dalam panel |
+| Teks cell | 13px |
+| Padding card / panel | 20px (`Card`), 18px × 16px (`Panel`) |
 | Jarak antar section | 24px |
-| Padding konten halaman | 24px |
+| Padding konten halaman | 24px (16px di < md) |
 
-Kolom uang **rata kanan**, kolom teks rata kiri, kolom status rata kiri. Tabel tidak dibatasi max-width — pakai lebar layar penuh.
+Kolom uang **rata kanan**, kolom teks rata kiri, kolom status rata kiri. Tabel tidak dibatasi max-width — pakai lebar layar penuh. `Table` sendiri sudah panel putih `rounded-3xl` dengan inset 6px; jangan dibungkus border lagi.
 
 Ini **blocker** untuk semua layar bertabel.
 
@@ -311,6 +350,18 @@ Retail selalu biru di setiap chart, di setiap layar. Kalau warnanya berpindah-pi
 
 Urutan biru → amber → ungu dipilih, bukan urutan yang menaruh hijau dan amber bersebelahan: pasangan hijau/amber adalah yang paling sering tertukar pada deuteranopia. Hijau dan merah disisihkan ke peran laba/biaya, yang memang tidak pernah dibandingkan sebagai kategori sejajar.
 
+Kontras tiap seri sebagai elemen grafis (≥ 3.0, WCAG 1.4.11), kanvas / panel:
+
+| Token | Terang | Gelap |
+|---|---|---|
+| `--chart-1` biru | 4.82 / 5.26 | 5.75 / 5.15 |
+| `--chart-2` amber | 3.10 / 3.38 | 8.95 / 8.01 |
+| `--chart-3` ungu | 4.44 / 4.84 | 5.85 / 5.24 |
+| `--chart-4` hijau | 3.38 / 3.69 | 7.93 / 7.10 |
+| `--chart-5` merah | 4.04 / 4.41 | 5.82 / 5.21 |
+
+Klaim lama "kelima warna lolos ≥ 3.0 di terang maupun gelap" ternyata tidak benar untuk amber (2.15) dan hijau (2.46) di atas putih; nilai di atas memperbaikinya, dan tema gelap kini punya set chart sendiri (biru lama hanya 3.30 di atas `--card` gelap).
+
 Aturan lain:
 - Perbandingan > 3 kategori pakai **bar horizontal**, bukan pie. Pie dengan 5 irisan tidak bisa dibaca perbandingannya.
 - Garis grid pakai `--border`, teks sumbu `--muted-foreground` 12px tabular-nums.
@@ -353,12 +404,16 @@ Seragam di semua layar:
 
 | Bagian | Spesifikasi |
 |---|---|
-| Sidebar | 256px, collapsed 64px, `--sidebar`, ikon + label |
-| Header | 56px, sticky, berisi breadcrumb kiri + aksi utama halaman kanan |
+| Kanvas | `--background` hangat; rail, header chip, dan panel isi berwarna `--card` di atasnya, tanpa garis |
+| Sidebar (rail) | panel melayang `rounded-3xl`, inset 12px dari tepi; lebar 256px, ringkas 64px (ikon saja); chip merek di atas (lingkaran `--brand` + nama), tombol **Ringkas menu / Lebarkan menu** di bawah; status disimpan cookie `sidebar_state`, Ctrl/⌘+B tetap berlaku |
+| Item menu | pil 40px; aktif = `--sidebar-primary` (hampir hitam), tooltip berisi nama saat ringkas |
+| Mobile (< md) | rail jadi Sheet kiri, dibuka tombol menu di header |
+| Header | 64px, tidak sticky (POS mobile dan form katalog/aset punya `sticky` sendiri), breadcrumb kiri (di mobile hanya halaman sekarang) + aksi utama halaman + chip profil kanan |
+| Chip profil | inisial di lingkaran `--brand`/15% + nama (di mobile inisial saja); menu Pengaturan, Keluar |
 | Konten | padding 24px, lebar penuh (tanpa max-width) |
-| Focus ring | `--ring`, 2px, offset 2px |
+| Focus ring | `--ring`/50, 3px |
 
-Sepuluh module tidak muat sebagai daftar rata — pada 10 item, mata kehilangan tempat dan setiap navigasi jadi pencarian. Dikelompokkan jadi tiga, dipisah garis `--sidebar-border` dengan label grup 11px/500 `--muted-foreground`. Urutan di dalam grup mengikuti frekuensi pakai harian, bukan nomor module di business-flow bagian 6:
+Sepuluh module tidak muat sebagai daftar rata — pada 10 item, mata kehilangan tempat dan setiap navigasi jadi pencarian. Dikelompokkan jadi tiga dengan judul grup 11px/600 uppercase `--muted-foreground` yang **bisa dibuka/tutup** (tombol ber-`aria-expanded`). Semua grup terbuka bawaan; yang ditutup diingat per browser (`localStorage` `pt.nav.groups.closed`), dan grup berisi halaman aktif selalu dibuka saat navigasi. Saat rail ringkas, judul grup tidak muat — semua item tampil dan garis `--sidebar-border` menandai awal tiap grup. Urutan di dalam grup mengikuti frekuensi pakai harian, bukan nomor module di business-flow bagian 6:
 
 ```
 HARIAN
@@ -393,7 +448,9 @@ Dibatasi supaya generator tidak mengarang komponen yang tidak ada di shadcn dan 
 | Kebutuhan UI | Komponen |
 |---|---|
 | Daftar order, katalog, customer, piutang | `Table` + `Badge` |
-| KPI dashboard | `Card` |
+| KPI dashboard | `Card` / `SummaryCard` |
+| Bagian halaman (judul + isi) | `Panel` (`@/components/page`) |
+| Catatan read-only / cakupan data | `Notice` (`@/components/page`) |
 | Catat Payment | `Dialog` |
 | Detail order dari tabel | halaman penuh (sejak spek 7.4 — dulu `Sheet`; tombol Ubah tersembunyi di dasar Sheet) |
 | Form order studio/event, tambah/edit item katalog | halaman penuh, bukan modal (katalog sejak spek 7.2 — galeri foto dan varian tidak muat di dialog) |
@@ -410,9 +467,38 @@ Dibatasi supaya generator tidak mengarang komponen yang tidak ada di shadcn dan 
 
 Form order dibuat halaman penuh, bukan modal, karena punya banyak bagian (customer, item, jadwal, biaya) dan sering diisi bertahap — modal memaksa selesai sekali duduk dan gampang tertutup tidak sengaja.
 
-Detail order pakai Sheet, bukan halaman, supaya owner bisa cepat buka-tutup beberapa order berurutan tanpa kehilangan posisi scroll dan filter di tabel.
+Detail order dulu Sheet supaya owner bisa cepat buka-tutup beberapa order tanpa kehilangan posisi scroll; sejak spek 7.4 halaman penuh (lihat baris tabel di atas).
 
 Not a blocker — approve dengan komentar kalau ada penyimpangan yang beralasan.
+
+---
+
+### Konvensi halaman
+
+Primitif tata letak di `resources/js/components/page.tsx` (diadaptasi dari master-outlet). Page pass berikutnya menyusun setiap layar dari ini, bukan dari `div` bergaris buatan sendiri:
+
+```tsx
+<div className="flex flex-col gap-6 p-4 md:p-6">
+  <PageHeader
+    title="Pembayaran"
+    description="Tagihan yang belum lunas, terlama di atas."
+    meta={<Badge variant="warning">3 lewat tempo</Badge>}
+    actions={<Button>Catat Bayar</Button>}
+  />
+  <Panel title="Rincian" aside="4 order" flush>
+    <TabelData>…</TabelData>
+  </Panel>
+  <Notice>Basis kas: angka hanya menghitung uang yang sudah diterima.</Notice>
+</div>
+```
+
+| Primitif | Pakai untuk | Aturan |
+|---|---|---|
+| `PageHeader` | judul halaman (satu-satunya `h1`), deskripsi singkat, `meta` (badge status/lini di samping judul), `actions` (tombol, turun ke bawah judul di layar sempit) | Halaman dengan PageHeader tidak lagi memakai `<h1 className="sr-only">`. Aksi utama pindah dari `<PageActions>` (portal ke header) ke `actions`; slot header dicabut setelah semua halaman pindah |
+| `Panel` | setiap kelompok isi di atas kanvas: form section, ringkasan, tabel | `title` → `h2` di kepala panel bergaris bawah; `aside` untuk jumlah/tautan kecil di kanan; `flush` untuk tabel/daftar yang menempel ke tepi; tanpa `title`, beri `label` (jadi `aria-label` section). Ganti pola lama `rounded-lg border p-5` |
+| `Notice` | strip petunjuk abu-abu: catatan read-only, cakupan data, alasan angka | bukan peringatan — yang menuntut perhatian tetap `Alert` |
+
+Tabel tidak perlu dibungkus Panel kalau berdiri sendiri: `Table`/`TabelData` sudah panel putih. Di dalam `Panel flush`, tabel tetap rapi karena inset 6px-nya.
 
 ---
 
@@ -420,7 +506,7 @@ Not a blocker — approve dengan komentar kalau ada penyimpangan yang beralasan.
 
 Ditulis eksplisit supaya tidak ditambahkan "biar lengkap". Menuliskannya justru menambah noise dan bikin generator mengambil keputusan aneh di area yang default-nya sudah benar:
 
-- Skala shadow — shadcn berbasis border, bukan elevasi
+- Skala shadow — permukaan dibedakan lewat warna (panel putih di kanvas hangat), bukan elevasi; bayangan hanya pada overlay (popup, toast) dan tab aktif
 - Timing dan easing animasi
 - Breakpoint responsif — target desktop. Pengecualian (spek 4.6): **POS** di bawah `lg` (keranjang jadi Sheet bawah + tombol melayang) dan **Pembayaran** di bawah `md` (tabel jadi kartu, tombol 44 px). Layar lain boleh menggulir tabel ke samping
 - Ilustrasi custom untuk empty state — ikon lucide cukup
@@ -440,6 +526,8 @@ Penggantinya ada di `web/` — React Router 7 (SPA) + shadcn preset `b311momZs0`
 | `.dark --primary` | kontras 1.96 di atas `--card` | ganti ke `oklch(0.623 0.214 259.815)` |
 
 Tiga blocker yang gagal di Stitch sekarang mustahil menyimpang per layar karena hanya punya satu definisi: R8 di `AppShell`, R3 di `BadgeStatusBayar`, R4/R7 di `TabelData` + `KosongTabel`.
+
+> Catatan 17 Oktober 2026: tabel delta di atas menggambarkan preset lama dan prototipe `web/`. App Laravel kini memakai token bagian 2 (sistem master-outlet); prototipe `web/` tidak ikut diperbarui dan bukan lagi acuan visual.
 
 **Checklist angka di [stitch-prompts.md](./stitch-prompts.md) bagian 6 dijalankan sebagai test**, bukan dicek mata — omzet Rp 5.790.000, piutang Rp 8.050.000 dari 4 order, laba bersih −Rp 2.894.950 (−Rp 2.104.500 sebelum alokasi dana maintenance, business-flow 8.2), margin per lini, kelompok umur piutang, produk terlaris. Seluruh rekap diturunkan dari satu daftar order di `web/app/lib/dummy.ts`, jadi angka yang tidak cocok antar layar tidak mungkin terjadi.
 

@@ -1,19 +1,21 @@
 /*
- * Token desain dari prototype web/app/app.css — preset shadcn b311momZs0
- * (base-maia, mist) + modifikasi DESIGN.md (R1, R2, R3, R6). Ubah di sini
- * DAN di DESIGN.md bagian 2; prototype web/ hanya referensi.
+ * Token desain — diadaptasi dari sistem desain master-outlet (v3: kanvas
+ * hangat #f5f5f3, panel putih membulat, tombol utama hampir hitam, teal
+ * sebagai `--brand`, Inter). Ubah di sini DAN di DESIGN.md bagian 2.
+ * Netral ditulis hex supaya bisa dicocokkan dengan file desain lewat search;
+ * warna semantik & chart tetap oklch karena di-tune per lightness/chroma
+ * (kontras tiap pasangan tercatat di DESIGN.md bagian 2).
  */
 @import 'tailwindcss';
 @import 'tw-animate-css';
 /* Custom variant data-open/closed/checked dkk. yang dipakai komponen
    base-maia — tanpa ini state visual komponen Base UI tidak muncul. */
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/dm-sans';
-@import '@fontsource-variable/outfit';
-/* Preset b311momZs0 tidak membawa font mono. R2 butuh mono untuk nomor
-   invoice/ID order, dan kolom uang pakai mono alih-alih mengandalkan
-   `tabular-nums` — utility itu no-op tanpa error kalau font tidak punya
-   fitur `tnum`, dan kolom Rp balik zigzag tanpa ada yang teriak. */
+@import '@fontsource-variable/inter';
+/* Mono hanya untuk ID (nomor invoice/order, kode): subset Inter yang
+   di-self-host tidak membawa fitur `zero`/`cv*`, jadi 0/O dan 1/l/I sulit
+   dibedakan di kode yang dicocokkan huruf per huruf. Angka uang TIDAK lagi
+   butuh mono — lihat `font-variant-numeric` di body dan DESIGN.md R2. */
 @import '@fontsource-variable/jetbrains-mono';
 
 /* Template Laravel. */
@@ -28,114 +30,128 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.148 0.004 228.8);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.148 0.004 228.8);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.148 0.004 228.8);
-    --primary: oklch(0.488 0.243 264.376);
-    --primary-foreground: oklch(0.97 0.014 254.604);
-    --secondary: oklch(0.967 0.001 286.375);
-    --secondary-foreground: oklch(0.21 0.006 285.885);
-    --muted: oklch(0.963 0.002 197.1);
-    --muted-foreground: oklch(0.56 0.021 213.5);
-    --accent: oklch(0.963 0.002 197.1);
-    --accent-foreground: oklch(0.218 0.008 223.9);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.925 0.005 214.3);
-    --input: oklch(0.925 0.005 214.3);
-    --ring: oklch(0.723 0.014 214.4);
+    --background: #f5f5f3;
+    --foreground: #1b1b19;
+    --card: #ffffff;
+    --card-foreground: #1b1b19;
+    --popover: #ffffff;
+    --popover-foreground: #1b1b19;
+    --primary: #1b1b19;
+    --primary-foreground: #ffffff;
+    /* Teal untuk logo, tautan, dan aksen — bukan tombol utama. */
+    --brand: oklch(0.508 0.118 165.612);
+    --brand-foreground: #ffffff;
+    --secondary: #f0f0ee;
+    --secondary-foreground: #1b1b19;
+    --muted: #f3f3f1;
+    --muted-foreground: #6b6b64;
+    --accent: #f3f3f1;
+    --accent-foreground: #1b1b19;
+    /* Lebih gelap dari #dc2626 milik sumber: #dc2626 hanya 4.42 di atas
+       kanvas, padahal angka negatif (R5) juga tampil di luar panel. */
+    --destructive: oklch(0.56 0.215 27);
+    --border: #ececea;
+    --input: #e3e3df;
+    --ring: #a3a39c;
 
-    /* TAMBAHAN — status semantik (DESIGN.md R3). Tidak ada di preset shadcn
-       mana pun; tanpa ini badge status bayar tidak bisa dibangun. */
-    --success: oklch(0.596 0.145 163.2);
-    --success-foreground: oklch(0.98 0.02 163);
-    --success-subtle: oklch(0.955 0.035 163.2);
-    --success-subtle-foreground: oklch(0.465 0.125 163.2);
-    --warning: oklch(0.646 0.155 58.3);
-    --warning-foreground: oklch(0.98 0.02 80);
-    --warning-subtle: oklch(0.96 0.045 80);
-    --warning-subtle-foreground: oklch(0.48 0.115 58.3);
-    --destructive-subtle: oklch(0.955 0.03 27.3);
-    --destructive-subtle-foreground: oklch(0.505 0.2 27.3);
+    /* TAMBAHAN — status semantik (DESIGN.md R3). Hue hijau 150, bukan 163:
+       163 nyaris sama dengan teal `--brand`, dan "Lunas" tidak boleh terbaca
+       sebagai warna merek. */
+    --success: oklch(0.53 0.13 150);
+    --success-foreground: #ffffff;
+    --success-subtle: oklch(0.955 0.04 150);
+    --success-subtle-foreground: oklch(0.43 0.11 150);
+    --warning: oklch(0.55 0.13 58);
+    --warning-foreground: #ffffff;
+    --warning-subtle: oklch(0.96 0.05 85);
+    --warning-subtle-foreground: oklch(0.47 0.115 58);
+    --destructive-subtle: oklch(0.955 0.03 25);
+    --destructive-subtle-foreground: oklch(0.5 0.19 27);
 
-    /* DIGANTI — preset `chartColor: mist` monokrom (chroma 0.007–0.021):
-       antar seri hanya beda kontras 1.36–1.60, tidak terbedakan. Margin per
-       Lini butuh tiga seri sejajar yang jelas beda (DESIGN.md R6).
-       Urutan biru→amber→ungu, bukan yang menaruh hijau/amber bersebelahan:
-       pasangan itu paling sering tertukar pada deuteranopia. Hijau & merah
-       disisihkan ke peran laba/biaya yang tidak pernah dibandingkan sejajar. */
+    /* Chart kategorikal dengan peran tetap (DESIGN.md R6). Urutan
+       biru→amber→ungu, bukan yang menaruh hijau/amber bersebelahan: pasangan
+       itu paling sering tertukar pada deuteranopia. Amber & hijau digelapkan
+       dari versi lama supaya >= 3.0 juga di atas kanvas #f5f5f3. */
     --chart-1: oklch(0.546 0.245 262.881); /* biru   — Retail        */
-    --chart-2: oklch(0.769 0.188 70.1); /* amber  — Studio        */
-    --chart-3: oklch(0.627 0.265 303.9); /* ungu   — Event         */
-    --chart-4: oklch(0.696 0.17 162.5); /* hijau  — Laba / masuk  */
-    --chart-5: oklch(0.645 0.246 16.4); /* merah  — Biaya / keluar*/
+    --chart-2: oklch(0.65 0.16 60); /* amber  — Studio        */
+    --chart-3: oklch(0.58 0.24 304); /* ungu   — Event         */
+    --chart-4: oklch(0.6 0.15 152); /* hijau  — Laba / masuk  */
+    --chart-5: oklch(0.6 0.22 22); /* merah  — Biaya / keluar*/
 
-    --radius: 0.875rem;
-    --sidebar: oklch(0.987 0.002 197.1);
-    --sidebar-foreground: oklch(0.148 0.004 228.8);
-    --sidebar-primary: oklch(0.546 0.245 262.881);
-    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-    --sidebar-accent: oklch(0.963 0.002 197.1);
-    --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
-    --sidebar-border: oklch(0.925 0.005 214.3);
-    --sidebar-ring: oklch(0.723 0.014 214.4);
+    --radius: 0.625rem;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #1b1b19;
+    /* Item menu aktif = pil hampir hitam, sama dengan tombol utama. */
+    --sidebar-primary: #1b1b19;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f0f0ee;
+    --sidebar-accent-foreground: #1b1b19;
+    --sidebar-border: #ececea;
+    --sidebar-ring: #a3a39c;
 }
 
+/*
+ * Desain sumber tidak punya tema gelap; ini turunannya: netral hangat yang
+ * sama digelapkan, tombol utama dibalik jadi hampir putih (peran "kontras
+ * tertinggi" tetap), brand dan warna semantik dinaikkan lightness-nya.
+ */
 .dark {
-    --background: oklch(0.148 0.004 228.8);
-    --foreground: oklch(0.987 0.002 197.1);
-    --card: oklch(0.218 0.008 223.9);
-    --card-foreground: oklch(0.987 0.002 197.1);
-    --popover: oklch(0.218 0.008 223.9);
-    --popover-foreground: oklch(0.987 0.002 197.1);
-    /* DIGANTI dari oklch(0.424 0.199 265.638) — nilai preset kontrasnya
-       hanya 1.96 di atas --card, jadi teks/link/garis chart tidak terbaca.
-       Disamakan dengan --sidebar-primary supaya sidebar & konten konsisten. */
-    --primary: oklch(0.623 0.214 259.815);
-    --primary-foreground: oklch(0.97 0.014 254.604);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.275 0.011 216.9);
-    --muted-foreground: oklch(0.723 0.014 214.4);
-    --accent: oklch(0.275 0.011 216.9);
-    --accent-foreground: oklch(0.987 0.002 197.1);
+    --background: #141413;
+    --foreground: #f5f5f3;
+    --card: #1f1f1d;
+    --card-foreground: #f5f5f3;
+    --popover: #1f1f1d;
+    --popover-foreground: #f5f5f3;
+    --primary: #f5f5f3;
+    --primary-foreground: #1b1b19;
+    --brand: oklch(0.72 0.13 165);
+    --brand-foreground: #0f2a21;
+    --secondary: #2a2a27;
+    --secondary-foreground: #f5f5f3;
+    --muted: #2a2a27;
+    --muted-foreground: #a3a39c;
+    --accent: #2a2a27;
+    --accent-foreground: #f5f5f3;
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.56 0.021 213.5);
+    --ring: #6b6b64;
 
-    --success: oklch(0.696 0.17 162.5);
-    --success-foreground: oklch(0.16 0.03 163);
-    --success-subtle: oklch(0.29 0.055 163.2);
-    --success-subtle-foreground: oklch(0.8 0.15 163.2);
-    --warning: oklch(0.769 0.188 70.1);
-    --warning-foreground: oklch(0.16 0.03 80);
-    --warning-subtle: oklch(0.3 0.06 70.1);
-    --warning-subtle-foreground: oklch(0.84 0.15 80);
-    --destructive-subtle: oklch(0.3 0.07 27.3);
-    --destructive-subtle-foreground: oklch(0.79 0.13 22.2);
+    --success: oklch(0.74 0.15 150);
+    --success-foreground: #10230f;
+    --success-subtle: oklch(0.3 0.05 150);
+    --success-subtle-foreground: oklch(0.84 0.13 150);
+    --warning: oklch(0.78 0.15 75);
+    --warning-foreground: #2a1c05;
+    --warning-subtle: oklch(0.31 0.055 70);
+    --warning-subtle-foreground: oklch(0.86 0.13 82);
+    --destructive-subtle: oklch(0.3 0.07 25);
+    --destructive-subtle-foreground: oklch(0.8 0.12 22);
 
-    /* --chart-1..5 milik preset DIHAPUS di sini, bukan di-override: kelima
-       warna kategorikal di :root sudah lolos kontras >= 3.0 terhadap
-       --background terang maupun --card gelap, jadi cukup diwarisi. Kalau
-       lima baris monokrom preset dibiarkan, dark mode balik tak terbaca. */
+    /* Peran sama dengan :root, lightness dinaikkan: biru terang lama hanya
+       3.30 di atas --card gelap. */
+    --chart-1: oklch(0.66 0.19 260);
+    --chart-2: oklch(0.78 0.16 70);
+    --chart-3: oklch(0.68 0.21 304);
+    --chart-4: oklch(0.72 0.16 152);
+    --chart-5: oklch(0.68 0.2 20);
 
-    --sidebar: oklch(0.218 0.008 223.9);
-    --sidebar-foreground: oklch(0.987 0.002 197.1);
-    --sidebar-primary: oklch(0.623 0.214 259.815);
-    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-    --sidebar-accent: oklch(0.275 0.011 216.9);
-    --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+    --sidebar: #1f1f1d;
+    --sidebar-foreground: #f5f5f3;
+    --sidebar-primary: #f5f5f3;
+    --sidebar-primary-foreground: #1b1b19;
+    --sidebar-accent: #2a2a27;
+    --sidebar-accent-foreground: #f5f5f3;
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.56 0.021 213.5);
+    --sidebar-ring: #6b6b64;
 }
 
 @theme inline {
-    --font-sans: 'DM Sans Variable', sans-serif;
-    --font-heading: 'Outfit Variable', sans-serif;
+    --font-sans: 'Inter Variable', sans-serif;
+    --font-heading: var(--font-sans);
     --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+    --color-brand: var(--brand);
+    --color-brand-foreground: var(--brand-foreground);
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
     --color-success-subtle: var(--success-subtle);
@@ -191,7 +207,10 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        /* Angka tabular di seluruh app (DESIGN.md R2): digit Inter bawaannya
+           proporsional, jadi kolom Rp rata kanan zigzag tanpa ini. Global,
+           bukan per sel, supaya tidak ada kolom yang lupa. */
+        @apply bg-background text-foreground tabular-nums;
     }
     button:not(:disabled),
     [role='button']:not(:disabled) {

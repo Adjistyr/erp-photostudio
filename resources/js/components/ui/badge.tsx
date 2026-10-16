@@ -26,15 +26,12 @@ const badgeVariants = cva(
          * empat gaya berbeda di lima layar. Sebagai variant, nama status dan
          * warnanya tidak bisa lepas satu sama lain.
          *
-         * `rounded-md` mengganti `rounded-4xl` bawaan: radius 0.875rem terlalu
-         * bulat untuk elemen kecil di layar padat (DESIGN.md R2).
+         * Bentuknya pil `rounded-4xl` seperti badge lain (sistem master-outlet);
+         * pengecualian `rounded-md` lama gugur bersama radius 0.875rem.
          */
-        success:
-          "rounded-md bg-success-subtle text-success-subtle-foreground",
-        warning:
-          "rounded-md bg-warning-subtle text-warning-subtle-foreground",
-        danger:
-          "rounded-md bg-destructive-subtle text-destructive-subtle-foreground",
+        success: "bg-success-subtle text-success-subtle-foreground",
+        warning: "bg-warning-subtle text-warning-subtle-foreground",
+        danger: "bg-destructive-subtle text-destructive-subtle-foreground",
       },
     },
     defaultVariants: {

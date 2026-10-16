@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
+import { NavRailToggle } from '@/components/nav-rail-toggle';
 import {
     Sidebar,
     SidebarContent,
@@ -106,14 +106,20 @@ const navGroups: NavGroup[] = [
     },
 ];
 
+/**
+ * Rail menu ala master-outlet: panel putih membulat yang melayang di atas
+ * kanvas, chip merek di atas, tombol ringkas/lebarkan di bawah. Profil pindah
+ * ke header (NavUser). Mobile tetap Sheet bawaan Sidebar.
+ */
 export function AppSidebar() {
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="floating">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             size="lg"
+                            className="h-12 gap-2.5 rounded-full px-1.5 group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0.5!"
                             render={<Link href={dashboard()} prefetch />}
                         >
                             <AppLogo />
@@ -127,7 +133,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavUser />
+                <NavRailToggle />
             </SidebarFooter>
         </Sidebar>
     );

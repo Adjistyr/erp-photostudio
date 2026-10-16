@@ -20,7 +20,8 @@ export function AppShell({ children, variant = 'sidebar' }: Props) {
     return (
         <SidebarProvider
             defaultOpen={isOpen}
-            // R8: collapsed 64px; bawaan shadcn 3rem (48px).
+            className="bg-background"
+            // R8: rail ringkas 64px; bawaan shadcn 3rem (48px).
             style={{ '--sidebar-width-icon': '4rem' } as React.CSSProperties}
         >
             {children}

@@ -92,10 +92,11 @@ UI dan pesan server berbahasa Indonesia; kode berbahasa Inggris. Pesan validasi,
 `phpunit.xml` dan CI memakai PostgreSQL, bukan SQLite `:memory:` bawaan starter kit. Laporan bulanan bergantung pada fungsi tanggal dan agregasi yang perilakunya beda antar database — bug semacam itu tidak boleh baru ketahuan di produksi.
 
 ### Komponen UI
-- Primitive di `resources/js/components/ui/` adalah **Base UI** (preset base-maia, mist), bukan Radix. Pola: `render={<Link … />}`, bukan `asChild`.
-- Komponen yang sudah ada di prototype (`web/app/components/ui/`) **disalin dari sana**: ganti import `~/` → `@/` dan `"cn"` → `"@/lib/utils"`. Komponen prototype sudah membawa kustomisasi DESIGN.md (varian badge R3, dsb).
+- Primitive di `resources/js/components/ui/` adalah **Base UI** (preset base-maia), bukan Radix. Pola: `render={<Link … />}`, bukan `asChild`.
+- Tampilan mengikuti sistem desain master-outlet (DESIGN.md bagian 2, "Konvensi halaman"): kelas wrapper `ui/*` (button pil `outline` = `bg-card`, input/select `bg-card`, table = panel putih, card `rounded-3xl` tanpa ring) diselaraskan dengan `master-outlet/web/src/components/ui`. Prototype `web/` bukan lagi sumber salinan — tampilannya sistem lama.
+- Tata letak halaman: `PageHeader`, `Panel`, `Notice` dari `@/components/page`.
 - Token desain di `resources/css/app.css` — ubah bersamaan dengan DESIGN.md bagian 2.
-- Font self-hosted lewat `@fontsource-variable` (DM Sans, Outfit, JetBrains Mono), tanpa CDN.
+- Font self-hosted lewat `@fontsource-variable` (Inter, JetBrains Mono untuk ID saja), tanpa CDN. Angka tabular dipasang global di `body` (DESIGN.md R2).
 
 ### Rumus bisnis
 Dihitung di PHP (`Modules/Finance/Services`), dikirim ke halaman sebagai props Inertia — bukan di TypeScript. Skema, konvensi, glosarium istilah Indonesia ↔ kode, dan letak tiap rumus: [database.md](./database.md).
