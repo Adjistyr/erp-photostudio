@@ -51,15 +51,15 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 4.4 Split payment | `4.4-split-payment.md` | M | 2.2 | ✅ #50 |
 | 4.5 Ekspor CSV | `4.5-ekspor-csv.md` | S | 3.1, 3.3 | ✅ #49 |
 | 4.6 Layar sempit | `4.6-layar-sempit.md` | M | 2.4 | ✅ #52 |
-| 5.1 Peran & hak akses | `5.1-peran-hak-akses.md` | L | 0.1 | ⬜ |
+| 5.1 Peran & hak akses | `5.1-peran-hak-akses.md` | L | 0.1 | ✅ #64 |
 | 5.2 Shift kasir | `5.2-shift-kasir.md` | L | 5.1, 3.3 | ❌ tidak dikerjakan (POS tanpa shift, 9 Okt 2026) |
 | 6.1 Serial + garansi | `6.1-serial-garansi.md` | S | — | ➜ dilebur ke 8.1 |
 | 6.2 Proyeksi penggantian | `6.2-proyeksi-penggantian.md` | M | — | ✅ #59 (lewat 8.3) |
-| 6.3 Bundel katalog | `6.3-bundel-katalog.md` | L | 1.1 | ⬜ |
-| 6.4 Termin pembayaran | `6.4-termin-pembayaran.md` | L | 2.4 | ⬜ |
-| 6.5 Riwayat harga | `6.5-riwayat-harga.md` | M | 0.1 | ⬜ |
-| 6.6 Sumber lead | `6.6-sumber-lead.md` | S | 1.2 | ⬜ |
-| 6.7 Lampiran bukti transfer | `6.7-lampiran-bukti-transfer.md` | M | hosting diputuskan | ⬜ |
+| 6.3 Bundel katalog | `6.3-bundel-katalog.md` | L | 1.1 | ✅ #64 |
+| 6.4 Termin pembayaran | `6.4-termin-pembayaran.md` | L | 2.4 | ✅ #64 |
+| 6.5 Riwayat harga | `6.5-riwayat-harga.md` | M | 0.1 | ✅ #64 |
+| 6.6 Sumber lead | `6.6-sumber-lead.md` | S | 1.2 | ✅ #64 |
+| 6.7 Lampiran bukti transfer | `6.7-lampiran-bukti-transfer.md` | M | hosting diputuskan | ✅ #64 (disk privat `local`, sama dengan 8.2) |
 | 7.1 Galeri foto + profil publik katalog | `7.1-galeri-foto-katalog.md` | L | — | ✅ #54 |
 | 7.2 Tambah/Edit katalog jadi halaman | `7.2-halaman-form-katalog.md` | M | 7.1 | ✅ #55 |
 | 7.3 Varian produk | `7.3-varian-produk.md` | L | 7.1, 7.2 | ✅ #56 |
@@ -71,3 +71,5 @@ Satu file = satu item = satu PR ke `develop`. Peta fase, urutan, dan keputusan s
 | 8.4 Peminjaman alat ke event | `8.4-peminjaman-alat.md` | L | 8.1 | ✅ #60 |
 
 Urutan pengerjaan yang disarankan: 0.1 → 0.2 → 1.1 → 2.1 → 2.2 → 2.3 → 2.4 → 1.2 → 1.3 → 1.4 → 2.5 → 3.1 → 3.3 → 3.2 → 3.4 → 3.5 → 3.6 → 4.1 → 4.2 → 4.5 → 4.4 → 4.3 → 4.6 → (saat admin ada) 5.1 → 6.x sesuai kebutuhan. Fase 2 ditaruh sebelum 1.2 karena kecil, tidak tergantung, dan langsung terasa oleh customer. **Fase 7** = permintaan tambahan dari user di luar rencana awal (mulai 9 Okt 2026), dikerjakan saat diminta. **Fase 8** = modul Aset jadi register alat (keputusan 11 Okt 2026: daftar alat saja, bukan stok bahan), dikerjakan berurutan 8.1 → 8.2 → 8.3 → 8.4.
+
+Sejak **#64** (17 Okt 2026) seluruh spek selesai kecuali 5.2 (dibatalkan). #64 menyimpang dari "satu spek = satu PR" atas permintaan user: satu branch, satu commit per item, satu PR — ditambah sistem desain ala master-outlet.
