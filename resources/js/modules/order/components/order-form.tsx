@@ -44,7 +44,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRp, hanyaDigit } from '@/lib/format';
-import { variantLabel } from '@/modules/catalog';
+import { bundleIncludes, variantLabel } from '@/modules/catalog';
+import type { BundlePart } from '@/modules/catalog';
 import {
     categoryMatches,
     isServiceCategory,
@@ -73,6 +74,8 @@ export interface CatalogOption {
     is_active?: boolean;
     /** Varian aktif produk (spek 7.3/7.5); kosong = tanpa varian. */
     variants?: { id: number; name: string; price: number }[];
+    /** Isi paket jasa (spek 6.3); kosong = bukan paket berkomponen. */
+    components?: BundlePart[];
 }
 
 export interface ItemRow {
@@ -432,6 +435,10 @@ export function OrderFormFields({
                                 ? chosen.variants
                                 : [];
                         const total = lineTotal(r, catalog);
+                        // Isi paket (spek 6.3) — baris baru saja; baris lama memakai snapshot di Detail Order.
+                        const includes = old
+                            ? null
+                            : bundleIncludes(chosen?.components, r.quantity);
                         return (
                             <div key={r.key} className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
@@ -694,6 +701,11 @@ export function OrderFormFields({
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                )}
+                                {includes && (
+                                    <p className="pl-2 text-xs text-muted-foreground">
+                                        {includes}
+                                    </p>
                                 )}
                                 <InputError message={rowError} />
                             </div>

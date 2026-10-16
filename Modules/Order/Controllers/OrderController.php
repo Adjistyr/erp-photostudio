@@ -222,6 +222,8 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    // Paket berkomponen (spek 6.3): snapshot, bukan rujukan katalog.
+                    'components' => $line['components'],
                 ]);
             }
             // Termin pembayaran (spek 6.4) — sudah dicek event-only di request.
@@ -352,6 +354,7 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    'components' => $line['components'],
                 ]);
             }
 
@@ -478,7 +481,7 @@ class OrderController extends Controller
     private function catalogOptions(array $kept = []): array
     {
         return CatalogItem::query()
-            ->with(['variants' => fn ($q) => $q->where('is_active', true)])
+            ->with(['variants' => fn ($q) => $q->where('is_active', true), 'components'])
             ->where(fn ($q) => $q
                 ->where(fn ($q) => $q->where('type', CatalogItemType::Service)->where('is_active', true)->whereIn('category', ServiceCategory::values()))
                 ->orWhere(fn ($q) => $q->where('type', CatalogItemType::Product)->where('is_active', true))
@@ -492,6 +495,8 @@ class OrderController extends Controller
                 'id' => $c->id, 'name' => $c->name, 'price' => $c->price, 'category' => $c->category,
                 'type' => $c->type->value, 'is_active' => $c->is_active,
                 'variants' => $c->variants->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => $v->price])->values()->all(),
+                // Isi paket (spek 6.3) — keterangan "termasuk …" di baris form; HPP tidak dikirim.
+                'components' => $c->components->map(fn (CatalogItem $p) => ['name' => $p->name, 'quantity' => $p->pivotQuantity()])->values()->all(),
             ])->values()->all();
     }
 
@@ -547,6 +552,8 @@ class OrderController extends Controller
                 'catalog_item_id' => $i->catalog_item_id, 'unit_cost' => $i->unit_cost,
                 // Item custom (spek 1.3) — harga nego di luar katalog.
                 'is_custom' => $i->catalog_item_id === null,
+                // Snapshot komponen paket (spek 6.3), termasuk HPP per komponen saat transaksi.
+                'components' => $i->components,
             ])->values()->all(),
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,

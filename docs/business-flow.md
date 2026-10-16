@@ -340,6 +340,8 @@ Dokumen kebutuhan menanyakan "perlu menghitung HPP? riset dulu". Jawabannya: per
 
 **HPP jasa** — bukan biaya bahan, tapi **biaya langsung per job**: fee fotografer, videografer, MUA, transport, sewa lokasi, sewa alat, editor. Berbeda-beda tiap job, jadi tidak bisa ditaruh di katalog — harus dicatat per order lewat BiayaJob.
 
+**Paket jasa berisi produk (bundel, spek 6.3)** — mis. "Paket Studio 1 Jam termasuk 5 cetak 4R". Komponen produk dipasang di Katalog (Edit paket → Komponen paket); harga paket tetap diketik owner. Saat paket masuk order, HPP bahannya = Σ HPP komponen × qty **dihitung saat transaksi** dan disalin ke baris order (snapshot, sama dengan produk), sehingga margin paket ikut berkurang tanpa menambah baris cetak yang membuat customer tertagih dua kali. Biaya job tetap dicatat per order seperti biasa. Stok komponen tidak dikurangi (tidak dilacak).
+
 **Yang sengaja tidak dilakukan:** metode costing persediaan (FIFO / rata-rata) dan alokasi biaya overhead ke tiap job. Keduanya menambah kerumitan besar dengan manfaat yang tidak terasa di skala bisnis ini. Overhead cukup dicatat sebagai biaya operasional bulanan, tidak perlu dibagi-bagi ke tiap order.
 
 **Istilah "HPP" di sheet client berbeda arti.** Di sheet [HPP & pembagian hasil](./original-template/hpp-pembagaian-hasil-potraittime.md), "HPP Operasional" dan "HPP Maintenance" sebenarnya overhead bulanan dan dana servis alat — bukan HPP dalam arti dokumen ini. Di app dipakai nama **Biaya Operasional** dan **Dana Maintenance**, supaya "HPP" hanya punya satu arti: biaya bahan per unit.

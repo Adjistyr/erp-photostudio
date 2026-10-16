@@ -10,6 +10,9 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         ->parameters(['catalog' => 'catalogItem']);
     Route::patch('catalog/{catalogItem}/toggle-active', [CatalogItemController::class, 'toggleActive'])
         ->name('catalog.toggle-active');
+    // Komponen paket jasa (spek 6.3) — mengganti seluruh daftar.
+    Route::put('catalog/{catalogItem}/components', [CatalogItemController::class, 'updateComponents'])
+        ->name('catalog.components.update');
     // Galeri foto (spek 7.1). scopeBindings: foto item lain → 404.
     Route::post('catalog/{catalogItem}/photos', [CatalogPhotoController::class, 'store'])->name('catalog.photos.store');
     Route::delete('catalog/{catalogItem}/photos/{photo}', [CatalogPhotoController::class, 'destroy'])

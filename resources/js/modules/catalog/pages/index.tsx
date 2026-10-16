@@ -10,10 +10,12 @@
 
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    Calculator,
     CornerDownRight,
     Eye,
     EyeOff,
     MoreHorizontal,
+    Package,
     Pencil,
     Plus,
 } from 'lucide-react';
@@ -53,6 +55,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatPersen, formatRp } from '@/lib/format';
+import { bundleIncludes } from '@/modules/catalog/lib/bundle';
 import { filterCatalog, isLowMargin } from '@/modules/catalog/lib/filter';
 import type { CatalogItem, CatalogVariant } from '@/modules/catalog/types';
 import { index as catalogIndex } from '@/routes/catalog';
@@ -207,6 +210,15 @@ export default function CatalogIndex({
                                                             varian
                                                         </span>
                                                     )}
+                                                    {/* Isi paket jasa (spek 6.3). */}
+                                                    {item.components.length >
+                                                        0 && (
+                                                        <span className="text-xs font-normal text-muted-foreground">
+                                                            {bundleIncludes(
+                                                                item.components,
+                                                            )}
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </span>
                                         </TableCell>
@@ -253,12 +265,20 @@ export default function CatalogIndex({
                                         "—" untuk jasa. Sengaja BUKAN Rp 0: nol
                                         berarti "tidak ada biaya", padahal yang
                                         benar "biayanya tidak tetap, dicatat per
-                                        job".
+                                        job". Paket berkomponen (spek 6.3): HPP
+                                        bahan hasil hitung; margin tetap "—"
+                                        karena biaya job belum termasuk.
                                     */}
                                         {item.unit_cost === null ||
                                         item.variants.length > 0 ? (
                                             <>
-                                                <NotApplicable />
+                                                {item.bundle_cost !== null ? (
+                                                    <BundleCostCell
+                                                        cost={item.bundle_cost}
+                                                    />
+                                                ) : (
+                                                    <NotApplicable />
+                                                )}
                                                 <NotApplicable />
                                                 <NotApplicable />
                                             </>
@@ -348,6 +368,20 @@ export default function CatalogIndex({
                                                             <Pencil />
                                                             Edit
                                                         </DropdownMenuItem>
+                                                        {/* Komponen paket (spek 6.3) — bagian di halaman Edit. */}
+                                                        {item.type ===
+                                                            'service' && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    router.visit(
+                                                                        `${CatalogItemController.edit.url(item.id)}#komponen`,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Package />
+                                                                Komponen…
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         <DropdownMenuItem
                                                             onClick={() =>
                                                                 toggleActive(
@@ -387,7 +421,8 @@ export default function CatalogIndex({
                 <p className="text-xs text-muted-foreground">
                     HPP bahan hanya berlaku untuk produk fisik. HPP jasa berbeda
                     tiap job — fee crew, transport, sewa — dan dicatat per order
-                    lewat menu Biaya.
+                    lewat menu Biaya. Paket jasa berkomponen menampilkan HPP
+                    bahan komponennya (dihitung, ikut ke order berikutnya).
                 </p>
             </div>
         </>
@@ -445,6 +480,30 @@ function NotApplicable() {
     return (
         <TableCell className="text-right font-mono text-muted-foreground">
             —
+        </TableCell>
+    );
+}
+
+/** HPP bahan paket berkomponen (spek 6.3) — hasil hitung, bukan isian. */
+function BundleCostCell({ cost }: { cost: number }) {
+    return (
+        <TableCell className="text-right font-mono whitespace-nowrap">
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <span className="inline-flex cursor-help items-center gap-1" />
+                    }
+                >
+                    <Calculator
+                        className="size-3.5 text-muted-foreground"
+                        aria-label="Dihitung dari komponen"
+                    />
+                    {formatRp(cost)}
+                </TooltipTrigger>
+                <TooltipContent>
+                    Dihitung dari komponen paket dengan HPP katalog saat ini.
+                </TooltipContent>
+            </Tooltip>
         </TableCell>
     );
 }

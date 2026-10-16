@@ -32,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { BundleComponents } from '@/modules/catalog/components/bundle-components';
 import { PhotoGallery } from '@/modules/catalog/components/photo-gallery';
 import { PriceHistory } from '@/modules/catalog/components/price-history';
 import {
@@ -46,6 +47,7 @@ import type {
     CatalogItem,
     CatalogItemType,
     CatalogPriceChange,
+    ComponentOption,
     ServiceCategoryOption,
 } from '@/modules/catalog/types';
 import { index as catalogIndex } from '@/routes/catalog';
@@ -71,6 +73,7 @@ export default function CatalogForm({
     price_changes,
     service_categories,
     low_margin_ratio,
+    component_options,
 }: {
     item: CatalogItem | null;
     /** Riwayat harga (spek 6.5), terbaru dulu; kosong saat tambah. */
@@ -78,6 +81,8 @@ export default function CatalogForm({
     service_categories: ServiceCategoryOption[];
     /** Ambang margin rendah 0..1 (spek 3.6) — ringkasan memerah di bawahnya. */
     low_margin_ratio: number;
+    /** Produk yang bisa jadi komponen paket jasa (spek 6.3). */
+    component_options: ComponentOption[];
 }) {
     const form = useForm<ItemForm>({
         name: item?.name ?? '',
@@ -377,6 +382,40 @@ export default function CatalogForm({
                         </section>
                     )}
 
+                    {data.type === 'service' && (
+                        <section
+                            id="komponen"
+                            className="flex scroll-mt-6 flex-col gap-4 rounded-lg border p-5"
+                        >
+                            <div className="flex flex-col gap-0.5">
+                                <h2 className="font-heading text-base font-semibold">
+                                    Komponen paket{' '}
+                                    <span className="text-sm font-normal text-muted-foreground">
+                                        — opsional
+                                    </span>
+                                </h2>
+                                <p className="text-xs text-muted-foreground">
+                                    Produk yang selalu ikut paket ini (mis. 5×
+                                    Cetak 4R). HPP bahannya ikut terhitung ke
+                                    margin order tanpa menambah baris cetak —
+                                    customer tidak tertagih dua kali.
+                                </p>
+                            </div>
+                            {editing && item.type === 'service' ? (
+                                <BundleComponents
+                                    itemId={item.id}
+                                    components={item.components}
+                                    options={component_options}
+                                />
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    Komponen bisa ditambahkan setelah jasa ini
+                                    disimpan.
+                                </p>
+                            )}
+                        </section>
+                    )}
+
                     <section className="flex flex-col gap-4 rounded-lg border p-5">
                         <div className="flex flex-col gap-0.5">
                             <h2 className="font-heading text-base font-semibold">
@@ -515,7 +554,10 @@ export default function CatalogForm({
                                 <span className="font-mono text-muted-foreground">
                                     {data.type === 'product'
                                         ? formatRp(unitCost)
-                                        : '—'}
+                                        : // Paket berkomponen (spek 6.3): tersimpan, dihitung server.
+                                          item?.bundle_cost != null
+                                          ? `${formatRp(item.bundle_cost)} (komponen)`
+                                          : '—'}
                                 </span>
                             </div>
                             <Separator />

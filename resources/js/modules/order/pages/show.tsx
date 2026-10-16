@@ -6,8 +6,8 @@
  */
 
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowRight, Pencil } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowRight, CornerDownRight, Pencil } from 'lucide-react';
+import { Fragment, useState } from 'react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
@@ -139,25 +139,45 @@ export default function OrderShow({
                     <Table className={KELAS_DENSITY}>
                         <TableBody>
                             {order.items.map((i) => (
-                                <TableRow key={i.id}>
-                                    <TableCell className="font-medium">
-                                        {i.name}
-                                        {i.is_custom && (
-                                            <Badge
-                                                variant="outline"
-                                                className="ml-2"
-                                            >
-                                                Custom
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-muted-foreground">
-                                        {i.quantity} × {formatRp(i.unit_price)}
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        {formatRp(i.quantity * i.unit_price)}
-                                    </TableCell>
-                                </TableRow>
+                                <Fragment key={i.id}>
+                                    <TableRow>
+                                        <TableCell className="font-medium">
+                                            {i.name}
+                                            {i.is_custom && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="ml-2"
+                                                >
+                                                    Custom
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-muted-foreground">
+                                            {i.quantity} ×{' '}
+                                            {formatRp(i.unit_price)}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {formatRp(
+                                                i.quantity * i.unit_price,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    {/* Isi paket (spek 6.3) — snapshot saat transaksi, tanpa harga. */}
+                                    {i.components?.map((c) => (
+                                        <TableRow
+                                            key={c.name}
+                                            className="border-0 text-muted-foreground"
+                                        >
+                                            <TableCell colSpan={3}>
+                                                <span className="flex items-center gap-2 pl-4 text-xs">
+                                                    <CornerDownRight className="size-3.5 shrink-0" />
+                                                    {c.quantity * i.quantity}×{' '}
+                                                    {c.name}
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </Fragment>
                             ))}
                         </TableBody>
                     </Table>

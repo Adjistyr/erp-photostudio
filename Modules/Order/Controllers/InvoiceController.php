@@ -78,6 +78,9 @@ class InvoiceController extends Controller
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
                 'is_custom' => $i->catalog_item_id === null,
+                // Isi paket (spek 6.3) untuk sub-baris "termasuk …" — tanpa HPP: halaman ini dibuka customer.
+                'components' => $i->components === null ? null
+                    : array_map(fn (array $c) => ['name' => $c['name'], 'quantity' => $c['quantity']], $i->components),
             ])->values()->all(),
             'discount' => $o->discount,
             'total' => $o->total(),

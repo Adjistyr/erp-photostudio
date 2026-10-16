@@ -7,12 +7,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Catalog\Models\CatalogItemPhoto;
 use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Catalog\Models\CatalogPriceChange;
 use Modules\Catalog\Requests\CatalogItemRequest;
+use Modules\Catalog\Requests\UpdateBundleComponentsRequest;
 
 /**
  * Katalog — modul fondasi: POS, form order, dan laporan HPP bergantung ke
@@ -29,7 +31,7 @@ class CatalogItemController extends Controller
         return Inertia::render('catalog::index', [
             // 'product' < 'service' — produk tampil lebih dulu, lalu urut input.
             'items' => CatalogItem::query()
-                ->with(['photos', 'variants'])
+                ->with(['photos', 'variants', 'components'])
                 ->orderBy('type')
                 ->orderBy('id')
                 ->get()
@@ -51,7 +53,7 @@ class CatalogItemController extends Controller
 
     public function edit(CatalogItem $catalogItem): Response
     {
-        $catalogItem->load(['photos', 'variants']);
+        $catalogItem->load(['photos', 'variants', 'components']);
 
         return Inertia::render('catalog::form', [
             'item' => $this->itemProps($catalogItem),
@@ -59,7 +61,7 @@ class CatalogItemController extends Controller
             // ponytail: 20 cukup; paginasi bila item punya > 20 perubahan
             'price_changes' => $catalogItem->priceChanges()->with('creator')->limit(20)->get()
                 ->map(fn (CatalogPriceChange $c) => $c->toProps())->values()->all(),
-            ...$this->formProps(),
+            ...$this->formProps($catalogItem),
         ]);
     }
 
@@ -105,6 +107,20 @@ class CatalogItemController extends Controller
     }
 
     /**
+     * Komponen paket jasa (spek 6.3) — seluruh daftar diganti; yang tidak
+     * dikirim benar-benar dihapus dari paket. Order lama tidak berubah: HPP &
+     * komponen sudah disalin ke baris order saat transaksi.
+     */
+    public function updateComponents(UpdateBundleComponentsRequest $request, CatalogItem $catalogItem): RedirectResponse
+    {
+        $catalogItem->components()->sync($request->syncData());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Komponen {$catalogItem->name} diperbarui. Berlaku untuk order berikutnya."]);
+
+        return back();
+    }
+
+    /**
      * Varian (spek 7.3): yang ber-id diperbarui, yang baru dibuat. Varian lama
      * yang tidak dikirim dibiarkan — varian tidak dihapus (dirujuk order).
      */
@@ -145,15 +161,35 @@ class CatalogItemController extends Controller
             'photos' => $i->photos->map(fn (CatalogItemPhoto $p) => $p->toProps())->values()->all(),
             // Varian produk (spek 7.3), aktif maupun nonaktif.
             'variants' => $i->variants->map(fn (CatalogItemVariant $v) => $v->toProps())->values()->all(),
+            // Komponen paket jasa (spek 6.3) + HPP bahan paket SAAT INI (dihitung, tidak disimpan).
+            'components' => $i->components->map(fn (CatalogItem $c) => [
+                'id' => $c->id, 'name' => $c->name, 'quantity' => $c->pivotQuantity(),
+                'unit_cost' => $c->unit_cost, 'is_active' => $c->is_active,
+            ])->values()->all(),
+            'bundle_cost' => $i->bundleCost(),
         ];
     }
 
-    /** @return array{service_categories: list<array{value: string, label: string}>, low_margin_ratio: float} */
-    private function formProps(): array
+    /**
+     * `component_options` = produk yang bisa jadi komponen paket: produk aktif +
+     * komponen item ini yang sudah nonaktif (supaya namanya tetap terbaca).
+     *
+     * @return array{service_categories: list<array{value: string, label: string}>, low_margin_ratio: float, component_options: list<array{id: int, name: string, unit_cost: int|null, is_active: bool}>}
+     */
+    private function formProps(?CatalogItem $item = null): array
     {
+        $kept = $item?->components->pluck('id')->all() ?? [];
+
         return [
             'service_categories' => array_map(fn (ServiceCategory $c) => ['value' => $c->value, 'label' => $c->label()], ServiceCategory::cases()),
             'low_margin_ratio' => (float) config('studio.low_margin_ratio'),
+            'component_options' => array_values(CatalogItem::query()
+                ->where('type', CatalogItemType::Product)
+                ->where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $kept))
+                ->orderBy('name')
+                ->get()
+                ->map(fn (CatalogItem $c) => ['id' => $c->id, 'name' => $c->name, 'unit_cost' => $c->unit_cost, 'is_active' => $c->is_active])
+                ->all()),
         ];
     }
 }

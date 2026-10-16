@@ -19,16 +19,18 @@ use Modules\Catalog\Models\CatalogItemVariant;
  * - Varian (`catalog_item_variant_id`, spek 7.3, POS saja): nama "Produk – Varian",
  *   harga & HPP dari varian. Varian hanya dipakai bila milik item baris itu —
  *   kecocokan dan kewajibannya divalidasi StorePosSaleRequest.
+ * - Paket jasa berkomponen (spek 6.3): HPP = `bundleCost()` dari katalog SAAT
+ *   transaksi, `components` = snapshot komponen. Baris lain: `components` null.
  */
 trait ResolvesCatalogLines
 {
-    /** @var list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, quantity: int}>|null */
+    /** @var list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, components: list<array{name: string, quantity: int, unit_cost: int|null}>|null, quantity: int}>|null */
     private ?array $lines = null;
 
     /**
      * Dipanggil setelah aturan `items.*` lolos.
      *
-     * @return list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, quantity: int}>
+     * @return list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, components: list<array{name: string, quantity: int, unit_cost: int|null}>|null, quantity: int}>
      */
     public function lines(): array
     {
@@ -39,7 +41,8 @@ trait ResolvesCatalogLines
         /** @var list<array{catalog_item_id?: int|string|null, catalog_item_variant_id?: int|string|null, name?: string|null, unit_price?: int|string|null, quantity: int|string}> $items */
         $items = $this->input('items', []);
         $ids = array_filter(array_map(fn (array $i) => $i['catalog_item_id'] ?? null, $items), fn ($id) => $id !== null && $id !== '');
-        $catalog = CatalogItem::findMany(array_values($ids))->keyBy('id');
+        // Komponen ikut dimuat — paket jasa berkomponen membawa HPP hasil hitung.
+        $catalog = CatalogItem::with('components')->findMany(array_values($ids))->keyBy('id');
         $variantIds = array_filter(array_map(fn (array $i) => $i['catalog_item_variant_id'] ?? null, $items), fn ($id) => $id !== null && $id !== '');
         $variants = CatalogItemVariant::findMany(array_values($variantIds))->keyBy('id');
 
@@ -52,6 +55,7 @@ trait ResolvesCatalogLines
                     'name' => trim((string) ($i['name'] ?? '')),
                     'unit_price' => (int) ($i['unit_price'] ?? 0),
                     'unit_cost' => null,
+                    'components' => null,
                     'quantity' => (int) $i['quantity'],
                 ];
             }
@@ -66,7 +70,8 @@ trait ResolvesCatalogLines
                 'variant' => $variant,
                 'name' => $variant ? CatalogItemVariant::label($item->name, $variant->name) : $item->name,
                 'unit_price' => $variant->price ?? $item->price,
-                'unit_cost' => $variant ? $variant->unit_cost : $item->unit_cost,
+                'unit_cost' => $variant ? $variant->unit_cost : ($item->isBundle() ? $item->bundleCost() : $item->unit_cost),
+                'components' => $variant ? null : $item->componentsSnapshot(),
                 'quantity' => (int) $i['quantity'],
             ];
         }, $items);

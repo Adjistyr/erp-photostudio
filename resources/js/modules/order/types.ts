@@ -111,6 +111,10 @@ export interface OrderRow {
         unit_cost: number | null;
         /** Item custom (harga nego di luar katalog, spek 1.3). */
         is_custom: boolean;
+        /** Snapshot isi paket jasa saat transaksi (spek 6.3), per 1 paket; null = bukan paket berkomponen. */
+        components:
+            | { name: string; quantity: number; unit_cost: number | null }[]
+            | null;
     }[];
     payments: {
         id: number;

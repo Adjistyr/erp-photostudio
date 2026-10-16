@@ -136,6 +136,8 @@ class ReportController extends Controller
                 'category' => $s->item->category,
                 'quantity' => $s->quantity,
                 'value' => $s->value,
+                // HPP bahan paket berkomponen (spek 6.3); null = "—".
+                'cost' => $s->cost,
             ], $sales->topServices()),
             // Item di luar katalog (harga nego) — satu baris agregat di bawah jasa.
             'custom_items' => $sales->customItems(),

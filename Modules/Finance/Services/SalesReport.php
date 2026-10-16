@@ -106,6 +106,10 @@ class SalesReport
      * yang baru DP tetap dihitung penuh. Menjawab "paket mana yang laku".
      * Order Batal tidak dihitung.
      *
+     * HPP bahan dari `order_items.unit_cost` (snapshot) — terisi untuk paket
+     * berkomponen (spek 6.3), null bila tidak ada satu pun baris ber-HPP.
+     * Baris lama tanpa HPP dihitung 0 di jumlahnya.
+     *
      * @return list<ServiceSales>
      */
     public function topServices(): array
@@ -125,6 +129,9 @@ class SalesReport
                     $first->catalogItem ?? throw new \LogicException('Item jasa tanpa katalog'),
                     (int) $group->sum('quantity'),
                     (int) $group->sum(fn (OrderItem $i) => $i->quantity * $i->unit_price),
+                    $group->contains(fn (OrderItem $i) => $i->unit_cost !== null)
+                        ? (int) $group->sum(fn (OrderItem $i) => $i->quantity * ($i->unit_cost ?? 0))
+                        : null,
                 );
             })
             ->sortByDesc(fn (ServiceSales $s) => $s->value)

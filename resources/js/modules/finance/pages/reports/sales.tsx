@@ -45,6 +45,8 @@ interface Props {
         category: string;
         quantity: number;
         value: number;
+        /** HPP bahan paket berkomponen (spek 6.3) dari snapshot baris order; null = "—". */
+        cost: number | null;
     }[];
     customers: {
         id: number;
@@ -223,6 +225,7 @@ export default function Sales({
                                         Order
                                     </TableHead>
                                     <KepalaUang>Nilai</KepalaUang>
+                                    <KepalaUang>HPP bahan</KepalaUang>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -239,6 +242,12 @@ export default function Sales({
                                         </TableCell>
                                         <TableCell className="text-right font-mono">
                                             {formatRp(s.value)}
+                                        </TableCell>
+                                        {/* "—", bukan Rp 0: paket tanpa komponen tidak punya HPP tetap. */}
+                                        <TableCell className="text-right font-mono text-muted-foreground">
+                                            {s.cost === null
+                                                ? '—'
+                                                : formatRp(s.cost)}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -261,6 +270,9 @@ export default function Sales({
                                         <TableCell className="text-right font-mono">
                                             {formatRp(custom_items.value)}
                                         </TableCell>
+                                        <TableCell className="text-right font-mono text-muted-foreground">
+                                            —
+                                        </TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -269,7 +281,9 @@ export default function Sales({
                     <p className="text-xs text-muted-foreground">
                         Kolom margin sengaja tidak ada: HPP jasa berbeda tiap
                         job dan tidak bisa dihitung per paket. Marginnya ada di
-                        Margin per Lini.
+                        Margin per Lini. HPP bahan hanya terisi untuk paket
+                        berkomponen (mis. termasuk cetak), disalin saat order
+                        dibuat.
                         {custom_items &&
                             ' Item custom = item di luar katalog (harga nego) — tidak dibandingkan per paket.'}
                     </p>

@@ -124,6 +124,7 @@ class PosController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    'components' => $line['components'],
                 ]);
             }
 

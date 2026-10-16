@@ -22,6 +22,28 @@ export interface CatalogItem {
     photos: CatalogPhoto[];
     /** Varian produk (spek 7.3), aktif & nonaktif; kosong untuk jasa. */
     variants: CatalogVariant[];
+    /** Komponen paket jasa (spek 6.3); kosong = bukan paket berkomponen. */
+    components: BundleComponent[];
+    /** HPP bahan paket SAAT INI (dihitung server); null = bukan paket berkomponen. */
+    bundle_cost: number | null;
+}
+
+/** Produk di dalam paket jasa — nonaktif tetap dihitung di HPP paket. */
+export interface BundleComponent {
+    id: number;
+    name: string;
+    /** Jumlah per 1 paket. */
+    quantity: number;
+    unit_cost: number | null;
+    is_active: boolean;
+}
+
+/** Pilihan produk untuk komponen paket (halaman Edit). */
+export interface ComponentOption {
+    id: number;
+    name: string;
+    unit_cost: number | null;
+    is_active: boolean;
 }
 
 /** Varian produk — harga & HPP sendiri; tidak dihapus, hanya dinonaktifkan. */

@@ -4,6 +4,7 @@
  * persis sama dengan yang diterima customer.
  */
 
+import { Fragment } from 'react';
 import { Separator } from '@/components/ui/separator';
 import {
     Table,
@@ -23,6 +24,8 @@ import {
     personalise,
 } from '@/lib/format';
 import { installmentText } from '@/modules/order/lib/schedules';
+import { bundleIncludes } from '@/modules/catalog';
+import type { BundlePart } from '@/modules/catalog';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type {
     NextInstallment,
@@ -56,6 +59,8 @@ export interface Invoice {
         unit_price: number;
         /** Dikirim agar tipe sama dengan detail order; tidak ditampilkan ke customer. */
         is_custom: boolean;
+        /** Isi paket jasa (spek 6.3), per 1 paket — tanpa HPP; null = bukan paket berkomponen. */
+        components: BundlePart[] | null;
     }[];
     discount: number;
     total: number;
@@ -271,24 +276,47 @@ export function InvoiceDocument({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {invoice.items.map((i) => (
-                            <TableRow key={i.id}>
-                                <TableCell className="font-medium">
-                                    {i.name}
-                                </TableCell>
-                                <TableCell className="text-right font-mono">
-                                    {i.quantity}
-                                </TableCell>
-                                <TableCell
-                                    className={`text-right font-mono ${hideOnSlip}`}
-                                >
-                                    {formatRp(i.unit_price)}
-                                </TableCell>
-                                <TableCell className="text-right font-mono">
-                                    {formatRp(i.quantity * i.unit_price)}
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {invoice.items.map((i) => {
+                            const includes = bundleIncludes(
+                                i.components,
+                                i.quantity,
+                            );
+                            return (
+                                <Fragment key={i.id}>
+                                    <TableRow
+                                        className={includes ? 'border-0' : ''}
+                                    >
+                                        <TableCell className="font-medium">
+                                            {i.name}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {i.quantity}
+                                        </TableCell>
+                                        <TableCell
+                                            className={`text-right font-mono ${hideOnSlip}`}
+                                        >
+                                            {formatRp(i.unit_price)}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {formatRp(
+                                                i.quantity * i.unit_price,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    {/* Isi paket (spek 6.3): sub-baris tanpa harga — sudah termasuk harga paket. */}
+                                    {includes && (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={4}
+                                                className="pt-0 pl-6 text-xs whitespace-normal text-muted-foreground"
+                                            >
+                                                {includes}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </Fragment>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </div>

@@ -17,14 +17,15 @@ use Modules\Catalog\Models\CatalogItemVariant;
  * @property string $name
  * @property int $quantity
  * @property int $unit_price harga satuan SAAT transaksi
- * @property int|null $unit_cost HPP satuan saat transaksi; null untuk jasa
+ * @property int|null $unit_cost HPP satuan saat transaksi; null untuk jasa (kecuali paket berkomponen, spek 6.3)
+ * @property list<array{name: string, quantity: int, unit_cost: int|null}>|null $components snapshot komponen per 1 paket (spek 6.3)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Order $order
  * @property-read CatalogItem|null $catalogItem
  * @property-read CatalogItemVariant|null $variant
  */
-#[Fillable(['order_id', 'catalog_item_id', 'catalog_item_variant_id', 'name', 'quantity', 'unit_price', 'unit_cost'])]
+#[Fillable(['order_id', 'catalog_item_id', 'catalog_item_variant_id', 'name', 'quantity', 'unit_price', 'unit_cost', 'components'])]
 class OrderItem extends Model
 {
     protected function casts(): array
@@ -33,6 +34,7 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'integer',
             'unit_cost' => 'integer',
+            'components' => 'array',
         ];
     }
 
