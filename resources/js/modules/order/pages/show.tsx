@@ -49,6 +49,7 @@ import {
 } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
+import { PaymentProofLink } from '@/modules/order/components/payment-proof-link';
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { RefundDialog } from '@/modules/order/components/refund-dialog';
 import {
@@ -179,6 +180,14 @@ export default function OrderShow({
                                         </TableCell>
                                         <TableCell className="text-right font-mono">
                                             {formatRp(p.amount)}
+                                        </TableCell>
+                                        <TableCell className="w-10">
+                                            {p.proof_url && (
+                                                <PaymentProofLink
+                                                    url={p.proof_url}
+                                                    label={`Bukti ${p.note}`}
+                                                />
+                                            )}
                                         </TableCell>
                                         <TableCell className="w-10">
                                             <ConfirmDelete

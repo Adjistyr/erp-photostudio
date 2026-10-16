@@ -8,6 +8,7 @@ use Inertia\Response;
 use Modules\Customer\Models\MessageTemplate;
 use Modules\Finance\Services\Receivables;
 use Modules\Order\Models\Order;
+use Modules\Order\Models\Payment;
 
 /**
  * Pembayaran — daftar piutang (prompt 4.9). Layar yang paling sering dibuka
@@ -39,6 +40,10 @@ class ReceivableController extends Controller
                 'balance' => $o->balance(),
                 'payment_status' => $o->paymentStatus()->value,
                 'paid_percent' => (int) round($o->paidRatio() * 100),
+                // Bukti transfer pembayaran sebelumnya (spek 6.7) — dicek owner tanpa buka WA.
+                'proofs' => $o->payments->filter(fn (Payment $p) => $p->hasProof())->sortBy('paid_on')->map(fn (Payment $p) => [
+                    'id' => $p->id, 'note' => $p->note, 'amount' => $p->amount, 'url' => $p->proofUrl(),
+                ])->values()->all(),
             ])->values()->all(),
             'totals' => [
                 'total' => $open->sum(fn (Order $o) => $o->balance()),

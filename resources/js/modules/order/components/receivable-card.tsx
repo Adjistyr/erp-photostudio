@@ -14,6 +14,7 @@ import {
     personalise,
 } from '@/lib/format';
 import { billingValues } from '@/modules/order/components/invoice-document';
+import { PaymentProofLink } from '@/modules/order/components/payment-proof-link';
 import type { ReceivableRow } from '@/modules/order/types';
 
 export function ReceivableCard({
@@ -60,6 +61,18 @@ export function ReceivableCard({
                 dari <span className="font-mono">{formatRp(row.total)}</span> ·
                 jatuh tempo {formatTanggal(row.service_date)}
             </p>
+            {row.proofs.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    Bukti bayar
+                    {row.proofs.map((pr) => (
+                        <PaymentProofLink
+                            key={pr.id}
+                            url={pr.url}
+                            label={`Bukti ${pr.note} ${row.number}`}
+                        />
+                    ))}
+                </div>
+            )}
             <div className="flex gap-2 pt-1">
                 <Button
                     size="lg"

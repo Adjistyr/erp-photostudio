@@ -5,6 +5,7 @@ namespace Modules\Order\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Modules\Finance\Rules\OpenPeriod;
 use Modules\Order\Actions\RecordOrderEvent;
@@ -13,6 +14,7 @@ use Modules\Order\Models\Order;
 use Modules\Order\Models\Payment;
 use Modules\Order\Requests\StorePaymentRequest;
 use Modules\Shared\Support\Money;
+use Throwable;
 
 class OrderPaymentController extends Controller
 {
@@ -34,17 +36,28 @@ class OrderPaymentController extends Controller
             default => 'Termin',
         };
 
-        $payment = DB::transaction(function () use ($order, $request, $amount, $note, $events) {
-            $payment = $order->payments()->create([
-                'paid_on' => $request->validated('paid_on'),
-                'amount' => $amount,
-                'method' => $request->validated('method'),
-                'note' => $note,
-            ]);
-            $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
+        // Bukti (spek 6.7) ditulis dulu; transaksi gagal → file dibuang lagi.
+        $proofPath = $request->file('proof')?->store('payment-proofs', Payment::PROOF_DISK) ?: null;
 
-            return $payment;
-        });
+        try {
+            $payment = DB::transaction(function () use ($order, $request, $amount, $note, $events, $proofPath) {
+                $payment = $order->payments()->create([
+                    'paid_on' => $request->validated('paid_on'),
+                    'amount' => $amount,
+                    'method' => $request->validated('method'),
+                    'note' => $note,
+                    'proof_path' => $proofPath,
+                ]);
+                $events->execute($order, OrderEventType::PaymentRecorded, Payment::eventChanges($payment, recorded: true));
+
+                return $payment;
+            });
+        } catch (Throwable $e) {
+            if ($proofPath !== null) {
+                Storage::disk(Payment::PROOF_DISK)->delete($proofPath);
+            }
+            throw $e;
+        }
         // Saldo & status di bukti bayar harus SETELAH pembayaran ini.
         $order->payments->push($payment);
 
@@ -76,6 +89,7 @@ class OrderPaymentController extends Controller
     /**
      * Hapus pembayaran salah catat (keputusan owner 2026-10-06): hapus lalu
      * catat ulang, bukan edit. Status bayar ikut turun sendiri — turunan.
+     * File bukti dibuang setelah commit oleh event `deleted` Payment.
      */
     public function destroy(Order $order, Payment $payment, RecordOrderEvent $events): RedirectResponse
     {

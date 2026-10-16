@@ -86,6 +86,8 @@ export interface OrderRow {
         method: PaymentMethod;
         note: string;
         created_by_name: string | null;
+        /** Bukti transfer/QRIS, URL bertanda tangan sementara (spek 6.7). */
+        proof_url: string | null;
     }[];
     /** Alat yang dibawa (spek 8.4, modul Aset) — baca saja. */
     asset_checkouts: {
@@ -283,4 +285,6 @@ export interface ReceivableRow {
     balance: number;
     payment_status: PaymentStatus;
     paid_percent: number;
+    /** Bukti transfer pembayaran sebelumnya (spek 6.7); hanya yang berlampiran. */
+    proofs: { id: number; note: string; amount: number; url: string }[];
 }

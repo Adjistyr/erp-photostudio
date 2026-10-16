@@ -20,7 +20,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Status bayar | `Order::paymentStatus()` — **tidak disimpan** |
 | Tanggal sesi / acara / transaksi (sekaligus jatuh tempo) | `service_date` + `service_time` |
 | Item order | `OrderItem` · `order_items` (`catalog_item_id` null = item custom: nama & harga deal dari input, spek 1.3; props `is_custom`) |
-| Pembayaran (DP / termin / pelunasan) | `Payment` · `payments` |
+| Pembayaran (DP / termin / pelunasan) | `Payment` · `payments` (`proof_path` nullable = bukti transfer/QRIS di disk privat `local`, `payment-proofs/`, spek 6.7; dibuka via `Payment::proofUrl()` → route bertanda tangan 10 menit `payments.proof`; file dihapus setelah commit saat pembayaran dihapus) |
 | Biaya job (biaya langsung) | `JobCost` · `job_costs` |
 | Biaya operasional | `OperatingExpense` · `operating_expenses` |
 | Owner (pihak bagi hasil) | `Owner` · `owners` |

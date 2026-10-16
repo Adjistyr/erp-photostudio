@@ -42,6 +42,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFlash } from '@/hooks/use-flash';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
+import { PaymentProofLink } from '@/modules/order/components/payment-proof-link';
 import {
     BillButton,
     ReceivableCard,
@@ -279,6 +280,13 @@ export default function Receivables({
                                             </TableCell>
                                             <TableCell>
                                                 <span className="flex justify-end gap-1.5">
+                                                    {o.proofs.map((pr) => (
+                                                        <PaymentProofLink
+                                                            key={pr.id}
+                                                            url={pr.url}
+                                                            label={`Bukti ${pr.note} ${o.number}`}
+                                                        />
+                                                    ))}
                                                     <BillButton
                                                         row={o}
                                                         template={

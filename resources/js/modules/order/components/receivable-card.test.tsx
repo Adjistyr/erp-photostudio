@@ -20,6 +20,7 @@ const row: ReceivableRow = {
     balance: 200_000,
     payment_status: 'partial',
     paid_percent: 43,
+    proofs: [],
 };
 
 // Render statis tanpa DOM — kartu murni, tanpa Inertia.

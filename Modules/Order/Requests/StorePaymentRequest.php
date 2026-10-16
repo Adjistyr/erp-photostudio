@@ -28,6 +28,8 @@ class StorePaymentRequest extends FormRequest
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             // Pembayaran masa depan bukan uang diterima — basis kas.
             'paid_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', new OpenPeriod],
+            // Bukti transfer/QRIS opsional (spek 6.7); tunai tidak punya bukti.
+            'proof' => ['nullable', 'prohibited_if:method,'.PaymentMethod::Cash->value, 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:2048'],
         ];
     }
 
@@ -71,6 +73,6 @@ class StorePaymentRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['amount' => 'nominal', 'method' => 'metode', 'paid_on' => 'tanggal'];
+        return ['amount' => 'nominal', 'method' => 'metode', 'paid_on' => 'tanggal', 'proof' => 'bukti transfer'];
     }
 }

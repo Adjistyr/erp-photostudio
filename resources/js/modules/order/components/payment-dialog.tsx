@@ -30,10 +30,19 @@ import type { PayableOrder, PaymentMethod } from '@/modules/order/types';
 
 const METHODS: PaymentMethod[] = ['cash', 'transfer', 'qris'];
 
+/** Sama dengan validasi server (StorePaymentRequest, spek 6.7). */
+export const PROOF_ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf';
+
+/** Bukti hanya untuk uang yang lewat bank — tunai tidak punya bukti. */
+export function acceptsProof(method: PaymentMethod): boolean {
+    return method !== 'cash';
+}
+
 interface PaymentForm {
     amount: string;
     method: PaymentMethod;
     paid_on: string;
+    proof: File | null;
 }
 
 /** Tanggal lokal hari ini "YYYY-MM-DD" — bukan toISOString (UTC, bisa geser hari). */
@@ -57,15 +66,23 @@ export function PaymentDialog({
         amount: String(order.balance),
         method: 'transfer',
         paid_on: today(),
+        proof: null,
     });
     const { data, setData, errors, processing } = form;
     const amount = Number(data.amount) || 0;
 
-    const submit = () =>
+    const submit = () => {
+        form.transform((d) => ({
+            ...d,
+            proof: acceptsProof(d.method) ? d.proof : null,
+        }));
         form.post(OrderPaymentController.store(order.id).url, {
             preserveScroll: true,
+            // File bukti → multipart.
+            forceFormData: true,
             onSuccess: onClose,
         });
+    };
 
     return (
         <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -140,6 +157,14 @@ export function PaymentDialog({
                         <InputError message={errors.method} />
                     </Field>
 
+                    {acceptsProof(data.method) && (
+                        <ProofField
+                            file={data.proof}
+                            error={errors.proof}
+                            onChange={(f) => setData('proof', f)}
+                        />
+                    )}
+
                     {amount > 0 && amount <= order.balance && (
                         <p className="text-xs text-muted-foreground">
                             Setelah dicatat, status order jadi{' '}
@@ -168,4 +193,40 @@ export function PaymentDialog({
             </DialogContent>
         </Dialog>
     );
+}
+
+/** Unggah bukti transfer/QRIS (opsional, ≤ 2 MB — batas dicek server). */
+export function ProofField({
+    file,
+    error,
+    onChange,
+}: {
+    file: File | null;
+    error?: string;
+    onChange: (file: File | null) => void;
+}) {
+    return (
+        <Field>
+            <FieldLabel htmlFor="proof">Bukti transfer (opsional)</FieldLabel>
+            <Input
+                id="proof"
+                type="file"
+                accept={PROOF_ACCEPT}
+                aria-invalid={Boolean(error)}
+                onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+            />
+            {file && (
+                <p className="text-xs text-muted-foreground">
+                    {file.name} · {formatUkuran(file.size)}
+                </p>
+            )}
+            <InputError message={error} />
+        </Field>
+    );
+}
+
+function formatUkuran(bytes: number): string {
+    return bytes < 1024 * 1024
+        ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+        : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

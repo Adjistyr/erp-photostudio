@@ -515,6 +515,7 @@ class OrderController extends Controller
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,
                 'method' => $p->method->value, 'note' => $p->note, 'created_by_name' => $p->creator?->name,
+                'proof_url' => $p->proofUrl(),
             ])->values()->all(),
             // Pengembalian uang (spek 4.2) — sisa tagihan & status bayar tetap bruto.
             'refunds' => $o->refunds->sortBy('refunded_on')->map(fn (Refund $r) => [
