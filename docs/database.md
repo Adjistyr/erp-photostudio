@@ -16,6 +16,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Galeri foto item | `CatalogItemPhoto` · `catalog_item_photos` (`path` WebP ≤ 1600 px, `thumb_path` WebP 400×400, `position` terkecil = sampul, maks 8 per item; file di disk `public`, `catalog/{item}/`) |
 | Customer | `Customer` · `customers` (index pencarian `customers_name_lower_idx` = `LOWER(name)` dan `customers_phone_idx`; `phone` disimpan ternormalisasi `62…` lewat `Modules\Customer\Support\Phone::normalise()` sejak spek 2.1; data lama `08…` tetap valid — pencocokan dari POS: HP → nama, HP yang sudah ada tidak ditimpa) |
 | Order | `Order` · `orders` |
+| Sumber order | `orders.source` (spek 6.6) — nilai dari `Customer::SOURCES`, nullable (null = "Tidak dicatat"; order sebelum 6.6 tidak di-backfill). Beda dengan `customers.source` (sumber pertama kali kenal, tidak berubah): saat buat order studio/event default = `customers.source`, boleh diganti per order tanpa mengubah customer. Retail/POS tidak mencatatnya |
 | Lini (retail / studio / event) | `business_line` → `BusinessLine` |
 | Status kerja | `work_status` → `WorkStatus` (booking, scheduled, in_progress, done, delivered, cancelled) |
 | Status bayar | `Order::paymentStatus()` — **tidak disimpan** |

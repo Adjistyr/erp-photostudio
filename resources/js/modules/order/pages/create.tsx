@@ -52,9 +52,11 @@ interface OrderForm extends OrderFields {
 export default function OrdersCreate({
     customers,
     catalog,
+    sources,
 }: {
     customers: CustomerOption[];
     catalog: CatalogOption[];
+    sources: string[];
 }) {
     const form = useForm<OrderForm>({
         business_line: 'studio',
@@ -64,6 +66,7 @@ export default function OrdersCreate({
         service_time: '',
         location: '',
         notes: '',
+        source: '',
         items: [{ key: 1, catalog_item_id: '', quantity: 1 }],
         dp: '',
         dp_method: 'transfer',
@@ -96,6 +99,7 @@ export default function OrdersCreate({
                         errors={errors}
                         customers={customers}
                         catalog={catalog}
+                        sources={sources}
                         header={
                             <Field>
                                 <FieldLabel>Jenis order</FieldLabel>

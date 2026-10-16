@@ -54,6 +54,8 @@ export interface OrderRow {
     service_time: string | null;
     location: string | null;
     notes: string | null;
+    /** Sumber lead (spek 6.6, `Customer::SOURCES`); null = tidak dicatat. */
+    source: string | null;
     result_link: string | null;
     /** Link invoice untuk customer (signed); null = order batal, tidak ditagih. */
     invoice_url: string | null;
@@ -187,6 +189,7 @@ export const ORDER_FIELD_LABEL: Record<string, string> = {
     service_time: 'Jam',
     location: 'Lokasi',
     notes: 'Catatan',
+    source: 'Sumber',
     customer_id: 'Customer',
     work_status: 'Status',
     result_link: 'Link hasil',

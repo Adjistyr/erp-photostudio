@@ -4,6 +4,7 @@ namespace Modules\Order\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 use Modules\Customer\Models\Customer;
@@ -69,6 +70,9 @@ class UpdateOrderRequest extends FormRequest
             'service_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // Sumber lead (spek 6.6); kosong = tidak dicatat. Retail tidak
+            // mencatat sumber — nilai kiriman diabaikan di normalised().
+            'source' => ['nullable', 'string', Rule::in(Customer::SOURCES)],
             'items' => ['required', 'array', 'min:1', 'max:20'],
             // Ada = baris lama; null = baris baru.
             'items.*.id' => ['nullable', 'integer'],
@@ -217,7 +221,7 @@ class UpdateOrderRequest extends FormRequest
      * `$customerId` = hasil resolveCustomer() bila customer baru dibuat/dicocokkan
      * di transaksi; null = `customer_id` dari input.
      *
-     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null}
+     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null, source: string|null}
      */
     public function normalised(?int $customerId = null): array
     {
@@ -232,6 +236,8 @@ class UpdateOrderRequest extends FormRequest
             // Sama dengan store(): studio tanpa lokasi = di studio.
             'location' => $location !== '' ? $location : ($this->order()->business_line === BusinessLine::Studio ? 'Studio' : null),
             'notes' => trim((string) $this->input('notes', '')) ?: null,
+            // Tidak menyentuh customers.source (spek 6.6 aturan 3).
+            'source' => $this->customerOptional() ? $this->order()->source : ($this->filled('source') ? $this->string('source')->toString() : null),
         ];
     }
 
@@ -247,7 +253,7 @@ class UpdateOrderRequest extends FormRequest
         $current = $this->currentValues($order);
         $changes = [];
 
-        foreach (['service_date', 'service_time', 'location', 'notes'] as $field) {
+        foreach (['service_date', 'service_time', 'location', 'notes', 'source'] as $field) {
             if ($new[$field] !== $current[$field]) {
                 $changes[$field] = ['from' => $current[$field], 'to' => $new[$field]];
             }
@@ -303,7 +309,7 @@ class UpdateOrderRequest extends FormRequest
     }
 
     /**
-     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null}
+     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null, source: string|null}
      */
     private function currentValues(Order $order): array
     {
@@ -313,6 +319,7 @@ class UpdateOrderRequest extends FormRequest
             'service_time' => $order->service_time === null ? null : substr($order->service_time, 0, 5),
             'location' => $order->location,
             'notes' => $order->notes,
+            'source' => $order->source,
         ];
     }
 
@@ -335,6 +342,7 @@ class UpdateOrderRequest extends FormRequest
             'service_time' => 'jam',
             'location' => 'lokasi',
             'notes' => 'catatan',
+            'source' => 'sumber order',
             'items' => 'item',
             'items.*.id' => 'item',
             'items.*.catalog_item_id' => 'paket',

@@ -12,6 +12,7 @@ import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { KepalaUang, KosongTabel, TabelData } from '@/components/data-table';
 import { LineMark } from '@/components/status-order';
+import { Progress } from '@/components/ui/progress';
 import {
     TableBody,
     TableCell,
@@ -61,6 +62,13 @@ interface Props {
         quantity: number;
         value: number;
     } | null;
+    /** Sumber order bulan ini (spek 6.6); source null = tidak dicatat. */
+    by_source: {
+        source: string | null;
+        orders: number;
+        revenue: number;
+        share: number;
+    }[];
 }
 
 export default function Sales({
@@ -70,6 +78,7 @@ export default function Sales({
     customers,
     walk_in,
     custom_items,
+    by_source,
 }: Props) {
     const total = products.reduce(
         (t, p) => ({
@@ -348,6 +357,66 @@ export default function Sales({
                             supaya transaksinya tidak dilewat — ini harga yang
                             dibayar untuk itu.
                         </p>
+                    )}
+                </Section>
+
+                <Section
+                    title="Sumber order"
+                    note="uang yang diterima bulan ini (basis kas) per sumber order · studio & event saja — walk-in retail tidak dicatat sumbernya"
+                >
+                    {by_source.length === 0 ? (
+                        <KosongTabel kalimat="Belum ada pembayaran order studio/event bulan ini." />
+                    ) : (
+                        <TabelData>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Sumber</TableHead>
+                                    <TableHead className="text-right">
+                                        Order
+                                    </TableHead>
+                                    <KepalaUang>Omzet</KepalaUang>
+                                    <TableHead>Share</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {by_source.map((s) => {
+                                    const label = s.source ?? 'Tidak dicatat';
+                                    return (
+                                        <TableRow key={label}>
+                                            <TableCell
+                                                className={
+                                                    s.source === null
+                                                        ? 'text-muted-foreground'
+                                                        : 'font-medium'
+                                                }
+                                            >
+                                                {label}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {s.orders}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {formatRp(s.revenue)}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="flex items-center gap-2">
+                                                    <Progress
+                                                        value={Math.round(
+                                                            s.share * 100,
+                                                        )}
+                                                        className="w-24"
+                                                        aria-label={`Share ${label}`}
+                                                    />
+                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                        {formatPersen(s.share)}
+                                                    </span>
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </TabelData>
                     )}
                 </Section>
             </div>

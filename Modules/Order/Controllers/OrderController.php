@@ -116,6 +116,7 @@ class OrderController extends Controller
                     $o->margin(),
                     $o->location,
                     $o->notes,
+                    $o->source,
                     $o->creator?->name,
                     $o->created_at?->toDateTimeString(),
                 ];
@@ -126,7 +127,7 @@ class OrderController extends Controller
             'nomor', 'tanggal_layanan', 'jam', 'lini', 'lini_label', 'customer', 'hp', 'item',
             'total', 'dibayar', 'dikembalikan', 'sisa', 'status_bayar', 'status_bayar_label',
             'status_kerja', 'status_kerja_label', 'hpp_bahan', 'biaya_job', 'margin',
-            'lokasi', 'catatan', 'dicatat_oleh', 'dibuat_pada',
+            'lokasi', 'catatan', 'sumber', 'dicatat_oleh', 'dibuat_pada',
         ]);
     }
 
@@ -173,7 +174,9 @@ class OrderController extends Controller
     public function create(): Response
     {
         return Inertia::render('order::create', [
-            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
+            // `source` = default sumber order saat customer dipilih (spek 6.6).
+            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone', 'source']),
+            'sources' => Customer::SOURCES,
             'catalog' => $this->catalogOptions(),
         ]);
     }
@@ -205,6 +208,8 @@ class OrderController extends Controller
                 'work_status' => $deposit > 0 ? WorkStatus::Scheduled : WorkStatus::Booking,
                 'location' => $location !== '' ? $location : ($line === BusinessLine::Studio ? 'Studio' : null),
                 'notes' => trim((string) ($data['notes'] ?? '')) ?: null,
+                // Default dari customer (spek 6.6) — customer lama bisa datang lewat kanal lain.
+                'source' => $data['source'] ?? $customer->source,
             ]);
 
             foreach ($request->lines() as $line) {
@@ -275,7 +280,9 @@ class OrderController extends Controller
 
         return Inertia::render('order::edit', [
             'order' => $this->orderProps($order),
-            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
+            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone', 'source']),
+            // Retail tidak mencatat sumber (spek 6.6) — null = Select disembunyikan.
+            'sources' => $order->business_line === BusinessLine::Retail ? null : Customer::SOURCES,
             // Paket aktif berkategori dikenal (sama dengan create) + paket yang
             // dirujuk baris lama walau sudah nonaktif — supaya namanya tampil.
             // + item yang dirujuk baris lama walau nonaktif (produk di order retail, spek 7.4).
@@ -492,6 +499,8 @@ class OrderController extends Controller
             'service_time' => $o->service_time === null ? null : substr($o->service_time, 0, 5),
             'location' => $o->location,
             'notes' => $o->notes,
+            // Sumber lead (spek 6.6); null = tidak dicatat.
+            'source' => $o->source,
             'result_link' => $o->result_link,
             // Order batal tidak punya invoice — tidak ditagih lagi.
             'invoice_url' => $o->isCancelled() ? null : $o->invoiceUrl(),

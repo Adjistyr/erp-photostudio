@@ -37,6 +37,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property WorkStatus $work_status
  * @property string|null $location
  * @property string|null $notes
+ * @property string|null $source Sumber lead order ini (Customer::SOURCES, spek 6.6); null = tidak dicatat
  * @property string|null $result_link
  * @property int $discount
  * @property Carbon|null $created_at
@@ -50,7 +51,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  */
 #[Fillable([
     'number', 'customer_id', 'business_line', 'service_date', 'service_time',
-    'work_status', 'location', 'notes', 'result_link', 'discount', 'created_by',
+    'work_status', 'location', 'notes', 'source', 'result_link', 'discount', 'created_by',
 ])]
 class Order extends Model
 {

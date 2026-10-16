@@ -54,6 +54,8 @@ export interface CustomerOption {
     id: number;
     name: string;
     phone: string | null;
+    /** Sumber kenal customer — default sumber order (spek 6.6). */
+    source?: string | null;
 }
 
 export interface CatalogOption {
@@ -104,6 +106,8 @@ export interface OrderFields {
     service_time: string;
     location: string;
     notes: string;
+    /** Sumber lead order (spek 6.6); '' = tidak dicatat. */
+    source: string;
     items: ItemRow[];
 }
 
@@ -241,6 +245,20 @@ export function toPayload(rows: ItemRow[]): Record<string, unknown>[] {
     );
 }
 
+/**
+ * Sumber order setelah customer berganti (spek 6.6): ikut sumber customer
+ * yang dipilih; customer baru/tanpa pilihan mempertahankan pilihan sekarang
+ * (server mengisi dari customer bila tetap kosong).
+ */
+export function sourceAfterCustomer(
+    customers: CustomerOption[],
+    customerId: string,
+    current: string,
+): string {
+    if (customerId === '') return current;
+    return customers.find((c) => String(c.id) === customerId)?.source ?? '';
+}
+
 export function Section({
     title,
     children,
@@ -265,6 +283,7 @@ export function OrderFormFields({
     catalog,
     locked = UNLOCKED,
     header,
+    sources,
 }: {
     line: OrderType;
     data: OrderFields;
@@ -275,6 +294,8 @@ export function OrderFormFields({
     locked?: Locked;
     /** Isi tambahan di atas customer (mis. jenis order di Buat Order). */
     header?: ReactNode;
+    /** Pilihan sumber order (spek 6.6); undefined = tidak dicatat (retail). */
+    sources?: string[];
 }) {
     // Baris baru: paket jasa aktif yang cocok dengan lini order + produk
     // aktif (spek 7.5 — cetak tambahan, album, bingkai).
@@ -297,6 +318,11 @@ export function OrderFormFields({
     const scheduleHint = locked.schedule
         ? 'Order sudah diserahkan — jadwal terkunci.'
         : undefined;
+    const chosenCustomer = customers.find(
+        (c) => String(c.id) === data.customer_id,
+    );
+    const sourceFromCustomer =
+        data.source !== '' && chosenCustomer?.source === data.source;
 
     return (
         <>
@@ -310,9 +336,68 @@ export function OrderFormFields({
                             customerId={data.customer_id}
                             newCustomer={data.new_customer}
                             errors={errors}
-                            onChange={onChange}
+                            onChange={(patch) =>
+                                onChange(
+                                    sources && patch.customer_id !== undefined
+                                        ? {
+                                              ...patch,
+                                              source: sourceAfterCustomer(
+                                                  customers,
+                                                  patch.customer_id,
+                                                  data.source,
+                                              ),
+                                          }
+                                        : patch,
+                                )
+                            }
                         />
                     </Field>
+                    {sources && (
+                        <Field>
+                            <FieldLabel htmlFor="source">
+                                Sumber order
+                            </FieldLabel>
+                            <Select
+                                items={[
+                                    { value: '', label: 'Tidak dicatat' },
+                                    ...sources.map((s) => ({
+                                        value: s,
+                                        label: s,
+                                    })),
+                                ]}
+                                value={data.source}
+                                onValueChange={(v) =>
+                                    onChange({ source: v ?? '' })
+                                }
+                            >
+                                <SelectTrigger
+                                    id="source"
+                                    className="w-full"
+                                    aria-invalid={Boolean(errors.source)}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value="">
+                                            Tidak dicatat
+                                        </SelectItem>
+                                        {sources.map((s) => (
+                                            <SelectItem key={s} value={s}>
+                                                {s}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            {sourceFromCustomer && (
+                                <FieldDescription>
+                                    dari data customer
+                                </FieldDescription>
+                            )}
+                            <InputError message={errors.source} />
+                        </Field>
+                    )}
                 </FieldGroup>
             </Section>
 

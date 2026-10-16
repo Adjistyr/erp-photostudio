@@ -118,6 +118,8 @@ export default function OrderShow({
                     {order.customer_name ?? 'Walk-in'} ·{' '}
                     {formatJadwal(scheduleOf(order))}
                     {order.location ? ` · ${order.location}` : ''}
+                    {/* Sumber lead (spek 6.6) — hanya bila tercatat. */}
+                    {order.source ? ` · Sumber: ${order.source}` : ''}
                     <RecordedBy name={order.created_by_name} />
                 </p>
             </div>

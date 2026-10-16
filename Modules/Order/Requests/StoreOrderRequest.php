@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
 use Modules\Order\Requests\Concerns\ResolvesCustomer;
@@ -39,6 +40,8 @@ class StoreOrderRequest extends FormRequest
             'service_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // Sumber lead (spek 6.6); kosong = ikut customer.source.
+            'source' => ['nullable', 'string', Rule::in(Customer::SOURCES)],
             'items' => ['required', 'array', 'min:1', 'max:20'],
             // Baris katalog (catalog_item_id) ATAU item custom (nama + harga,
             // spek 1.3). Baris katalog mengabaikan name/unit_price kiriman klien.
@@ -107,6 +110,7 @@ class StoreOrderRequest extends FormRequest
             'service_time' => 'jam',
             'location' => 'lokasi',
             'notes' => 'catatan',
+            'source' => 'sumber order',
             'items' => 'item',
             'items.*.catalog_item_id' => 'paket',
             'items.*.name' => 'nama item',

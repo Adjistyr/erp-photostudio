@@ -39,11 +39,14 @@ export default function OrdersEdit({
     customers,
     catalog,
     locked,
+    sources,
 }: {
     order: OrderRow;
     customers: CustomerOption[];
     catalog: CatalogOption[];
     locked: Locked;
+    /** null = retail, sumber tidak dicatat (spek 6.6). */
+    sources: string[] | null;
 }) {
     const form = useForm<OrderFields>({
         customer_id:
@@ -53,6 +56,7 @@ export default function OrdersEdit({
         service_time: order.service_time ?? '',
         location: order.location ?? '',
         notes: order.notes ?? '',
+        source: order.source ?? '',
         items: order.items.map((i) => ({
             key: i.id,
             id: i.id,
@@ -100,6 +104,7 @@ export default function OrdersEdit({
                         customers={customers}
                         catalog={catalog}
                         locked={locked}
+                        sources={sources ?? undefined}
                     />
                 </div>
 

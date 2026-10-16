@@ -139,6 +139,8 @@ class ReportController extends Controller
             ], $sales->topServices()),
             // Item di luar katalog (harga nego) — satu baris agregat di bawah jasa.
             'custom_items' => $sales->customItems(),
+            // Sumber order per bulan (spek 6.6) — basis kas, studio & event.
+            'by_source' => $sales->bySource($month),
             // Lead tanpa order tidak dirangking — tabel ini untuk menentukan
             // siapa yang layak di-follow up.
             'customers' => array_values(array_map(fn (CustomerSummary $c) => [
