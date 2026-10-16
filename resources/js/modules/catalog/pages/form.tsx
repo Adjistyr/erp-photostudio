@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
 import { PhotoGallery } from '@/modules/catalog/components/photo-gallery';
+import { PriceHistory } from '@/modules/catalog/components/price-history';
 import {
     VariantRows,
     toVariantRows,
@@ -44,6 +45,7 @@ import { priceRange } from '@/modules/catalog/lib/variants';
 import type {
     CatalogItem,
     CatalogItemType,
+    CatalogPriceChange,
     ServiceCategoryOption,
 } from '@/modules/catalog/types';
 import { index as catalogIndex } from '@/routes/catalog';
@@ -66,10 +68,13 @@ interface ItemForm {
 /** Satu halaman untuk tambah DAN edit — `item` null = tambah. */
 export default function CatalogForm({
     item,
+    price_changes,
     service_categories,
     low_margin_ratio,
 }: {
     item: CatalogItem | null;
+    /** Riwayat harga (spek 6.5), terbaru dulu; kosong saat tambah. */
+    price_changes: CatalogPriceChange[];
     service_categories: ServiceCategoryOption[];
     /** Ambang margin rendah 0..1 (spek 3.6) — ringkasan memerah di bawahnya. */
     low_margin_ratio: number;
@@ -445,6 +450,12 @@ export default function CatalogForm({
                             </>
                         )}
                     </section>
+
+                    {editing && (
+                        <section className="rounded-lg border p-5">
+                            <PriceHistory rows={price_changes} />
+                        </section>
+                    )}
                 </div>
 
                 <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5 xl:sticky xl:top-6">

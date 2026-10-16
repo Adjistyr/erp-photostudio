@@ -35,6 +35,15 @@ export interface CatalogVariant {
     is_active: boolean;
 }
 
+/** Satu baris riwayat harga (spek 6.5), props halaman Edit — terbaru dulu. */
+export interface CatalogPriceChange {
+    price: number;
+    unit_cost: number | null;
+    changed_by_name: string | null;
+    /** ISO 8601 — mulai berlaku. */
+    at: string;
+}
+
 export interface ServiceCategoryOption {
     value: ServiceCategory;
     label: string;

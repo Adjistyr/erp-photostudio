@@ -24,10 +24,36 @@ use Modules\Catalog\Enums\ServiceCategory;
  * @property Carbon|null $updated_at
  * @property-read Collection<int, CatalogItemPhoto> $photos sampul dulu
  * @property-read Collection<int, CatalogItemVariant> $variants urut input (spek 7.3)
+ * @property-read Collection<int, CatalogPriceChange> $priceChanges terbaru dulu (spek 6.5)
  */
 #[Fillable(['name', 'type', 'price', 'unit_cost', 'category', 'is_active', 'description', 'is_public'])]
 class CatalogItem extends Model
 {
+    /**
+     * Riwayat harga (spek 6.5) dicatat di model, bukan controller, supaya
+     * seeder/impor ikut tercatat. Harga varian tidak punya riwayat sendiri;
+     * perubahannya tercatat lewat harga item yang disalin dari varian aktif
+     * termurah (syncPriceFromVariants → update).
+     */
+    protected static function booted(): void
+    {
+        static::created(fn (self $item) => $item->recordPriceChange());
+        static::updated(function (self $item): void {
+            if ($item->wasChanged(['price', 'unit_cost'])) {
+                $item->recordPriceChange();
+            }
+        });
+    }
+
+    private function recordPriceChange(): void
+    {
+        $this->priceChanges()->create([
+            'price' => $this->price,
+            'unit_cost' => $this->unit_cost,
+            'changed_by' => auth()->id(),
+        ]);
+    }
+
     protected function casts(): array
     {
         return [
@@ -57,6 +83,16 @@ class CatalogItem extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(CatalogItemVariant::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
+     * Riwayat harga & HPP, terbaru dulu (id sebagai pemecah seri detik sama).
+     *
+     * @return HasMany<CatalogPriceChange, $this>
+     */
+    public function priceChanges(): HasMany
+    {
+        return $this->hasMany(CatalogPriceChange::class)->latest()->latest('id');
     }
 
     /**

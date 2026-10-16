@@ -11,6 +11,7 @@ use Modules\Catalog\Enums\ServiceCategory;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Catalog\Models\CatalogItemPhoto;
 use Modules\Catalog\Models\CatalogItemVariant;
+use Modules\Catalog\Models\CatalogPriceChange;
 use Modules\Catalog\Requests\CatalogItemRequest;
 
 /**
@@ -45,14 +46,21 @@ class CatalogItemController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('catalog::form', ['item' => null, ...$this->formProps()]);
+        return Inertia::render('catalog::form', ['item' => null, 'price_changes' => [], ...$this->formProps()]);
     }
 
     public function edit(CatalogItem $catalogItem): Response
     {
         $catalogItem->load(['photos', 'variants']);
 
-        return Inertia::render('catalog::form', ['item' => $this->itemProps($catalogItem), ...$this->formProps()]);
+        return Inertia::render('catalog::form', [
+            'item' => $this->itemProps($catalogItem),
+            // Riwayat harga (spek 6.5), terbaru dulu.
+            // ponytail: 20 cukup; paginasi bila item punya > 20 perubahan
+            'price_changes' => $catalogItem->priceChanges()->with('creator')->limit(20)->get()
+                ->map(fn (CatalogPriceChange $c) => $c->toProps())->values()->all(),
+            ...$this->formProps(),
+        ]);
     }
 
     public function store(CatalogItemRequest $request): RedirectResponse
