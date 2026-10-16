@@ -250,7 +250,11 @@ Yang dibutuhkan di sini bukan CRM dalam arti sales pipeline — client sudah men
 
 ## 6. Daftar Module
 
-Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena penggunanya dua owner dengan akses penuh dan volumenya kecil, setiap module bisa dibuat versi tipis — tidak perlu POS berkecepatan tinggi. Manajemen peran & hak akses tetap ada di kontrak (quotation deliverable 16), tapi ditunda sampai staf ikut input.
+Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Volumenya kecil, jadi setiap module bisa dibuat versi tipis — tidak perlu POS berkecepatan tinggi. Peran & hak akses (quotation deliverable 16) **sudah ada** sejak spek 5.1 (K4): dua peran tetap.
+
+- **Owner** — semua, termasuk mengelola pengguna (Settings → Pengguna).
+- **Admin boleh**: Dashboard (jadwal, piutang, perawatan jatuh tempo), POS, Order & Booking (buat, ubah, lanjut/mundur status, batal, link hasil, catat bayar & retur), Pembayaran, Customer (tambah/ubah), Katalog (lihat, tanpa HPP), Biaya (lihat + catat **biaya job**), Aset (lihat, catat servis, tandai rusak/aktif, peminjaman alat), Invoice, Komunikasi (lihat template, kirim).
+- **Admin tidak boleh**: Laporan (semua), Modal & Bagi Hasil, ekspor CSV order/aset/kas; melihat margin, HPP, omzet/BEP Dashboard, biaya operasional, nilai buku/alokasi/dana maintenance; menghapus pembayaran, retur, biaya, servis, setoran/penarikan; tambah/ubah/nonaktifkan katalog; tambah/ubah/lepas aset dan kategori/foto aset; ubah template; tutup/buka buku.
 
 | # | Module | Isi | Melayani flow |
 |---|---|---|---|
@@ -550,7 +554,7 @@ Bukan karena tidak berguna, tapi karena biayanya melebihi manfaatnya pada skala 
 | Penyimpanan & galeri foto di app | Biaya penyimpanan foto wedding besar, dan client sudah punya Google Drive. Cukup tempel link di Order | Kalau client minta customer bisa login lihat hasil sendiri |
 | Portal login customer | Satu link Drive menyelesaikan masalah yang sama | Sama seperti di atas |
 | Payment gateway | Pembayaran masih transfer manual, dan pencocokan manual masih ringan di volume ini | Kalau transaksi > 30/hari |
-| Hak akses & peran pengguna | Penggunanya dua owner dengan akses penuh. Tetap ada di kontrak (quotation deliverable 16) — ditunda, bukan dibuang | Saat ada staff yang ikut input |
+| Hak akses & peran pengguna | ~~Ditunda~~ — dikerjakan di spek 5.1: owner / admin, aturan tetap di kode (bagian 6). Peran dinamis / tabel permission tetap ditunda | Saat peran ketiga muncul |
 | Kunci periode / tutup buku | Tanpa kunci, biaya yang telat diinput ke bulan lalu ikut mengubah bagi hasil bulan itu. Diterima dulu: rasio sudah versi per periode (8.6), jadi satu-satunya sumber perubahan historis adalah input telat | Saat owner mulai mencairkan bagi hasil berdasarkan angka app, lalu angka bulan yang sudah dicairkan berubah |
 | Pencatatan pencairan bagi hasil & pengambilan owner | App menghitung **hak** tiap owner, bukan uang yang benar-benar dicairkan. Pencairan terjadi di luar app | Bersamaan dengan kunci periode |
 | Barcode, lokasi aset, dan notifikasi pengingat servis | Enam alat di satu studio. Jadwal perawatan cukup tampil di Dashboard dan layar Aset (8.9) | Kalau alat > 50 atau lebih dari satu lokasi |

@@ -24,6 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useCan } from '@/hooks/use-can';
 import { formatRp, formatTanggal } from '@/lib/format';
 import {
     StatusBadge,
@@ -48,32 +49,38 @@ export default function AssetShow({
     order_options,
 }: {
     asset: AssetDetail;
-    maintenance_balance: number;
+    /** Saldo dana maintenance — tidak dikirim untuk admin (spek 5.1). */
+    maintenance_balance?: number;
     today: string;
     /** Order studio/event untuk dikaitkan ke peminjaman (spek 8.4). */
     order_options: OrderOption[];
 }) {
+    const can = useCan();
     const [dialog, setDialog] = useState<'service' | 'dispose' | null>(null);
     const totalService = a.maintenances.reduce((s, m) => s + m.cost, 0);
     const bm = brandModel(a);
     const items = a.photos.filter((p) => p.kind === 'item');
     const receipts = a.photos.filter((p) => p.kind === 'receipt');
     const urls = (id: number) => ({ asset: a.id, photo: id });
+    const { accumulated } = a;
 
     return (
         <>
             <Head title={`${a.code} ${a.name}`} />
-            <PageActions>
-                {/* Identitas tetap bisa dikoreksi walau aset sudah dilepas. */}
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={AssetController.edit(a.id)} />}
-                >
-                    <Pencil data-icon="inline-start" />
-                    Edit
-                </Button>
-            </PageActions>
+            {/* Ubah identitas & lepas aset hanya owner (spek 5.1). */}
+            {can.manage_assets && (
+                <PageActions>
+                    {/* Identitas tetap bisa dikoreksi walau aset sudah dilepas. */}
+                    <Button
+                        variant="outline"
+                        nativeButton={false}
+                        render={<Link href={AssetController.edit(a.id)} />}
+                    >
+                        <Pencil data-icon="inline-start" />
+                        Edit
+                    </Button>
+                </PageActions>
+            )}
 
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex flex-col gap-1">
@@ -115,13 +122,15 @@ export default function AssetShow({
                                 ? 'Tandai Aktif'
                                 : 'Tandai Rusak'}
                         </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDialog('dispose')}
-                        >
-                            Lepas Aset
-                        </Button>
+                        {can.manage_assets && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setDialog('dispose')}
+                            >
+                                Lepas Aset
+                            </Button>
+                        )}
                     </div>
                 )}
 
@@ -184,16 +193,26 @@ export default function AssetShow({
                                 <DetailRow label="Tanggal beli">
                                     {formatTanggal(a.purchased_on)}
                                 </DetailRow>
-                                <DetailRow label="Dibiayai">
-                                    {a.funded_by ?? '—'}
-                                </DetailRow>
+                                {a.funded_by !== undefined && (
+                                    <DetailRow label="Dibiayai">
+                                        {a.funded_by ?? '—'}
+                                    </DetailRow>
+                                )}
                                 <DetailRow label="Maintenance">
-                                    {a.maintenance_percent}% ·{' '}
-                                    {formatRp(a.allocation)} / bulan
+                                    {a.maintenance_percent}%
+                                    {a.allocation !== undefined &&
+                                        ` · ${formatRp(a.allocation)} / bulan`}
                                 </DetailRow>
-                                <DetailRow label="Nilai buku">
-                                    {formatRp(a.book_value)} · umur ekonomis{' '}
-                                    {a.useful_life_months} bulan
+                                <DetailRow
+                                    label={
+                                        a.book_value !== undefined
+                                            ? 'Nilai buku'
+                                            : 'Umur ekonomis'
+                                    }
+                                >
+                                    {a.book_value !== undefined
+                                        ? `${formatRp(a.book_value)} · umur ekonomis ${a.useful_life_months} bulan`
+                                        : `${a.useful_life_months} bulan`}
                                 </DetailRow>
                                 <DetailRow label="Perawatan">
                                     {a.maintenance_interval_months === null
@@ -231,6 +250,7 @@ export default function AssetShow({
                         coverUrl={(id) =>
                             AssetPhotoController.cover(urls(id)).url
                         }
+                        readOnly={!can.manage_assets}
                         hint="Kondisi alat saat beli, rusak, atau sebelum dijual. Foto pertama jadi sampul di daftar."
                     />
                     <PhotoGallery
@@ -244,6 +264,7 @@ export default function AssetShow({
                             AssetPhotoController.destroy(urls(id)).url
                         }
                         allowPdf
+                        readOnly={!can.manage_assets}
                         hint="Foto nota, kartu garansi, atau PDF nota marketplace — untuk klaim garansi & asuransi."
                     />
                 </div>
@@ -261,7 +282,9 @@ export default function AssetShow({
                                     <TableHead>Jenis</TableHead>
                                     <TableHead>Keterangan</TableHead>
                                     <KepalaUang>Biaya</KepalaUang>
-                                    {!a.disposed_on && <TableHead />}
+                                    {!a.disposed_on && can.delete_money && (
+                                        <TableHead />
+                                    )}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -280,7 +303,7 @@ export default function AssetShow({
                                             />
                                         </TableCell>
                                         <SelUang nominal={m.cost} />
-                                        {!a.disposed_on && (
+                                        {!a.disposed_on && can.delete_money && (
                                             <TableCell className="w-10">
                                                 <ConfirmDelete
                                                     url={
@@ -313,22 +336,24 @@ export default function AssetShow({
                     Perbandingan yang membuat daftar aset berguna melampaui
                     sheet: alat mana yang biaya servisnya melebihi dana yang
                     disisihkan — kandidat diganti, atau persen maintenance
-                    terlalu kecil.
+                    terlalu kecil. Dana yang disisihkan hanya owner (spek 5.1).
                 */}
-                <p className="text-sm text-muted-foreground">
-                    Total servis{' '}
-                    <span className="font-mono text-foreground">
-                        {formatRp(totalService)}
-                    </span>{' '}
-                    dari{' '}
-                    <span className="font-mono text-foreground">
-                        {formatRp(a.accumulated)}
-                    </span>{' '}
-                    yang sudah disisihkan untuk aset ini (bulan yang sudah
-                    tutup).
-                    {totalService > a.accumulated &&
-                        ' Biaya servisnya melebihi dana yang disisihkan — pertimbangkan menaikkan persen maintenance atau mengganti alat.'}
-                </p>
+                {accumulated !== undefined && (
+                    <p className="text-sm text-muted-foreground">
+                        Total servis{' '}
+                        <span className="font-mono text-foreground">
+                            {formatRp(totalService)}
+                        </span>{' '}
+                        dari{' '}
+                        <span className="font-mono text-foreground">
+                            {formatRp(accumulated)}
+                        </span>{' '}
+                        yang sudah disisihkan untuk aset ini (bulan yang sudah
+                        tutup).
+                        {totalService > accumulated &&
+                            ' Biaya servisnya melebihi dana yang disisihkan — pertimbangkan menaikkan persen maintenance atau mengganti alat.'}
+                    </p>
+                )}
             </div>
 
             {dialog === 'service' && (

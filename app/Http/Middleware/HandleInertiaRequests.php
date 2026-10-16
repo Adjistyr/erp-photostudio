@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Ability;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -40,8 +42,26 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                // Hak akses dari Gate (spek 5.1) — klien tidak menebak dari `role`.
+                'can' => $this->abilities(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * Semua Gate App\Enums\Ability sebagai `{view_finance: bool, ...}`.
+     * Tamu: semuanya false.
+     *
+     * @return array<string, bool>
+     */
+    private function abilities(): array
+    {
+        $can = [];
+        foreach (Ability::cases() as $ability) {
+            $can[$ability->key()] = Gate::allows($ability);
+        }
+
+        return $can;
     }
 }

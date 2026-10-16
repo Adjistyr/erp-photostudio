@@ -52,6 +52,7 @@ export function PhotoGallery({
     deleteUrl,
     coverUrl,
     allowPdf = false,
+    readOnly = false,
     hint,
 }: {
     title?: string;
@@ -67,6 +68,8 @@ export function PhotoGallery({
     coverUrl?: (photoId: number) => string;
     /** Nota boleh PDF — dikirim apa adanya, tidak dikecilkan. */
     allowPdf?: boolean;
+    /** Lihat saja — tanpa unggah, sampul, hapus (pengguna tanpa hak kelola, spek 5.1). */
+    readOnly?: boolean;
     hint: string;
 }) {
     const [busy, setBusy] = useState(false);
@@ -117,7 +120,8 @@ export function PhotoGallery({
             <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm font-medium">{title}</span>
                 <span className="text-xs text-muted-foreground">
-                    {photos.length}/{max} · tersimpan langsung
+                    {photos.length}/{max}
+                    {readOnly ? '' : ' · tersimpan langsung'}
                 </span>
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -155,71 +159,78 @@ export function PhotoGallery({
                             </Badge>
                         )}
                         {/* Selalu terlihat — layar sentuh tidak punya hover. */}
-                        <div className="absolute right-1 bottom-1 flex gap-1">
-                            {coverUrl && i > 0 && (
-                                <Button
-                                    size="icon-xs"
-                                    variant="secondary"
-                                    aria-label={`Jadikan foto ${i + 1} sampul`}
-                                    title="Jadikan sampul"
-                                    onClick={() =>
-                                        router.patch(coverUrl(p.id), {}, VISIT)
-                                    }
-                                >
-                                    <Star />
-                                </Button>
-                            )}
-                            <AlertDialog>
-                                <AlertDialogTrigger
-                                    render={
-                                        <Button
-                                            size="icon-xs"
-                                            variant="secondary"
-                                            aria-label={`Hapus ${title.toLowerCase()} ${i + 1}`}
-                                        />
-                                    }
-                                >
-                                    <Trash2 />
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                            Hapus {title.toLowerCase()} {i + 1}?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Filenya ikut dihapus dan tidak bisa
-                                            dikembalikan.
-                                            {coverUrl &&
-                                                i === 0 &&
-                                                ' Foto berikutnya otomatis jadi sampul.'}
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel
-                                            render={
-                                                <Button variant="outline" />
-                                            }
-                                        >
-                                            Batal
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                            variant="destructive"
-                                            onClick={() =>
-                                                router.delete(
-                                                    deleteUrl(p.id),
-                                                    VISIT,
-                                                )
-                                            }
-                                        >
-                                            Hapus
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
+                        {!readOnly && (
+                            <div className="absolute right-1 bottom-1 flex gap-1">
+                                {coverUrl && i > 0 && (
+                                    <Button
+                                        size="icon-xs"
+                                        variant="secondary"
+                                        aria-label={`Jadikan foto ${i + 1} sampul`}
+                                        title="Jadikan sampul"
+                                        onClick={() =>
+                                            router.patch(
+                                                coverUrl(p.id),
+                                                {},
+                                                VISIT,
+                                            )
+                                        }
+                                    >
+                                        <Star />
+                                    </Button>
+                                )}
+                                <AlertDialog>
+                                    <AlertDialogTrigger
+                                        render={
+                                            <Button
+                                                size="icon-xs"
+                                                variant="secondary"
+                                                aria-label={`Hapus ${title.toLowerCase()} ${i + 1}`}
+                                            />
+                                        }
+                                    >
+                                        <Trash2 />
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                Hapus {title.toLowerCase()}{' '}
+                                                {i + 1}?
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Filenya ikut dihapus dan tidak
+                                                bisa dikembalikan.
+                                                {coverUrl &&
+                                                    i === 0 &&
+                                                    ' Foto berikutnya otomatis jadi sampul.'}
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel
+                                                render={
+                                                    <Button variant="outline" />
+                                                }
+                                            >
+                                                Batal
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                                variant="destructive"
+                                                onClick={() =>
+                                                    router.delete(
+                                                        deleteUrl(p.id),
+                                                        VISIT,
+                                                    )
+                                                }
+                                            >
+                                                Hapus
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        )}
                     </div>
                 ))}
-                {left > 0 && (
+                {!readOnly && left > 0 && (
                     <label
                         className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed text-center text-xs text-muted-foreground transition-colors focus-within:ring-2 focus-within:ring-ring ${busy ? 'pointer-events-none opacity-60' : 'cursor-pointer hover:bg-accent'}`}
                     >

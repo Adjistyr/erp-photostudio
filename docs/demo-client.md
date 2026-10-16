@@ -156,7 +156,7 @@ Supaya tidak ada harapan yang salah saat demo:
 
 | Belum ada | Status |
 |---|---|
-| Login & multi-pengguna | Ada di kontrak (deliverable 16), ditunda sampai staf ikut input |
+| Login & multi-pengguna | **Sudah ada** (spek 5.1): owner & admin. Akun demo admin `admin@potraittime.test` / `password` (dari `DemoSeeder`) — untuk menunjukkan layar staf tanpa laporan, margin, dan hapus catatan uang |
 | Penyimpanan data | Prototype in-memory; versi jadi memakai database |
 | Website company profile (Paket A) & Client Gallery (Paket C) | Produk terpisah |
 | Payment gateway, stok bahan, WA Business API | Sengaja tidak dibangun — lihat business-flow bagian 9 |

@@ -11,8 +11,10 @@ use Modules\Order\Controllers\ReceivableController;
 
 Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
-    // Ekspor CSV (spek 4.5) — setelah peran (5.1): can:view-finance (memuat HPP & margin).
-    Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
+    // Ekspor CSV (spek 4.5) — memuat HPP & margin, hanya owner (spek 5.1).
+    Route::get('orders/export', [OrderController::class, 'export'])
+        ->middleware('can:view-finance')
+        ->name('orders.export');
     Route::get('orders/create', [OrderController::class, 'create'])->name('orders.create');
     Route::get('orders/calendar', [OrderController::class, 'calendar'])->name('orders.calendar');
     Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
@@ -28,6 +30,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::post('orders/{order}/payments', [OrderPaymentController::class, 'store'])->name('orders.payments.store');
     Route::delete('orders/{order}/payments/{payment}', [OrderPaymentController::class, 'destroy'])
         ->scopeBindings()
+        ->middleware('can:delete-money')
         ->name('orders.payments.destroy');
     // Bukti transfer (spek 6.7): login DAN tanda tangan sementara.
     Route::get('payments/{payment}/proof', [PaymentProofController::class, 'show'])
@@ -37,6 +40,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::post('orders/{order}/refunds', [OrderRefundController::class, 'store'])->name('orders.refunds.store');
     Route::delete('orders/{order}/refunds/{refund}', [OrderRefundController::class, 'destroy'])
         ->scopeBindings()
+        ->middleware('can:delete-money')
         ->name('orders.refunds.destroy');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');

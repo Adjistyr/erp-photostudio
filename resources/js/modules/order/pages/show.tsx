@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { useCan } from '@/hooks/use-can';
 import { useFlash } from '@/hooks/use-flash';
 import {
     formatJadwal,
@@ -70,6 +71,7 @@ export default function OrderShow({
     order: OrderRow;
     studio: Studio;
 }) {
+    const can = useCan();
     const [refunding, setRefunding] = useState(false);
     const [paying, setPaying] = useState(false);
     // Bukti bayar setelah PaymentDialog sukses.
@@ -213,19 +215,22 @@ export default function OrderShow({
                                             )}
                                         </TableCell>
                                         <TableCell className="w-10">
-                                            <ConfirmDelete
-                                                url={
-                                                    OrderPaymentController.destroy(
-                                                        {
-                                                            order: order.id,
-                                                            payment: p.id,
-                                                        },
-                                                    ).url
-                                                }
-                                                label={`pembayaran ${p.note}`}
-                                                title={`Hapus ${p.note} ${formatRp(p.amount)}?`}
-                                                description="Status bayar dan sisa tagihan order ini dihitung ulang."
-                                            />
+                                            {/* Hapus catatan uang hanya owner (spek 5.1). */}
+                                            {can.delete_money && (
+                                                <ConfirmDelete
+                                                    url={
+                                                        OrderPaymentController.destroy(
+                                                            {
+                                                                order: order.id,
+                                                                payment: p.id,
+                                                            },
+                                                        ).url
+                                                    }
+                                                    label={`pembayaran ${p.note}`}
+                                                    title={`Hapus ${p.note} ${formatRp(p.amount)}?`}
+                                                    description="Status bayar dan sisa tagihan order ini dihitung ulang."
+                                                />
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -255,19 +260,21 @@ export default function OrderShow({
                                             −{formatRp(r.amount)}
                                         </TableCell>
                                         <TableCell className="w-10">
-                                            <ConfirmDelete
-                                                url={
-                                                    OrderRefundController.destroy(
-                                                        {
-                                                            order: order.id,
-                                                            refund: r.id,
-                                                        },
-                                                    ).url
-                                                }
-                                                label={`retur ${formatRp(r.amount)}`}
-                                                title={`Hapus retur ${formatRp(r.amount)}?`}
-                                                description="Omzet bulan pengembalian dan margin order ini dihitung ulang."
-                                            />
+                                            {can.delete_money && (
+                                                <ConfirmDelete
+                                                    url={
+                                                        OrderRefundController.destroy(
+                                                            {
+                                                                order: order.id,
+                                                                refund: r.id,
+                                                            },
+                                                        ).url
+                                                    }
+                                                    label={`retur ${formatRp(r.amount)}`}
+                                                    title={`Hapus retur ${formatRp(r.amount)}?`}
+                                                    description="Omzet bulan pengembalian dan margin order ini dihitung ulang."
+                                                />
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -404,68 +411,73 @@ export default function OrderShow({
                     </Section>
                 )}
 
-                <Section title="Biaya job & margin">
-                    {order.job_costs.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">
-                            Belum ada biaya langsung untuk order ini.
-                        </p>
-                    ) : (
-                        <Table className={KELAS_DENSITY}>
-                            <TableBody>
-                                {order.job_costs.map((j) => (
-                                    <TableRow key={j.id}>
-                                        <TableCell>{j.category}</TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {j.description}
-                                            <RecordedBy
-                                                name={j.created_by_name}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono">
-                                            {formatRp(j.amount)}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                    {/*
+                {/* Biaya job & margin tidak dikirim untuk admin (spek 5.1). */}
+                {order.margin !== undefined && order.job_costs && (
+                    <Section title="Biaya job & margin">
+                        {order.job_costs.length === 0 ? (
+                            <p className="px-3 py-2 text-sm text-muted-foreground">
+                                Belum ada biaya langsung untuk order ini.
+                            </p>
+                        ) : (
+                            <Table className={KELAS_DENSITY}>
+                                <TableBody>
+                                    {order.job_costs.map((j) => (
+                                        <TableRow key={j.id}>
+                                            <TableCell>{j.category}</TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {j.description}
+                                                <RecordedBy
+                                                    name={j.created_by_name}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {formatRp(j.amount)}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                        {/*
                         Margin per order di sini, bukan cuma di laporan agregat:
                         angka ini yang membuat owner memutuskan paket sejenis
                         masih layak dijual dengan harga yang sama.
                     */}
-                    {/* Retur mengurangi omzet riil order → margin (spek 4.2). */}
-                    {order.total_refunded > 0 && (
-                        <div className="flex justify-between px-3 pt-2 text-sm text-muted-foreground">
-                            <span>Pengembalian</span>
-                            <span className="font-mono">
-                                −{formatRp(order.total_refunded)}
+                        {/* Retur mengurangi omzet riil order → margin (spek 4.2). */}
+                        {order.total_refunded > 0 && (
+                            <div className="flex justify-between px-3 pt-2 text-sm text-muted-foreground">
+                                <span>Pengembalian</span>
+                                <span className="font-mono">
+                                    −{formatRp(order.total_refunded)}
+                                </span>
+                            </div>
+                        )}
+                        <div className="flex justify-between px-3 pt-2 text-sm font-medium">
+                            <span>Margin job</span>
+                            <span
+                                className={`font-mono ${kelasRp(order.margin)}`}
+                            >
+                                {formatRp(order.margin)}
+                                {order.total > 0 &&
+                                    order.work_status !== 'cancelled' && (
+                                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                            {formatPersen(
+                                                order.margin / order.total,
+                                            )}
+                                        </span>
+                                    )}
                             </span>
                         </div>
-                    )}
-                    <div className="flex justify-between px-3 pt-2 text-sm font-medium">
-                        <span>Margin job</span>
-                        <span className={`font-mono ${kelasRp(order.margin)}`}>
-                            {formatRp(order.margin)}
-                            {order.total > 0 &&
-                                order.work_status !== 'cancelled' && (
-                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                        {formatPersen(
-                                            order.margin / order.total,
-                                        )}
-                                    </span>
-                                )}
-                        </span>
-                    </div>
-                    {/* Order batal: sisa tagihan tidak akan pernah masuk, jadi
+                        {/* Order batal: sisa tagihan tidak akan pernah masuk, jadi
                         margin dari uang yang diterima — sama dengan Laba Rugi. */}
-                    {order.work_status === 'cancelled' && (
-                        <p className="px-3 pb-1 text-xs text-muted-foreground">
-                            Order batal — dihitung dari uang yang diterima (
-                            {formatRp(order.paid)}), bukan total order.
-                        </p>
-                    )}
-                </Section>
+                        {order.work_status === 'cancelled' && (
+                            <p className="px-3 pb-1 text-xs text-muted-foreground">
+                                Order batal — dihitung dari uang yang diterima (
+                                {formatRp(order.paid)}), bukan total order.
+                            </p>
+                        )}
+                    </Section>
+                )}
 
                 {/* Riwayat dari order_events — siapa mengubah apa, kapan. Paling
                     bawah: dibaca saat ada yang janggal, bukan tiap buka. */}

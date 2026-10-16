@@ -123,7 +123,8 @@ export default function Profile({
                 </Form>
             </div>
 
-            <DeleteUser />
+            {/* Owner tidak menghapus akunnya sendiri — selalu ada owner (spek 5.1). */}
+            {auth.user.role !== 'owner' && <DeleteUser />}
         </>
     );
 }

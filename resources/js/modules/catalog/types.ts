@@ -9,8 +9,8 @@ export interface CatalogItem {
     name: string;
     type: CatalogItemType;
     price: number;
-    /** HPP bahan per unit; null untuk jasa. */
-    unit_cost: number | null;
+    /** HPP bahan per unit; null untuk jasa. Tidak dikirim untuk admin (spek 5.1). */
+    unit_cost?: number | null;
     category: string;
     is_active: boolean;
     /** Jasa berkategori di luar ServiceCategory — tidak muncul di Buat Order. */
@@ -24,8 +24,8 @@ export interface CatalogItem {
     variants: CatalogVariant[];
     /** Komponen paket jasa (spek 6.3); kosong = bukan paket berkomponen. */
     components: BundleComponent[];
-    /** HPP bahan paket SAAT INI (dihitung server); null = bukan paket berkomponen. */
-    bundle_cost: number | null;
+    /** HPP bahan paket SAAT INI (dihitung server); null = bukan paket berkomponen. Tidak dikirim untuk admin (spek 5.1). */
+    bundle_cost?: number | null;
 }
 
 /** Produk di dalam paket jasa — nonaktif tetap dihitung di HPP paket. */
@@ -34,7 +34,8 @@ export interface BundleComponent {
     name: string;
     /** Jumlah per 1 paket. */
     quantity: number;
-    unit_cost: number | null;
+    /** Tidak dikirim untuk admin (spek 5.1). */
+    unit_cost?: number | null;
     is_active: boolean;
 }
 
@@ -51,7 +52,8 @@ export interface CatalogVariant {
     id: number;
     name: string;
     price: number;
-    unit_cost: number;
+    /** Tidak dikirim untuk admin (spek 5.1). */
+    unit_cost?: number;
     /** Foto dari galeri item; null = sampul item. */
     catalog_item_photo_id: number | null;
     is_active: boolean;

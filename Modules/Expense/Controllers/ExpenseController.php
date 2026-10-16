@@ -16,6 +16,7 @@ use Modules\Finance\Services\Periods;
 use Modules\Finance\Services\ProfitAndLoss;
 use Modules\Order\Models\Order;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Support\Finance;
 use Modules\Shared\Support\Money;
 
 /**
@@ -51,7 +52,8 @@ class ExpenseController extends Controller
             ->orderByDesc('number')
             ->get();
 
-        return Inertia::render('expense::index', [
+        // Biaya operasional = kas usaha, hanya owner (spek 5.1); admin melihat & mencatat biaya job.
+        return Inertia::render('expense::index', Finance::except([
             'month' => $month,
             'today' => now()->toDateString(),
             'job_costs' => $jobCosts->map(fn (JobCost $j) => [
@@ -85,7 +87,7 @@ class ExpenseController extends Controller
                 'job_cost' => (int) $o->jobCosts->sum('amount'),
                 'cancelled' => $o->isCancelled(),
             ])->values()->all(),
-        ]);
+        ], ['operating_expenses', 'totals.operating']));
     }
 
     public function storeJobCost(StoreJobCostRequest $request): RedirectResponse

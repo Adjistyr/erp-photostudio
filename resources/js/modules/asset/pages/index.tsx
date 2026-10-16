@@ -41,6 +41,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useCan } from '@/hooks/use-can';
 import {
     formatBulan,
     formatRp,
@@ -76,6 +77,7 @@ const STATUS_FILTERS: { value: AssetStatusFilter; label: string }[] = [
     { value: 'disposed', label: 'Dilepas' },
 ];
 
+/** Nilai buku, alokasi & dana tidak dikirim untuk admin (spek 5.1) — dirender dari ada-tidaknya. */
 interface Props {
     month: string;
     today: string;
@@ -83,8 +85,8 @@ interface Props {
         units: number;
         kinds: number;
         purchase_value: number;
-        book_value: number;
-        allocation: number;
+        book_value?: number;
+        allocation?: number;
     };
     due: {
         asset_id: number;
@@ -111,6 +113,8 @@ interface Props {
 
 export default function AssetsIndex(props: Props) {
     const { month, summary, due, assets, categories, today } = props;
+    const can = useCan();
+    const { book_value: bookValue, allocation } = summary;
     const { by_category, replacements, overdue_checkouts } = props;
     // Cari & filter di klien (spek 3.6, 8.1) — daftar aset kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
@@ -138,31 +142,39 @@ export default function AssetsIndex(props: Props) {
             <h1 className="sr-only">Aset & Maintenance</h1>
 
             <PageActions>
-                {/* <a href>, bukan Link: Inertia tidak menangani unduhan. */}
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<a href={assetsExport().url} />}
-                >
-                    <Download data-icon="inline-start" />
-                    Ekspor CSV
-                </Button>
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={assetCategoriesIndex()} />}
-                >
-                    <Settings2 data-icon="inline-start" />
-                    Kategori
-                </Button>
-                {/* Halaman penuh, bukan dialog (spek 8.1). */}
-                <Button
-                    nativeButton={false}
-                    render={<Link href={AssetController.create()} />}
-                >
-                    <Plus data-icon="inline-start" />
-                    Tambah Aset
-                </Button>
+                {/* <a href>, bukan Link: Inertia tidak menangani unduhan.
+                    Ekspor memuat nilai buku — hanya owner (spek 5.1). */}
+                {can.view_finance && (
+                    <Button
+                        variant="outline"
+                        nativeButton={false}
+                        render={<a href={assetsExport().url} />}
+                    >
+                        <Download data-icon="inline-start" />
+                        Ekspor CSV
+                    </Button>
+                )}
+                {/* Register alat dikelola owner; admin mencatat servis & status. */}
+                {can.manage_assets && (
+                    <>
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={<Link href={assetCategoriesIndex()} />}
+                        >
+                            <Settings2 data-icon="inline-start" />
+                            Kategori
+                        </Button>
+                        {/* Halaman penuh, bukan dialog (spek 8.1). */}
+                        <Button
+                            nativeButton={false}
+                            render={<Link href={AssetController.create()} />}
+                        >
+                            <Plus data-icon="inline-start" />
+                            Tambah Aset
+                        </Button>
+                    </>
+                )}
             </PageActions>
 
             <div className="flex flex-col gap-6 p-6">
@@ -177,16 +189,20 @@ export default function AssetsIndex(props: Props) {
                         value={formatRp(summary.purchase_value)}
                         note="harga saat dibeli"
                     />
-                    <Summary
-                        label="Nilai buku"
-                        value={formatRp(summary.book_value)}
-                        note="setelah penyusutan, hanya informasi"
-                    />
-                    <Summary
-                        label={`Alokasi maintenance ${formatBulan(month)}`}
-                        value={formatRp(summary.allocation)}
-                        note="dihitung dari daftar ini, masuk Laba Rugi"
-                    />
+                    {bookValue !== undefined && (
+                        <Summary
+                            label="Nilai buku"
+                            value={formatRp(bookValue)}
+                            note="setelah penyusutan, hanya informasi"
+                        />
+                    )}
+                    {allocation !== undefined && (
+                        <Summary
+                            label={`Alokasi maintenance ${formatBulan(month)}`}
+                            value={formatRp(allocation)}
+                            note="dihitung dari daftar ini, masuk Laba Rugi"
+                        />
+                    )}
                 </div>
 
                 {due.length > 0 && (
@@ -251,11 +267,17 @@ export default function AssetsIndex(props: Props) {
                 ) : assets.length === 0 ? (
                     <KosongTabel
                         kalimat="Belum ada aset. Catat alat studio supaya dana maintenance dihitung otomatis."
-                        aksi={{
-                            label: 'Tambah Aset',
-                            onClick: () =>
-                                router.visit(AssetController.create()),
-                        }}
+                        aksi={
+                            can.manage_assets
+                                ? {
+                                      label: 'Tambah Aset',
+                                      onClick: () =>
+                                          router.visit(
+                                              AssetController.create(),
+                                          ),
+                                  }
+                                : undefined
+                        }
                     />
                 ) : (
                     <TabelData>
@@ -265,8 +287,14 @@ export default function AssetsIndex(props: Props) {
                                 <TableHead>Aset</TableHead>
                                 <KepalaUang>Unit</KepalaUang>
                                 <KepalaUang>Harga beli</KepalaUang>
-                                <KepalaUang>Maintenance / bln</KepalaUang>
-                                <KepalaUang>Nilai buku</KepalaUang>
+                                {bookValue !== undefined && (
+                                    <>
+                                        <KepalaUang>
+                                            Maintenance / bln
+                                        </KepalaUang>
+                                        <KepalaUang>Nilai buku</KepalaUang>
+                                    </>
+                                )}
                                 <TableHead>Perawatan berikutnya</TableHead>
                                 <TableHead>Status</TableHead>
                             </TableRow>
@@ -321,8 +349,17 @@ export default function AssetsIndex(props: Props) {
                                             {a.units}
                                         </TableCell>
                                         <SelUang nominal={a.purchase_total} />
-                                        <SelUang nominal={a.allocation} />
-                                        <SelUang nominal={a.book_value} />
+                                        {a.allocation !== undefined &&
+                                            a.book_value !== undefined && (
+                                                <>
+                                                    <SelUang
+                                                        nominal={a.allocation}
+                                                    />
+                                                    <SelUang
+                                                        nominal={a.book_value}
+                                                    />
+                                                </>
+                                            )}
                                         <TableCell className="whitespace-nowrap">
                                             <NextMaintenance asset={a} />
                                         </TableCell>
@@ -355,12 +392,9 @@ export default function AssetsIndex(props: Props) {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                    Alokasi maintenance = harga × unit × persen, untuk aset yang
-                    dimiliki di akhir bulan. Dikurangkan di Laba Rugi sebelum
-                    laba bersih dan masuk dana maintenance. Nilai buku hanya
-                    informasi — tidak masuk Laba Rugi, supaya keausan alat tidak
-                    dibebankan dua kali. Klik baris untuk detail & riwayat
-                    servis.
+                    {bookValue !== undefined &&
+                        'Alokasi maintenance = harga × unit × persen, untuk aset yang dimiliki di akhir bulan. Dikurangkan di Laba Rugi sebelum laba bersih dan masuk dana maintenance. Nilai buku hanya informasi — tidak masuk Laba Rugi, supaya keausan alat tidak dibebankan dua kali. '}
+                    Klik baris untuk detail & riwayat servis.
                 </p>
             </div>
         </>

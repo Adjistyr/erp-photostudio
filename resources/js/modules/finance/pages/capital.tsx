@@ -71,6 +71,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useCan } from '@/hooks/use-can';
 import {
     formatBulan,
     formatPersen,
@@ -514,6 +515,8 @@ function ClosingStatus({
     lastClosed: string | null;
     closing: { closed_at: string; closed_by: string | null } | undefined;
 }) {
+    // Tombol tutup/buka buku mengikuti Gate `close-period` (spek 5.1).
+    const canClose = useCan().close_period;
     if (final) {
         return (
             <div className="flex items-center gap-2">
@@ -527,7 +530,7 @@ function ClosingStatus({
                 >
                     Tutup buku
                 </Badge>
-                {month === lastClosed && (
+                {canClose && month === lastClosed && (
                     <ConfirmClosing
                         month={month}
                         action="reopen"
@@ -539,7 +542,7 @@ function ClosingStatus({
             </div>
         );
     }
-    if (month === nextToClose) {
+    if (canClose && month === nextToClose) {
         return (
             <ConfirmClosing
                 month={month}
@@ -675,6 +678,7 @@ function ContributionsTab({
     rows: Props['contributions'];
     onAdd: () => void;
 }) {
+    const can = useCan();
     return (
         <>
             {rows.length === 0 ? (
@@ -735,16 +739,18 @@ function ContributionsTab({
                                     <SelUang nominal={c.remaining} />
                                 )}
                                 <TableCell className="w-10">
-                                    <ConfirmDelete
-                                        url={
-                                            CapitalController.destroyContribution(
-                                                c.id,
-                                            ).url
-                                        }
-                                        label={`setoran ${c.note}`}
-                                        title={`Hapus setoran ${c.owner_name} ${formatRp(c.amount)}?`}
-                                        description="Hanya bisa kalau belum terpakai: pinjaman belum mulai dilunasi, dan modal tidak membiayai investasi/aset."
-                                    />
+                                    {can.delete_money && (
+                                        <ConfirmDelete
+                                            url={
+                                                CapitalController.destroyContribution(
+                                                    c.id,
+                                                ).url
+                                            }
+                                            label={`setoran ${c.note}`}
+                                            title={`Hapus setoran ${c.owner_name} ${formatRp(c.amount)}?`}
+                                            description="Hanya bisa kalau belum terpakai: pinjaman belum mulai dilunasi, dan modal tidak membiayai investasi/aset."
+                                        />
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -769,6 +775,7 @@ function LedgerSection({
     balance: number;
     entries: LedgerEntry[];
 }) {
+    const can = useCan();
     return (
         <section className="flex min-w-0 flex-col gap-3">
             <div className="flex items-baseline justify-between">
@@ -813,18 +820,19 @@ function LedgerSection({
                                 <TableCell className="w-10">
                                     {/* Hanya pemakaian manual; alokasi, pinjaman, dan
                                         servis aset dihapus dari sumbernya masing-masing. */}
-                                    {e.withdrawal_id !== null && (
-                                        <ConfirmDelete
-                                            url={
-                                                CapitalController.destroyWithdrawal(
-                                                    e.withdrawal_id,
-                                                ).url
-                                            }
-                                            label={`pemakaian ${e.description}`}
-                                            title={`Hapus pemakaian ${formatRp(e.out)}?`}
-                                            description={`${e.description}. Saldo ${FUND_LABEL[fund].toLowerCase()} kembali.`}
-                                        />
-                                    )}
+                                    {can.delete_money &&
+                                        e.withdrawal_id !== null && (
+                                            <ConfirmDelete
+                                                url={
+                                                    CapitalController.destroyWithdrawal(
+                                                        e.withdrawal_id,
+                                                    ).url
+                                                }
+                                                label={`pemakaian ${e.description}`}
+                                                title={`Hapus pemakaian ${formatRp(e.out)}?`}
+                                                description={`${e.description}. Saldo ${FUND_LABEL[fund].toLowerCase()} kembali.`}
+                                            />
+                                        )}
                                 </TableCell>
                             </TableRow>
                         ))}

@@ -56,8 +56,8 @@ composer dev        # php serve + queue + log + vite sekaligus
 
 | Lingkungan | Cara |
 |---|---|
-| Lokal / staging | Seeder: `agung@potraittime.test` dan `raka@potraittime.test`, password `password` |
-| Produksi | `php artisan app:buat-pengguna` — registrasi publik dimatikan |
+| Lokal / staging | Seeder: `agung@potraittime.test` dan `raka@potraittime.test` (owner); `DemoSeeder` menambah `admin@potraittime.test` (admin). Password `password` |
+| Produksi | `php artisan app:buat-pengguna` (menanyakan nama, email, **peran**, password) atau Settings → Pengguna (owner) — registrasi publik dimatikan |
 
 ## 3. Perintah
 
@@ -124,6 +124,29 @@ Aturan yang disepakati:
 - **Nama halaman Inertia `<modul>::<halaman>`** (`Inertia::render('order::index')` → `resources/js/modules/order/pages/index.tsx`). Halaman app tetap tanpa namespace (`dashboard`, `auth/login`, `settings/profile`). Resolver di `resources/js/app.tsx`.
 - **Komponen dipakai 2+ modul** tetap di `resources/js/components/` (mis. `status-order.tsx`, `data-table.tsx`); tipe enum domain bersama di `resources/js/types/domain.ts`.
 
+### Peran (owner / admin)
+Dua peran tetap (`App\Enums\UserRole`, kolom `users.role`, spek 5.1): **owner** = semua; **admin** = transaksi harian (POS, order, pembayaran, retur, biaya job, customer, servis & status aset, peminjaman alat, invoice, kirim pesan) tanpa laporan, modal & bagi hasil, margin/HPP/nilai buku, hapus catatan uang, kelola katalog/aset/template/pengguna, tutup buku.
+
+Satu mekanisme — **Gate per kemampuan, bukan cek peran**. Daftar Gate = `App\Enums\Ability` (didefinisikan di loop `AppServiceProvider::configureGates()`, semuanya "owner saja"); tambah case baru = Gate baru + kunci baru di `auth.can` otomatis (tambahkan juga ke tipe `Ability` di `resources/js/types/auth.ts`).
+
+| Gate | Dipakai untuk |
+|---|---|
+| `view-finance` | Grup route Finance (`reports.*`, `capital.*`), `orders.export`, `assets.export`, semua props finansial |
+| `manage-catalog` | `catalog.create/store/edit/update/toggle-active`, `catalog.photos.*` |
+| `delete-money` | `orders.payments.destroy`, `orders.refunds.destroy`, `expenses.job-costs.destroy`, `expenses.operating.destroy`, `assets.maintenances.destroy`, `capital.withdrawals/contributions.destroy` |
+| `close-period` | `capital.closings.store/reopen` |
+| `manage-users` | `users.*` (Settings → Pengguna) |
+| `manage-assets` | `assets.create/store/edit/update/dispose`, `assets.photos.store/destroy/cover`, `asset-categories.*` |
+| `manage-templates` | `communication.templates.update` |
+| `record-operating-expense` | `expenses.operating.store` |
+
+Cara memasang:
+- **Route** → middleware `can:<gate>`: `->middleware('can:delete-money')` untuk satu route, `Route::middleware('can:manage-assets')->group(...)` untuk sekumpulan. Ditolak = 403. Jangan cek peran di controller.
+- **Prop finansial** → `Modules\Shared\Support\Finance` di controller: `Finance::except($props, ['margin', 'summary.book_value'])` (dot notation boleh; untuk daftar, per baris) atau `...Finance::only(fn () => ['revenue' => …])` untuk prop yang seluruhnya finansial (tidak dihitung untuk admin). Field **dihapus**, bukan `null` — klien membedakan "tidak boleh lihat" dari "nol". Tipe TS field itu dibuat opsional (`margin?: number`) dan kolom/kartu dirender dari `!== undefined`. Test: `assertInertia(fn ($p) => $p->missing('…'))` sebagai admin, `->has('…')` sebagai owner (`User::factory()->admin()`).
+- **Tombol / menu** → `useCan()` (`hooks/use-can.ts`, membaca shared prop `auth.can.<gate_snake>`): `{can.delete_money && <ConfirmDelete … />}`. Jangan menebak dari `auth.user.role`. Menu sidebar: `navGroupsFor(can)` di `app-sidebar.tsx`.
+
+Aturan pengguna: minimal satu owner; owner tidak mengubah perannya sendiri (`UpdateUserRequest`) dan tidak menghapus akunnya (`ProfileDeleteRequest`). Tidak ada hapus/nonaktif pengguna — akun staf yang keluar diganti sandinya.
+
 ### Pola modul (contoh: Katalog)
 Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 
@@ -155,7 +178,8 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Unggah foto | Browser mengecilkan dulu (`resizeForUpload()`, `lib/photo-resize.ts`; PDF dikirim apa adanya); galeri generik `components/photo-gallery.tsx` (URL lewat props). Server menyandikan ulang dengan `Shared\Support\ImageEncoder`. **Publik vs privat:** foto katalog di disk `public` (untuk company profile), foto & nota aset di disk `local` lewat route ber-auth (spek 8.2) — pilih disk menurut siapa yang boleh melihat, kirim `router.post(..., { forceFormData: true, preserveState: true })` | File asli tidak pernah disimpan — EXIF (lokasi GPS) terbuang dan isi file tidak dipercaya. `preserveState` wajib supaya isian form yang belum disimpan tidak hilang. Route anak memakai `scopeBindings()`. Test: `Storage::fake(CatalogItemPhoto::DISK)` + `UploadedFile::fake()->image()` |
 | Edit sebagian (identitas vs keuangan) | Request edit hanya memuat field yang boleh berubah; field keuangan tidak ada di aturan sehingga diabaikan walau dikirim (`UpdateAssetRequest` + trait `AssetIdentity`, spek 8.1). Form menampilkan field terkunci sebagai ringkasan baca-saja | Jangan memvalidasi lalu membuang diam-diam di controller — aturan request adalah daftar putih. Contoh lain: Ubah Order (K1) |
 | Snapshot json untuk sub-struktur transaksi | Kolom json di baris transaksi + cast `array` (mis. `order_items.components`, spek 6.3), diisi dari katalog saat transaksi (`CatalogItem::componentsSnapshot()` lewat `ResolvesCatalogLines::lines()`) | Jangan membaca ulang relasi katalog untuk menampilkan riwayat — katalog boleh berubah, order tidak. Baris lama saat Ubah Order tidak disalin ulang. Halaman customer (invoice) hanya menerima field yang boleh dilihat customer (tanpa `unit_cost`) |
-| Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
+| Menu | `app-sidebar.tsx`, grup R8 yang sesuai | Menu owner-saja disertakan lewat `navGroupsFor(can)` |
+| Aksi hanya owner | Route `can:<gate>` (`App\Enums\Ability`) + `useCan()` di klien; props finansial lewat `Finance::except()` | Lihat [Peran](#peran-owner--admin) |
 | Test | `Modules/<Modul>/Tests/Feature/<Model>Test.php` (namespace `Modules\<Modul>\Tests\Feature`) | Auth, render Inertia + props, validasi, aturan bisnis |
 
 ### Menu sidebar

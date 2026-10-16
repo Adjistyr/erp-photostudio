@@ -61,9 +61,9 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account()
+    public function test_admin_can_delete_their_account()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $response = $this
             ->actingAs($user)
@@ -77,6 +77,21 @@ class ProfileUpdateTest extends TestCase
 
         $this->assertGuest();
         $this->assertNull($user->fresh());
+    }
+
+    public function test_owner_cannot_delete_their_own_account()
+    {
+        // Spek 5.1 aturan 5: selalu ada owner — turunkan dulu lewat Pengguna.
+        User::factory()->create();
+        $owner = User::factory()->create();
+
+        $this->actingAs($owner)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), ['password' => 'password'])
+            ->assertSessionHasErrors(['password' => 'Akun owner tidak bisa dihapus.'])
+            ->assertRedirect(route('profile.edit'));
+
+        $this->assertNotNull($owner->fresh());
     }
 
     public function test_correct_password_must_be_provided_to_delete_account()

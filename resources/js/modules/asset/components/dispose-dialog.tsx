@@ -136,7 +136,7 @@ export function DisposeDialog({
 
                     <p className="text-xs text-muted-foreground">
                         {sold
-                            ? `Hasil jual masuk dana maintenance untuk membeli pengganti — bukan omzet. Nilai buku saat ini ${formatRp(a.book_value)}.`
+                            ? `Hasil jual masuk dana maintenance untuk membeli pengganti — bukan omzet.${a.book_value === undefined ? '' : ` Nilai buku saat ini ${formatRp(a.book_value)}.`}`
                             : 'Tidak ada uang masuk. Kalau perlu pengganti, beli dari dana maintenance atau catat sebagai aset baru.'}
                     </p>
                 </FieldGroup>

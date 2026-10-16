@@ -61,7 +61,8 @@ export interface NextInstallment {
 
 /**
  * Bentuk props order dari OrderController — angka turunan (total, sisa,
- * status bayar, persen DP, margin) sudah dihitung server.
+ * status bayar, persen DP, margin) sudah dihitung server. Field finansial
+ * opsional: tidak dikirim untuk admin (spek 5.1) — render dari ada-tidaknya.
  */
 export interface OrderRow {
     id: number;
@@ -87,8 +88,10 @@ export interface OrderRow {
     total: number;
     paid: number;
     balance: number;
-    direct_cost: number;
-    margin: number;
+    /** Hanya owner (`view_finance`). */
+    direct_cost?: number;
+    /** Hanya owner (`view_finance`). */
+    margin?: number;
     work_status: WorkStatus;
     /** Langkah berikutnya; null kalau sudah Diserahkan atau Batal. */
     next_status: WorkStatus | null;
@@ -108,12 +111,13 @@ export interface OrderRow {
         quantity: number;
         unit_price: number;
         catalog_item_id: number | null;
-        unit_cost: number | null;
+        /** HPP — hanya owner (`view_finance`). */
+        unit_cost?: number | null;
         /** Item custom (harga nego di luar katalog, spek 1.3). */
         is_custom: boolean;
         /** Snapshot isi paket jasa saat transaksi (spek 6.3), per 1 paket; null = bukan paket berkomponen. */
         components:
-            | { name: string; quantity: number; unit_cost: number | null }[]
+            | { name: string; quantity: number; unit_cost?: number | null }[]
             | null;
     }[];
     payments: {
@@ -138,7 +142,8 @@ export interface OrderRow {
         returned_on: string | null;
         overdue: boolean;
     }[];
-    job_costs: {
+    /** Biaya job = komponen margin — hanya owner (`view_finance`). */
+    job_costs?: {
         id: number;
         incurred_on: string;
         category: string;

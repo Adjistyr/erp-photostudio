@@ -66,7 +66,8 @@ interface Product {
     id: number;
     name: string;
     price: number;
-    unit_cost: number | null;
+    /** HPP — tidak dikirim untuk admin (spek 5.1). */
+    unit_cost?: number | null;
     /** Thumbnail sampul (spek 7.1); null tanpa foto. */
     photo_url: string | null;
     /** Varian aktif (spek 7.3); kosong = dijual dengan harga item. */
@@ -478,14 +479,16 @@ export default function Pos({
                             HPP tercatat otomatis dari katalog (5.1) — yang paling
                             sering bocor: produk terlihat untung karena harga
                             bahannya tidak pernah dihitung. Metadata, bukan angka
-                            yang diisi owner.
+                            yang diisi owner. Admin tidak menerima HPP (spek
+                            5.1 peran) — barisnya tidak tampil.
                         */}
-                {lines.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                        HPP bahan {formatRp(materialCost)} · margin{' '}
-                        {formatRp(total - materialCost)}
-                    </p>
-                )}
+                {lines.length > 0 &&
+                    lines[0].product.unit_cost !== undefined && (
+                        <p className="text-xs text-muted-foreground">
+                            HPP bahan {formatRp(materialCost)} · margin{' '}
+                            {formatRp(total - materialCost)}
+                        </p>
+                    )}
             </div>
 
             <Separator />

@@ -17,7 +17,8 @@ export interface PosVariant {
     id: number;
     name: string;
     price: number;
-    unit_cost: number;
+    /** HPP — hanya owner (`view_finance`, spek 5.1). */
+    unit_cost?: number;
     /** Foto varian, atau sampul item (server). */
     photo_url: string | null;
 }

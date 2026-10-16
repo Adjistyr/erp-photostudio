@@ -15,6 +15,7 @@ use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Catalog\Models\CatalogPriceChange;
 use Modules\Catalog\Requests\CatalogItemRequest;
 use Modules\Catalog\Requests\UpdateBundleComponentsRequest;
+use Modules\Shared\Support\Finance;
 
 /**
  * Katalog — modul fondasi: POS, form order, dan laporan HPP bergantung ke
@@ -37,8 +38,8 @@ class CatalogItemController extends Controller
                 ->get()
                 ->map(fn (CatalogItem $i) => $this->itemProps($i))
                 ->values()->all(),
-            // Ambang penanda margin rendah (merah) di kolom Margin % produk.
-            'low_margin_ratio' => (float) config('studio.low_margin_ratio'),
+            // Ambang penanda margin rendah (merah) di kolom Margin % produk — hanya owner (spek 5.1).
+            ...Finance::only(fn () => ['low_margin_ratio' => (float) config('studio.low_margin_ratio')]),
         ]);
     }
 
@@ -145,13 +146,14 @@ class CatalogItemController extends Controller
     }
 
     /**
-     * Bentuk satu item untuk daftar dan halaman form — satu sumber.
+     * Bentuk satu item untuk daftar dan halaman form — satu sumber. HPP
+     * (`unit_cost`, juga per varian) hanya untuk owner (spek 5.1).
      *
      * @return array<string, mixed>
      */
     private function itemProps(CatalogItem $i): array
     {
-        return [
+        return Finance::except([
             'id' => $i->id, 'name' => $i->name, 'type' => $i->type->value, 'price' => $i->price,
             'unit_cost' => $i->unit_cost, 'category' => $i->category, 'is_active' => $i->is_active,
             // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
@@ -160,14 +162,14 @@ class CatalogItemController extends Controller
             'description' => $i->description, 'is_public' => $i->is_public,
             'photos' => $i->photos->map(fn (CatalogItemPhoto $p) => $p->toProps())->values()->all(),
             // Varian produk (spek 7.3), aktif maupun nonaktif.
-            'variants' => $i->variants->map(fn (CatalogItemVariant $v) => $v->toProps())->values()->all(),
+            'variants' => $i->variants->map(fn (CatalogItemVariant $v) => Finance::except($v->toProps(), ['unit_cost']))->values()->all(),
             // Komponen paket jasa (spek 6.3) + HPP bahan paket SAAT INI (dihitung, tidak disimpan).
-            'components' => $i->components->map(fn (CatalogItem $c) => [
+            'components' => $i->components->map(fn (CatalogItem $c) => Finance::except([
                 'id' => $c->id, 'name' => $c->name, 'quantity' => $c->pivotQuantity(),
                 'unit_cost' => $c->unit_cost, 'is_active' => $c->is_active,
-            ])->values()->all(),
+            ], ['unit_cost']))->values()->all(),
             'bundle_cost' => $i->bundleCost(),
-        ];
+        ], ['unit_cost', 'bundle_cost']);
     }
 
     /**

@@ -44,6 +44,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useCan } from '@/hooks/use-can';
 import { formatJadwal } from '@/lib/format';
 import {
     calendar as ordersCalendar,
@@ -108,6 +109,7 @@ export default function OrdersIndex({
             { preserveState: true, preserveScroll: true, replace: true },
         );
     const visible = orders.data;
+    const can = useCan();
     const filtered = hasActiveFilter(filters);
 
     return (
@@ -117,22 +119,26 @@ export default function OrdersIndex({
 
             <PageActions>
                 {/* <a href>, bukan Link: Inertia tidak menangani unduhan.
-                    Filter yang terlihat = yang diekspor. */}
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    title="Mengekspor sesuai filter yang aktif"
-                    render={
-                        <a
-                            href={
-                                ordersExport({ query: cleanQuery(filters) }).url
-                            }
-                        />
-                    }
-                >
-                    <Download data-icon="inline-start" />
-                    Ekspor CSV
-                </Button>
+                    Filter yang terlihat = yang diekspor. Ekspor memuat HPP &
+                    margin — hanya owner (spek 5.1). */}
+                {can.view_finance && (
+                    <Button
+                        variant="outline"
+                        nativeButton={false}
+                        title="Mengekspor sesuai filter yang aktif"
+                        render={
+                            <a
+                                href={
+                                    ordersExport({ query: cleanQuery(filters) })
+                                        .url
+                                }
+                            />
+                        }
+                    >
+                        <Download data-icon="inline-start" />
+                        Ekspor CSV
+                    </Button>
+                )}
                 <Button
                     variant="outline"
                     nativeButton={false}

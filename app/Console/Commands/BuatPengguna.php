@@ -3,10 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Enums\UserRole;
 use Illuminate\Console\Command;
 use Illuminate\Validation\ValidationException;
 
 use function Laravel\Prompts\password;
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 /**
@@ -26,12 +28,15 @@ class BuatPengguna extends Command
     {
         $name = text('Nama', required: true);
         $email = text('Email', required: true);
+        // Spek 5.1: owner melihat semua; admin mencatat transaksi harian tanpa laporan & margin.
+        $role = select('Peran', array_column(UserRole::options(), 'label', 'value'), default: UserRole::Owner->value);
         $password = password('Password', required: true);
 
         try {
             $user = $creator->create([
                 'name' => $name,
                 'email' => $email,
+                'role' => (string) $role,
                 'password' => $password,
                 'password_confirmation' => $password,
             ]);
@@ -48,7 +53,7 @@ class BuatPengguna extends Command
         // konfigurasi email untuk mengirim tautan verifikasi.
         $user->forceFill(['email_verified_at' => now()])->save();
 
-        $this->info("Akun {$user->email} dibuat.");
+        $this->info("Akun {$user->email} ({$user->role->label()}) dibuat.");
 
         return self::SUCCESS;
     }

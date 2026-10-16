@@ -34,6 +34,7 @@ use Modules\Order\Requests\UpdateOrderRequest;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Http\CsvResponse;
 use Modules\Shared\Http\ListQuery;
+use Modules\Shared\Support\Finance;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -500,13 +501,18 @@ class OrderController extends Controller
             ])->values()->all();
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Tanpa `view-finance` (admin, spek 5.1): `direct_cost`, `margin`,
+     * `job_costs` (komponen margin), dan `items[].unit_cost` (HPP) dihapus.
+     *
+     * @return array<string, mixed>
+     */
     private function orderProps(Order $o): array
     {
         $total = $o->total();
         $direct = $o->directCost();
 
-        return [
+        return Finance::except([
             'id' => $o->id,
             'number' => $o->number,
             // null = walk-in tanpa data customer.
@@ -547,14 +553,18 @@ class OrderController extends Controller
             'next_installment' => $o->nextInstallment(),
             // Jatuh tempo efektif: termin berikutnya, atau tanggal layanan.
             'due_on' => $o->dueOn()->toDateString(),
-            'items' => $o->items->map(fn (OrderItem $i) => [
+            'items' => $o->items->map(fn (OrderItem $i) => Finance::except([
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
                 'catalog_item_id' => $i->catalog_item_id, 'unit_cost' => $i->unit_cost,
                 // Item custom (spek 1.3) — harga nego di luar katalog.
                 'is_custom' => $i->catalog_item_id === null,
-                // Snapshot komponen paket (spek 6.3), termasuk HPP per komponen saat transaksi.
-                'components' => $i->components,
-            ])->values()->all(),
+                // Snapshot komponen paket (spek 6.3), termasuk HPP per komponen saat transaksi
+                // — HPP komponen hanya untuk owner (spek 5.1).
+                'components' => $i->components === null ? null : array_map(
+                    fn (array $c) => Finance::except($c, ['unit_cost']),
+                    $i->components,
+                ),
+            ], ['unit_cost']))->values()->all(),
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,
                 'method' => $p->method->value, 'note' => $p->note, 'created_by_name' => $p->creator?->name,
@@ -581,6 +591,6 @@ class OrderController extends Controller
                 'id' => $j->id, 'incurred_on' => $j->incurred_on->toDateString(), 'category' => $j->category,
                 'description' => $j->description, 'amount' => $j->amount, 'created_by_name' => $j->creator?->name,
             ])->values()->all(),
-        ];
+        ], ['direct_cost', 'margin', 'job_costs']);
     }
 }

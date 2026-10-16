@@ -19,6 +19,7 @@ use Modules\Order\Models\Order;
 use Modules\Order\Models\Payment;
 use Modules\Order\Requests\StorePosSaleRequest;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Support\Finance;
 use Modules\Shared\Support\Money;
 
 /**
@@ -40,15 +41,16 @@ class PosController extends Controller
                 ->get()
                 // Produk bervarian tanpa varian aktif tidak bisa dijual (spek 7.3).
                 ->reject(fn (CatalogItem $p) => $p->variants->isNotEmpty() && $p->variants->where('is_active', true)->isEmpty())
-                ->map(fn (CatalogItem $p) => [
+                // HPP (`unit_cost`) hanya untuk owner (spek 5.1) — admin tanpa baris HPP/margin keranjang.
+                ->map(fn (CatalogItem $p) => Finance::except([
                     'id' => $p->id, 'name' => $p->name, 'price' => $p->price, 'unit_cost' => $p->unit_cost,
                     'photo_url' => $p->photos->first()?->thumbUrl(),
-                    'variants' => $p->variants->where('is_active', true)->map(fn (CatalogItemVariant $v) => [
+                    'variants' => $p->variants->where('is_active', true)->map(fn (CatalogItemVariant $v) => Finance::except([
                         'id' => $v->id, 'name' => $v->name, 'price' => $v->price, 'unit_cost' => $v->unit_cost,
                         // Foto varian, atau sampul item bila tidak dipilih.
                         'photo_url' => $v->photo?->thumbUrl() ?? $p->photos->first()?->thumbUrl(),
-                    ])->values()->all(),
-                ])->values()->all(),
+                    ], ['unit_cost']))->values()->all(),
+                ], ['unit_cost']))->values()->all(),
             // Nama studio untuk pesan WA struk.
             'studio' => config('studio'),
             ...$this->todaySales(),

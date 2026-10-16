@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useCan } from '@/hooks/use-can';
 import {
     formatRp,
     formatTanggal,
@@ -455,6 +456,8 @@ function TemplateCard({
 }) {
     const form = useForm({ body: template.body });
     const { data, setData, errors, processing } = form;
+    // Admin membaca & mengirim template; mengubahnya hanya owner (spek 5.1).
+    const canEdit = useCan().manage_templates;
 
     return (
         <section className="flex min-w-0 flex-col gap-3 rounded-lg border p-5">
@@ -465,6 +468,7 @@ function TemplateCard({
             <Textarea
                 rows={6}
                 value={data.body}
+                readOnly={!canEdit}
                 onChange={(e) => setData('body', e.target.value)}
             />
             <InputError message={errors.body} />
@@ -474,20 +478,22 @@ function TemplateCard({
                     {personalise(data.body, contoh(sampleName))}
                 </p>
             </div>
-            <Button
-                variant="outline"
-                className="self-end"
-                disabled={processing || data.body === template.body}
-                onClick={() =>
-                    form.put(
-                        CommunicationController.updateTemplate(template.key)
-                            .url,
-                        { preserveScroll: true },
-                    )
-                }
-            >
-                Simpan template
-            </Button>
+            {canEdit && (
+                <Button
+                    variant="outline"
+                    className="self-end"
+                    disabled={processing || data.body === template.body}
+                    onClick={() =>
+                        form.put(
+                            CommunicationController.updateTemplate(template.key)
+                                .url,
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    Simpan template
+                </Button>
+            )}
         </section>
     );
 }

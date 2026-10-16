@@ -54,6 +54,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useCan } from '@/hooks/use-can';
 import { formatPersen, formatRp } from '@/lib/format';
 import { bundleIncludes } from '@/modules/catalog/lib/bundle';
 import { filterCatalog, isLowMargin } from '@/modules/catalog/lib/filter';
@@ -68,14 +69,22 @@ export default function CatalogIndex({
     low_margin_ratio,
 }: {
     items: CatalogItem[];
-    /** Ambang margin rendah 0..1 dari config/studio.php (spek 3.6). */
-    low_margin_ratio: number;
+    /**
+     * Ambang margin rendah 0..1 dari config/studio.php (spek 3.6). Tidak
+     * dikirim untuk admin bersama `unit_cost` (spek 5.1) — kolom HPP & margin
+     * hanya dirender bila ada.
+     */
+    low_margin_ratio?: number;
 }) {
+    const can = useCan();
     const [filter, setFilter] = useState<Filter>('all');
     // Cari di klien (spek 3.6) — katalog kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
     const visible = filterCatalog(items, { type: filter, q: search.q });
-    const lowMarginNote = `Merah bila di bawah ${formatPersen(low_margin_ratio)} — ambang di konfigurasi studio.`;
+    const lowMarginNote =
+        low_margin_ratio === undefined
+            ? ''
+            : `Merah bila di bawah ${formatPersen(low_margin_ratio)} — ambang di konfigurasi studio.`;
     const tersesat = items.filter((i) => i.unknown_category).length;
 
     const toggleActive = (item: CatalogItem) => {
@@ -90,16 +99,19 @@ export default function CatalogIndex({
         <>
             <Head title="Katalog" />
             <h1 className="sr-only">Katalog</h1>
-            <PageActions>
-                {/* Halaman penuh, bukan dialog (spek 7.2). */}
-                <Button
-                    nativeButton={false}
-                    render={<Link href={CatalogItemController.create()} />}
-                >
-                    <Plus data-icon="inline-start" />
-                    Tambah Item
-                </Button>
-            </PageActions>
+            {/* Mengelola katalog hanya owner (spek 5.1); admin melihat saja. */}
+            {can.manage_catalog && (
+                <PageActions>
+                    {/* Halaman penuh, bukan dialog (spek 7.2). */}
+                    <Button
+                        nativeButton={false}
+                        render={<Link href={CatalogItemController.create()} />}
+                    >
+                        <Plus data-icon="inline-start" />
+                        Tambah Item
+                    </Button>
+                </PageActions>
+            )}
 
             <div className="flex flex-col gap-6 p-6">
                 <Tabs
@@ -145,11 +157,17 @@ export default function CatalogIndex({
                 ) : visible.length === 0 ? (
                     <KosongTabel
                         kalimat="Belum ada produk atau jasa. Tambahkan yang paling sering dijual dulu."
-                        aksi={{
-                            label: 'Tambah Item',
-                            onClick: () =>
-                                router.visit(CatalogItemController.create()),
-                        }}
+                        aksi={
+                            can.manage_catalog
+                                ? {
+                                      label: 'Tambah Item',
+                                      onClick: () =>
+                                          router.visit(
+                                              CatalogItemController.create(),
+                                          ),
+                                  }
+                                : undefined
+                        }
                     />
                 ) : (
                     <TabelData>
@@ -159,22 +177,26 @@ export default function CatalogIndex({
                                 <TableHead>Jenis</TableHead>
                                 <TableHead>Kategori</TableHead>
                                 <KepalaUang>Harga jual</KepalaUang>
-                                <KepalaUang>HPP bahan</KepalaUang>
-                                <KepalaUang>Margin</KepalaUang>
-                                <KepalaUang>
-                                    <Tooltip>
-                                        <TooltipTrigger
-                                            render={
-                                                <span className="cursor-help underline decoration-dotted decoration-from-font underline-offset-4" />
-                                            }
-                                        >
-                                            Margin %
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {lowMarginNote}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </KepalaUang>
+                                {low_margin_ratio !== undefined && (
+                                    <>
+                                        <KepalaUang>HPP bahan</KepalaUang>
+                                        <KepalaUang>Margin</KepalaUang>
+                                        <KepalaUang>
+                                            <Tooltip>
+                                                <TooltipTrigger
+                                                    render={
+                                                        <span className="cursor-help underline decoration-dotted decoration-from-font underline-offset-4" />
+                                                    }
+                                                >
+                                                    Margin %
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {lowMarginNote}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </KepalaUang>
+                                    </>
+                                )}
                                 <TableHead>Status</TableHead>
                                 <TableHead />
                             </TableRow>
@@ -269,10 +291,12 @@ export default function CatalogIndex({
                                         bahan hasil hitung; margin tetap "—"
                                         karena biaya job belum termasuk.
                                     */}
-                                        {item.unit_cost === null ||
-                                        item.variants.length > 0 ? (
+                                        {low_margin_ratio ===
+                                        undefined ? null : item.unit_cost ==
+                                              null ||
+                                          item.variants.length > 0 ? (
                                             <>
-                                                {item.bundle_cost !== null ? (
+                                                {item.bundle_cost != null ? (
                                                     <BundleCostCell
                                                         cost={item.bundle_cost}
                                                     />
@@ -342,65 +366,67 @@ export default function CatalogIndex({
                                             {/* Tidak ada Hapus — item yang pernah
                                             terjual hanya dinonaktifkan supaya
                                             riwayat order tidak rusak. */}
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger
-                                                    render={
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            aria-label={`Aksi ${item.name}`}
-                                                        />
-                                                    }
-                                                >
-                                                    <MoreHorizontal />
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuGroup>
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                router.visit(
-                                                                    CatalogItemController.edit(
-                                                                        item.id,
-                                                                    ),
-                                                                )
-                                                            }
-                                                        >
-                                                            <Pencil />
-                                                            Edit
-                                                        </DropdownMenuItem>
-                                                        {/* Komponen paket (spek 6.3) — bagian di halaman Edit. */}
-                                                        {item.type ===
-                                                            'service' && (
+                                            {can.manage_catalog && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        render={
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                aria-label={`Aksi ${item.name}`}
+                                                            />
+                                                        }
+                                                    >
+                                                        <MoreHorizontal />
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuGroup>
                                                             <DropdownMenuItem
                                                                 onClick={() =>
                                                                     router.visit(
-                                                                        `${CatalogItemController.edit.url(item.id)}#komponen`,
+                                                                        CatalogItemController.edit(
+                                                                            item.id,
+                                                                        ),
                                                                     )
                                                                 }
                                                             >
-                                                                <Package />
-                                                                Komponen…
+                                                                <Pencil />
+                                                                Edit
                                                             </DropdownMenuItem>
-                                                        )}
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                toggleActive(
-                                                                    item,
-                                                                )
-                                                            }
-                                                        >
-                                                            {item.is_active ? (
-                                                                <EyeOff />
-                                                            ) : (
-                                                                <Eye />
+                                                            {/* Komponen paket (spek 6.3) — bagian di halaman Edit. */}
+                                                            {item.type ===
+                                                                'service' && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        router.visit(
+                                                                            `${CatalogItemController.edit.url(item.id)}#komponen`,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Package />
+                                                                    Komponen…
+                                                                </DropdownMenuItem>
                                                             )}
-                                                            {item.is_active
-                                                                ? 'Nonaktifkan'
-                                                                : 'Aktifkan'}
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuGroup>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    toggleActive(
+                                                                        item,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {item.is_active ? (
+                                                                    <EyeOff />
+                                                                ) : (
+                                                                    <Eye />
+                                                                )}
+                                                                {item.is_active
+                                                                    ? 'Nonaktifkan'
+                                                                    : 'Aktifkan'}
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                     {item.variants.map((v) => (
@@ -418,12 +444,15 @@ export default function CatalogIndex({
                     </TabelData>
                 )}
 
-                <p className="text-xs text-muted-foreground">
-                    HPP bahan hanya berlaku untuk produk fisik. HPP jasa berbeda
-                    tiap job — fee crew, transport, sewa — dan dicatat per order
-                    lewat menu Biaya. Paket jasa berkomponen menampilkan HPP
-                    bahan komponennya (dihitung, ikut ke order berikutnya).
-                </p>
+                {low_margin_ratio !== undefined && (
+                    <p className="text-xs text-muted-foreground">
+                        HPP bahan hanya berlaku untuk produk fisik. HPP jasa
+                        berbeda tiap job — fee crew, transport, sewa — dan
+                        dicatat per order lewat menu Biaya. Paket jasa
+                        berkomponen menampilkan HPP bahan komponennya (dihitung,
+                        ikut ke order berikutnya).
+                    </p>
+                )}
             </div>
         </>
     );
@@ -433,7 +462,10 @@ CatalogIndex.layout = {
     breadcrumbs: [{ title: 'Katalog', href: catalogIndex() }],
 };
 
-/** Varian di bawah produknya (spek 7.3) — harga, HPP, dan margin sendiri. */
+/**
+ * Varian di bawah produknya (spek 7.3) — harga, HPP, dan margin sendiri.
+ * Tanpa `lowMarginRatio` (admin, spek 5.1) kolom HPP & margin tidak ada.
+ */
 function VariantSubRow({
     variant: v,
     dimmed,
@@ -443,10 +475,14 @@ function VariantSubRow({
     variant: CatalogVariant;
     /** Produknya nonaktif — variannya ikut tidak dijual. */
     dimmed: boolean;
-    lowMarginRatio: number;
+    lowMarginRatio?: number;
     lowMarginNote: string;
 }) {
-    const low = isLowMargin(v.price, v.unit_cost, lowMarginRatio);
+    const cost = v.unit_cost;
+    const low =
+        lowMarginRatio !== undefined &&
+        cost !== undefined &&
+        isLowMargin(v.price, cost, lowMarginRatio);
     return (
         <TableRow
             className={`bg-muted/30 ${dimmed || !v.is_active ? 'opacity-60' : ''}`}
@@ -460,14 +496,18 @@ function VariantSubRow({
             <TableCell />
             <TableCell />
             <SelUang nominal={v.price} />
-            <SelUang nominal={v.unit_cost} />
-            <SelUang nominal={v.price - v.unit_cost} />
-            <TableCell
-                className={`text-right font-mono ${low ? 'text-destructive' : ''}`}
-                title={low ? lowMarginNote : undefined}
-            >
-                {formatPersen((v.price - v.unit_cost) / v.price)}
-            </TableCell>
+            {lowMarginRatio !== undefined && cost !== undefined && (
+                <>
+                    <SelUang nominal={cost} />
+                    <SelUang nominal={v.price - cost} />
+                    <TableCell
+                        className={`text-right font-mono ${low ? 'text-destructive' : ''}`}
+                        title={low ? lowMarginNote : undefined}
+                    >
+                        {formatPersen((v.price - cost) / v.price)}
+                    </TableCell>
+                </>
+            )}
             <TableCell>
                 {!v.is_active && <Badge variant="secondary">Nonaktif</Badge>}
             </TableCell>

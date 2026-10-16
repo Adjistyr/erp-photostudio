@@ -26,13 +26,14 @@ import {
 import { formatBulan, formatRp } from '@/lib/format';
 import { replacementWhen } from '@/modules/asset/lib/replacement';
 
+/** Nilai buku, alokasi, dan dana maintenance tidak dikirim untuk admin (spek 5.1). */
 export interface CategorySummary {
     name: string;
     kinds: number;
     units: number;
     purchase_value: number;
-    book_value: number;
-    allocation: number;
+    book_value?: number;
+    allocation?: number;
 }
 
 export interface Replacements {
@@ -45,8 +46,8 @@ export interface Replacements {
         estimate: number;
     }[];
     total_estimate: number;
-    maintenance_balance: number;
-    shortfall: number;
+    maintenance_balance?: number;
+    shortfall?: number;
 }
 
 /**
@@ -55,8 +56,9 @@ export interface Replacements {
  */
 export function CategorySummaryTable({ rows }: { rows: CategorySummary[] }) {
     if (rows.length === 0) return null;
+    const finance = rows[0].book_value !== undefined;
     const sum = (key: keyof Omit<CategorySummary, 'name'>) =>
-        rows.reduce((s, r) => s + r[key], 0);
+        rows.reduce((s, r) => s + (r[key] ?? 0), 0);
 
     return (
         <Collapsible className="rounded-lg border">
@@ -82,8 +84,14 @@ export function CategorySummaryTable({ rows }: { rows: CategorySummary[] }) {
                                 <KepalaUang>Jenis</KepalaUang>
                                 <KepalaUang>Unit</KepalaUang>
                                 <KepalaUang>Nilai beli</KepalaUang>
-                                <KepalaUang>Nilai buku</KepalaUang>
-                                <KepalaUang>Maintenance / bln</KepalaUang>
+                                {finance && (
+                                    <>
+                                        <KepalaUang>Nilai buku</KepalaUang>
+                                        <KepalaUang>
+                                            Maintenance / bln
+                                        </KepalaUang>
+                                    </>
+                                )}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -99,8 +107,16 @@ export function CategorySummaryTable({ rows }: { rows: CategorySummary[] }) {
                                         {r.units}
                                     </TableCell>
                                     <SelUang nominal={r.purchase_value} />
-                                    <SelUang nominal={r.book_value} />
-                                    <SelUang nominal={r.allocation} />
+                                    {finance && (
+                                        <>
+                                            <SelUang
+                                                nominal={r.book_value ?? 0}
+                                            />
+                                            <SelUang
+                                                nominal={r.allocation ?? 0}
+                                            />
+                                        </>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -119,14 +135,18 @@ export function CategorySummaryTable({ rows }: { rows: CategorySummary[] }) {
                                     nominal={sum('purchase_value')}
                                     className="font-semibold"
                                 />
-                                <SelUang
-                                    nominal={sum('book_value')}
-                                    className="font-semibold"
-                                />
-                                <SelUang
-                                    nominal={sum('allocation')}
-                                    className="font-semibold"
-                                />
+                                {finance && (
+                                    <>
+                                        <SelUang
+                                            nominal={sum('book_value')}
+                                            className="font-semibold"
+                                        />
+                                        <SelUang
+                                            nominal={sum('allocation')}
+                                            className="font-semibold"
+                                        />
+                                    </>
+                                )}
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -139,7 +159,7 @@ export function CategorySummaryTable({ rows }: { rows: CategorySummary[] }) {
 /** Kosong → tidak dirender (bukan kartu kosong, spek 6.2). */
 export function ReplacementCard({ data }: { data: Replacements }) {
     if (data.items.length === 0) return null;
-    const short = data.shortfall > 0;
+    const { maintenance_balance: balance, shortfall } = data;
 
     return (
         <Alert>
@@ -150,20 +170,25 @@ export function ReplacementCard({ data }: { data: Replacements }) {
                     {data.items.length} alat · perkiraan{' '}
                     <span className="font-mono text-foreground">
                         {formatRp(data.total_estimate)}
-                    </span>{' '}
-                    · dana maintenance{' '}
-                    <span className="font-mono text-foreground">
-                        {formatRp(data.maintenance_balance)}
-                    </span>{' '}
-                    —{' '}
-                    {short ? (
-                        <span className="font-semibold text-destructive">
-                            kurang {formatRp(data.shortfall)}
-                        </span>
-                    ) : (
-                        <span className="font-semibold text-success">
-                            dana cukup
-                        </span>
+                    </span>
+                    {balance !== undefined && shortfall !== undefined && (
+                        <>
+                            {' '}
+                            · dana maintenance{' '}
+                            <span className="font-mono text-foreground">
+                                {formatRp(balance)}
+                            </span>{' '}
+                            —{' '}
+                            {shortfall > 0 ? (
+                                <span className="font-semibold text-destructive">
+                                    kurang {formatRp(shortfall)}
+                                </span>
+                            ) : (
+                                <span className="font-semibold text-success">
+                                    dana cukup
+                                </span>
+                            )}
+                        </>
                     )}
                     . Perkiraan dari harga beli.
                 </p>

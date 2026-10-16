@@ -1,12 +1,15 @@
 import { Link } from '@inertiajs/react';
+import { Users } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import Heading from '@/components/heading';
 import { Panel } from '@/components/page';
+import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { index as usersIndex } from '@/routes/users';
 import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
@@ -34,6 +37,13 @@ const sidebarNavItems: NavItem[] = [
  */
 export default function SettingsLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
+    // Pengguna & peran hanya untuk owner (spek 5.1).
+    const navItems: NavItem[] = useCan().manage_users
+        ? [
+              ...sidebarNavItems,
+              { title: 'Pengguna', href: usersIndex(), icon: Users },
+          ]
+        : sidebarNavItems;
 
     return (
         <div className="p-4 md:p-6">
@@ -47,7 +57,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                     className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-card p-1.5 lg:w-52 lg:flex-none lg:flex-col lg:rounded-3xl lg:p-2"
                     aria-label="Pengaturan"
                 >
-                    {sidebarNavItems.map((item, index) => {
+                    {navItems.map((item, index) => {
                         const active = isCurrentOrParentUrl(item.href);
 
                         return (

@@ -101,10 +101,14 @@ interface ReceivableRow {
     paid_percent: number;
 }
 
+/**
+ * Field finansial opsional: tidak dikirim untuk admin (spek 5.1) — kartu &
+ * peringatannya dirender dari ada-tidaknya field.
+ */
 interface Props {
     has_catalog: boolean;
-    /** Bulan lalu yang belum tutup buku → bagi hasilnya belum final. */
-    unclosed_month: string | null;
+    /** Bulan lalu yang belum tutup buku → bagi hasilnya belum final. Hanya owner. */
+    unclosed_month?: string | null;
     today: string;
     month: string;
     bookings_today: BookingRow[];
@@ -112,7 +116,8 @@ interface Props {
     bookings_tomorrow: BookingRow[];
     /** Template `reminder` (editan owner di Komunikasi), belum dipersonalisasi. */
     reminder_template: string;
-    revenue: number;
+    /** Hanya owner. */
+    revenue?: number;
     receivables: {
         total: number;
         count: number;
@@ -120,7 +125,8 @@ interface Props {
         overdue_count: number;
         orders: ReceivableRow[];
     };
-    break_even: {
+    /** Hanya owner. */
+    break_even?: {
         fixed_costs: number;
         gross_profit: number;
         shortfall: number;
@@ -129,7 +135,8 @@ interface Props {
     due_maintenance: { asset_name: string; days_until: number }[];
     /** Proyeksi penggantian 6 bulan (spek 6.2 / 8.3). */
     replacements_due_count: number;
-    replacements_shortfall: number;
+    /** Kekurangan dana maintenance — hanya owner. */
+    replacements_shortfall?: number;
     /** Peminjaman alat lewat rencana kembali (spek 8.4). */
     overdue_checkouts_count: number;
 }
@@ -169,12 +176,14 @@ export default function Dashboard(props: Props) {
                         note={formatTanggal(today)}
                         icon={CalendarDays}
                     />
-                    <Kpi
-                        label={`Omzet ${formatBulan(month)}`}
-                        value={formatRp(revenue)}
-                        note="uang diterima, basis kas"
-                        icon={Wallet}
-                    />
+                    {revenue !== undefined && (
+                        <Kpi
+                            label={`Omzet ${formatBulan(month)}`}
+                            value={formatRp(revenue)}
+                            note="uang diterima, basis kas"
+                            icon={Wallet}
+                        />
+                    )}
                     <Kpi
                         label="Piutang berjalan"
                         value={formatRp(receivables.total)}
@@ -194,7 +203,9 @@ export default function Dashboard(props: Props) {
                     />
                 </div>
 
-                <BreakEvenCard month={month} {...props.break_even} />
+                {props.break_even && (
+                    <BreakEvenCard month={month} {...props.break_even} />
+                )}
 
                 {/*
                     Pengingat tutup buku: tanpa ini bagi hasil bulan lalu tidak
@@ -225,7 +236,7 @@ export default function Dashboard(props: Props) {
                     sebulan. Di layar Pembayaran tagihan tampil sebagai baris
                     setara, jadi besarannya relatif terhadap omzet tak terlihat.
                 */}
-                {receivables.total > revenue && (
+                {revenue !== undefined && receivables.total > revenue && (
                     <Alert>
                         <TriangleAlert />
                         <AlertTitle>
@@ -301,9 +312,11 @@ export default function Dashboard(props: Props) {
                             ekonomis dalam 6 bulan
                         </AlertTitle>
                         <AlertDescription>
-                            {props.replacements_shortfall > 0
-                                ? `Dana maintenance kurang ${formatRp(props.replacements_shortfall)} untuk menggantinya (perkiraan dari harga beli).`
-                                : 'Dana maintenance cukup untuk menggantinya.'}{' '}
+                            {props.replacements_shortfall === undefined
+                                ? ''
+                                : props.replacements_shortfall > 0
+                                  ? `Dana maintenance kurang ${formatRp(props.replacements_shortfall)} untuk menggantinya (perkiraan dari harga beli).`
+                                  : 'Dana maintenance cukup untuk menggantinya.'}{' '}
                             <Link
                                 href={assetsIndex()}
                                 className="font-medium text-foreground underline underline-offset-2"
@@ -430,7 +443,7 @@ function BreakEvenCard({
     gross_profit,
     shortfall,
     ratio,
-}: Props['break_even'] & { month: string }) {
+}: NonNullable<Props['break_even']> & { month: string }) {
     return (
         <Card className="p-5">
             <CardHeader className="p-0">
