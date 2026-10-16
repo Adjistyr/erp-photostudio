@@ -128,6 +128,8 @@ const invoice = (balance: number): Invoice => ({
     balance,
     payment_status: balance > 0 ? 'partial' : 'paid',
     paid_percent: 0,
+    due_on: '2026-10-12',
+    next_installment: null,
     public_url: 'https://x/i/12',
     print_url: 'https://x/i/12?print=1',
 });

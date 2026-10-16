@@ -18,6 +18,7 @@ use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
 use Modules\Finance\Services\Periods;
 use Modules\Order\Actions\RecordOrderEvent;
+use Modules\Order\Actions\ReplacePaymentSchedules;
 use Modules\Order\Enums\OrderEventType;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Enums\WorkStatus;
@@ -53,7 +54,7 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $list = $this->listQuery($request);
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset', 'schedules'])
             ->search($list)
             ->orderByDesc('id')
             ->paginate(ListQuery::PER_PAGE)
@@ -153,7 +154,7 @@ class OrderController extends Controller
         $month = Periods::orCurrent($request->query('month'));
         $start = Periods::start($month);
 
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset', 'schedules'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
             ->whereBetween('service_date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ->orderBy('service_date')
@@ -182,10 +183,10 @@ class OrderController extends Controller
     }
 
     /**
-     * Order + item + DP dalam satu transaksi: order tanpa item, atau DP tanpa
-     * order, merusak laporan tanpa terlihat di layar.
+     * Order + item + termin + DP dalam satu transaksi: order tanpa item, atau
+     * DP tanpa order, merusak laporan tanpa terlihat di layar.
      */
-    public function store(StoreOrderRequest $request, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
+    public function store(StoreOrderRequest $request, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate, ReplacePaymentSchedules $schedules): RedirectResponse
     {
         $data = $request->validated();
         $line = BusinessLine::from($data['business_line']);
@@ -194,7 +195,7 @@ class OrderController extends Controller
         $location = trim((string) ($data['location'] ?? ''));
 
         $customer = null;
-        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events, $findOrCreate, &$customer) {
+        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events, $findOrCreate, $schedules, &$customer) {
             // Customer baru dibuat di transaksi yang sama — gagal simpan order
             // tidak boleh meninggalkan customer yatim (spek 3.4).
             $customer = $request->resolveCustomer($findOrCreate);
@@ -222,6 +223,10 @@ class OrderController extends Controller
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
                 ]);
+            }
+            // Termin pembayaran (spek 6.4) — sudah dicek event-only di request.
+            if ($request->submittedSchedules() !== []) {
+                $schedules->execute($order, $request->submittedSchedules());
             }
 
             $events->execute($order, OrderEventType::Created, [
@@ -257,7 +262,7 @@ class OrderController extends Controller
      */
     public function show(Order $order): Response
     {
-        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset']);
+        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset', 'schedules']);
 
         return Inertia::render('order::show', [
             'order' => $this->orderProps($order),
@@ -274,7 +279,7 @@ class OrderController extends Controller
     public function edit(Order $order): Response
     {
         abort_unless($order->isEditable(), 404);
-        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user']);
+        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'schedules']);
         /** @var list<int> $kept */
         $kept = $order->items->pluck('catalog_item_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
 
@@ -299,13 +304,20 @@ class OrderController extends Controller
      * deal tetap). Satu event `updated` berisi diff; tanpa perubahan → tanpa
      * event. `work_status` tidak berubah walau jadwal digeser, dan tanggal
      * baru tidak dicek tutup buku — jadwal bukan uang.
+     *
+     * Termin (spek 6.4) diganti utuh bila berubah; total berubah yang membuat
+     * Σ termin ≠ total menghapus termin dengan peringatan (aturan 5).
      */
-    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
+    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate, ReplacePaymentSchedules $schedules): RedirectResponse
     {
+        // Dihitung sebelum item diubah — keduanya membandingkan dengan total lama.
+        $dropped = $request->dropsSchedules();
+        $newSchedules = $request->schedulesAfterUpdate();
+
         // Customer dicocokkan/dibuat lebih dulu (di transaksi) supaya diff
         // membandingkan customer yang sebenarnya — "customer baru" yang ternyata
         // cocok dengan customer order ini bukan perubahan.
-        $changes = DB::transaction(function () use ($request, $order, $events, $findOrCreate) {
+        $changes = DB::transaction(function () use ($request, $order, $events, $findOrCreate, $schedules, $newSchedules) {
             // Retail walk-in boleh tanpa customer (spek 7.4) — aturan request menjamin studio/event terisi.
             $customerId = $request->resolveCustomerOrNull($findOrCreate)?->id;
             $changes = $request->changes($order, $customerId);
@@ -314,6 +326,9 @@ class OrderController extends Controller
             }
 
             $order->update($request->normalised($customerId));
+            if (array_key_exists('schedules', $changes)) {
+                $schedules->execute($order, $newSchedules);
+            }
 
             $rows = $request->rows();
             $keep = array_values(array_filter(array_column($rows, 'id')));
@@ -345,9 +360,12 @@ class OrderController extends Controller
             return $changes;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $changes === []
-            ? 'Tidak ada yang berubah.'
-            : "{$order->number} diperbarui."]);
+        Inertia::flash('toast', match (true) {
+            $changes === [] => ['type' => 'success', 'message' => 'Tidak ada yang berubah.'],
+            // Aturan 5 (spek 6.4) — kalimat sama dengan peringatan di form.
+            $dropped => ['type' => 'warning', 'message' => "{$order->number} diperbarui. Termin dihapus karena total berubah — atur ulang."],
+            default => ['type' => 'success', 'message' => "{$order->number} diperbarui."],
+        });
 
         // Kembali ke halaman detail (spek 7.4), bukan daftar.
         return to_route('orders.show', $order);
@@ -515,6 +533,15 @@ class OrderController extends Controller
             'previous_status' => $o->work_status->previous()?->value,
             'payment_status' => $o->paymentStatus()->value,
             'paid_percent' => (int) round($o->paidRatio() * 100),
+            // Termin pembayaran (spek 6.4): status FIFO dari pembayaran, tidak disimpan.
+            'schedules' => array_map(fn (array $r) => [
+                'sequence' => $r['schedule']->sequence, 'label' => $r['schedule']->label,
+                'due_on' => $r['schedule']->due_on->toDateString(), 'amount' => $r['schedule']->amount,
+                'status' => $r['status']->value,
+            ], $o->scheduleStatuses()),
+            'next_installment' => $o->nextInstallment(),
+            // Jatuh tempo efektif: termin berikutnya, atau tanggal layanan.
+            'due_on' => $o->dueOn()->toDateString(),
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
                 'catalog_item_id' => $i->catalog_item_id, 'unit_cost' => $i->unit_cost,

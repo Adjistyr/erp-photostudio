@@ -13,8 +13,9 @@ const row: ReceivableRow = {
     customer_phone: '6281234567890',
     invoice_url: 'https://contoh.test/i/12?signature=x',
     business_line: 'studio',
-    service_date: '2026-08-20',
+    due_on: '2026-08-20',
     days_until_due: 3,
+    next_installment: null,
     total: 350_000,
     paid: 150_000,
     balance: 200_000,
@@ -54,4 +55,19 @@ test('tombol WA: link wa.me dengan HP, nonaktif tanpa HP', () => {
 
 test('walk-in tanpa nama tetap terbaca', () => {
     assert.match(render({ ...row, customer_name: null }), /Walk-in/);
+});
+
+test('termin berikutnya tampil bila ada; tanpa termin tidak (spek 6.4)', () => {
+    assert.doesNotMatch(render(row), /Termin/);
+    const html = render({
+        ...row,
+        next_installment: {
+            sequence: 2,
+            of: 3,
+            amount: 5_000_000,
+            due_on: '2026-11-12',
+        },
+    });
+    assert.match(html, /jatuh tempo 20 Agu 2026/);
+    assert.match(html, /Termin 2\/3 · Rp\s5\.000\.000/);
 });

@@ -22,8 +22,13 @@ import {
     namaDepan,
     personalise,
 } from '@/lib/format';
+import { installmentText } from '@/modules/order/lib/schedules';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
-import type { PaymentMethod, Receipt } from '@/modules/order/types';
+import type {
+    NextInstallment,
+    PaymentMethod,
+    Receipt,
+} from '@/modules/order/types';
 import type { BusinessLine, PaymentStatus } from '@/types/domain';
 
 export interface Studio {
@@ -74,6 +79,9 @@ export interface Invoice {
     balance: number;
     payment_status: PaymentStatus;
     paid_percent: number;
+    /** Jatuh tempo efektif — termin berikutnya (spek 6.4) atau tanggal layanan. */
+    due_on: string;
+    next_installment: NextInstallment | null;
     public_url: string;
     /** Varian cetak (`?print=1`), ditandatangani terpisah. */
     print_url: string;
@@ -104,19 +112,22 @@ export function whatsappMessage(
 /**
  * Nilai placeholder template `billing` — satu tempat untuk Invoice dan
  * Pembayaran supaya kedua layar menghasilkan pesan yang sama.
+ * `{jatuh_tempo}` = jatuh tempo efektif; `{termin}` kosong tanpa termin (spek 6.4).
  */
 export function billingValues(order: {
     customer_name: string | null;
     order_number: string;
     balance: number;
-    service_date: string;
+    due_on: string;
+    next_installment: NextInstallment | null;
     public_url: string;
 }): Record<string, string> {
     return {
         nama: namaDepan(order.customer_name),
         nomor: order.order_number,
         sisa: formatRp(order.balance),
-        jatuh_tempo: formatTanggal(order.service_date),
+        jatuh_tempo: formatTanggal(order.due_on),
+        termin: installmentText(order.next_installment),
         link: order.public_url,
     };
 }

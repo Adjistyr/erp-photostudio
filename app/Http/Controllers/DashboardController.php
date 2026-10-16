@@ -61,7 +61,9 @@ class DashboardController extends Controller
                     'customer_name' => $o->customer?->name,
                     'business_line' => $o->business_line->value,
                     'balance' => $o->balance(),
+                    // Umur dari jatuh tempo efektif (termin berikutnya, spek 6.4).
                     'days_until_due' => $o->daysUntilDue($today),
+                    'next_installment' => $o->nextInstallment(),
                     'payment_status' => $o->paymentStatus()->value,
                     'paid_percent' => (int) round($o->paidRatio() * 100),
                 ])->values()->all(),

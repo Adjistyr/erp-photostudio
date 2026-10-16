@@ -48,6 +48,7 @@ use Modules\Shared\Models\Concerns\RecordsCreator;
  * @property-read Collection<int, Refund> $refunds
  * @property-read Collection<int, JobCost> $jobCosts
  * @property-read Collection<int, OrderEvent> $events
+ * @property-read Collection<int, PaymentSchedule> $schedules
  */
 #[Fillable([
     'number', 'customer_id', 'business_line', 'service_date', 'service_time',
@@ -140,6 +141,17 @@ class Order extends Model
     public function jobCosts(): HasMany
     {
         return $this->hasMany(JobCost::class);
+    }
+
+    /**
+     * Termin pembayaran (spek 6.4) — hanya order event, urut `sequence`.
+     * Kosong = perilaku lama: jatuh tempo = service_date, sisa seluruhnya.
+     *
+     * @return HasMany<PaymentSchedule, $this>
+     */
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(PaymentSchedule::class)->orderBy('sequence');
     }
 
     /**
@@ -287,10 +299,85 @@ class Order extends Model
         }
     }
 
-    /** Hari menuju jatuh tempo. Positif = belum jatuh tempo, 0 = hari ini. */
+    /**
+     * Status tiap termin, FIFO (spek 6.4 aturan 3): totalPaid() menutup
+     * termin dari yang paling awal. Lunas bila bayar ≥ kumulatif sampai
+     * termin itu; sebagian bila > kumulatif sebelumnya; selebihnya belum.
+     * `outstanding` = bagian termin yang belum tertutup.
+     *
+     * @return list<array{schedule: PaymentSchedule, status: PaymentStatus, outstanding: int}>
+     */
+    public function scheduleStatuses(): array
+    {
+        $paid = $this->totalPaid();
+        $before = 0;
+        $result = [];
+        foreach ($this->schedules as $schedule) {
+            $through = $before + $schedule->amount;
+            $result[] = [
+                'schedule' => $schedule,
+                'status' => match (true) {
+                    $paid >= $through => PaymentStatus::Paid,
+                    $paid > $before => PaymentStatus::Partial,
+                    default => PaymentStatus::Unpaid,
+                },
+                'outstanding' => max(0, $through - max($paid, $before)),
+            ];
+            $before = $through;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Termin pertama yang belum lunas (baris dari scheduleStatuses()), atau
+     * null bila tanpa termin / semua lunas.
+     *
+     * @return array{schedule: PaymentSchedule, status: PaymentStatus, outstanding: int}|null
+     */
+    private function openSchedule(): ?array
+    {
+        foreach ($this->scheduleStatuses() as $row) {
+            if ($row['status'] !== PaymentStatus::Paid) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Termin berikutnya untuk Pembayaran & pesan tagihan `{termin}`.
+     * `amount` = SISA termin itu (yang perlu ditagih), bukan nominal penuhnya.
+     *
+     * @return array{sequence: int, of: int, amount: int, due_on: string}|null
+     */
+    public function nextInstallment(): ?array
+    {
+        $open = $this->openSchedule();
+
+        return $open === null ? null : [
+            'sequence' => $open['schedule']->sequence,
+            'of' => $this->schedules->count(),
+            'amount' => $open['outstanding'],
+            'due_on' => $open['schedule']->due_on->toDateString(),
+        ];
+    }
+
+    /**
+     * Jatuh tempo efektif (spek 6.4 aturan 4) — dipakai SEMUA umur tagihan:
+     * `due_on` termin pertama yang belum lunas; tanpa termin (atau semua
+     * lunas) = service_date. Pemanggil daftar wajib eager-load `schedules`.
+     */
+    public function dueOn(): CarbonImmutable
+    {
+        return $this->openSchedule()['schedule']->due_on ?? $this->service_date;
+    }
+
+    /** Hari menuju jatuh tempo efektif (dueOn()). Positif = belum jatuh tempo, 0 = hari ini. */
     public function daysUntilDue(CarbonInterface $today): int
     {
-        return (int) $today->startOfDay()->diffInDays($this->service_date, false);
+        return (int) $today->startOfDay()->diffInDays($this->dueOn(), false);
     }
 
     /** "Keychain Foto Akrilik ×2, Cetak 4R ×6" — ringkasan untuk kolom tabel. */

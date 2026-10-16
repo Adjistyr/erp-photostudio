@@ -59,6 +59,8 @@ import {
     formatTanggal,
     formatUmurPiutang,
 } from '@/lib/format';
+import { installmentShort } from '@/modules/order';
+import type { NextInstallment } from '@/modules/order';
 import { reminderMessage } from '@/modules/order/lib/reminder';
 import { dashboard } from '@/routes';
 import { index as assetsIndex } from '@/routes/assets';
@@ -92,7 +94,9 @@ interface ReceivableRow {
     customer_name: string | null;
     business_line: BusinessLine;
     balance: number;
+    /** Umur dari jatuh tempo efektif — termin berikutnya bila ada (spek 6.4). */
     days_until_due: number;
+    next_installment: NextInstallment | null;
     payment_status: PaymentStatus;
     paid_percent: number;
 }
@@ -378,6 +382,13 @@ export default function Dashboard(props: Props) {
                                         >
                                             {formatUmurPiutang(
                                                 o.days_until_due,
+                                            )}
+                                            {o.next_installment && (
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {installmentShort(
+                                                        o.next_installment,
+                                                    )}
+                                                </span>
                                             )}
                                         </TableCell>
                                         <TableCell>

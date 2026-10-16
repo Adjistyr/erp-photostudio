@@ -23,6 +23,7 @@ import {
     rowsComplete,
     toPayload,
 } from '@/modules/order/components/order-form';
+import { ScheduleSummary } from '@/modules/order/components/schedule-editor';
 import type {
     CatalogOption,
     CustomerOption,
@@ -30,6 +31,10 @@ import type {
     OrderFields,
 } from '@/modules/order/components/order-form';
 import type { OrderType } from '@/modules/order/lib/category';
+import {
+    schedulesPayload,
+    schedulesWillDrop,
+} from '@/modules/order/lib/schedules';
 import type { OrderRow } from '@/modules/order/types';
 import { index as ordersIndex } from '@/routes/orders';
 import { LINE_LABEL } from '@/types/domain';
@@ -68,6 +73,12 @@ export default function OrdersEdit({
             custom: i.is_custom,
             price: String(i.unit_price),
         })),
+        schedules: order.schedules.map((s) => ({
+            key: s.sequence,
+            due_on: s.due_on,
+            amount: String(s.amount),
+            label: s.label ?? '',
+        })),
     });
     const { data, setData, errors, processing } = form;
     // Error `order` (order batal) dan baris item tidak ada di tipe form.
@@ -79,6 +90,13 @@ export default function OrdersEdit({
 
     const total = orderTotal(data.items, catalog);
     const belowPaid = total < order.paid;
+    // Aturan 5 (spek 6.4) — sama persis dengan UpdateOrderRequest::dropsSchedules().
+    const dropsSchedules = schedulesWillDrop(
+        order.schedules.length > 0,
+        order.total,
+        total,
+        data.schedules,
+    );
     const complete =
         // Retail walk-in boleh tanpa customer (spek 7.4).
         (order.business_line === 'retail' || hasCustomer(data)) &&
@@ -105,6 +123,12 @@ export default function OrdersEdit({
                         catalog={catalog}
                         locked={locked}
                         sources={sources ?? undefined}
+                        // Kalimat sama dengan toast server saat termin benar-benar dihapus.
+                        scheduleNotice={
+                            dropsSchedules
+                                ? 'Termin dihapus karena total berubah — atur ulang (jumlah termin harus sama dengan total baru).'
+                                : undefined
+                        }
                     />
                 </div>
 
@@ -146,6 +170,10 @@ export default function OrdersEdit({
                         </div>
                     </div>
 
+                    {line === 'event' && (
+                        <ScheduleSummary rows={data.schedules} total={total} />
+                    )}
+
                     {belowPaid && (
                         // Server juga menolak; di sini supaya kelihatan sebelum simpan.
                         <p className="text-xs text-destructive">
@@ -174,6 +202,7 @@ export default function OrdersEdit({
                                     ...d,
                                     ...customerPayload(d),
                                     items: toPayload(d.items),
+                                    schedules: schedulesPayload(d.schedules),
                                 }));
                                 form.put(OrderController.update(order.id).url);
                             }}

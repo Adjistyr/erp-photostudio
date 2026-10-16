@@ -20,7 +20,9 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Lini (retail / studio / event) | `business_line` → `BusinessLine` |
 | Status kerja | `work_status` → `WorkStatus` (booking, scheduled, in_progress, done, delivered, cancelled) |
 | Status bayar | `Order::paymentStatus()` — **tidak disimpan** |
-| Tanggal sesi / acara / transaksi (sekaligus jatuh tempo) | `service_date` + `service_time` |
+| Tanggal sesi / acara / transaksi | `service_date` + `service_time` — sekaligus jatuh tempo bila order tanpa termin |
+| Jatuh tempo efektif | `Order::dueOn()` — `due_on` termin pertama yang belum lunas; tanpa termin (atau semua lunas) = `service_date`. Dipakai `Order::daysUntilDue()` → Pembayaran, Laporan Piutang, Dashboard, bukti bayar, `{jatuh_tempo}` |
+| Termin pembayaran (spek 6.4, order event saja) | `PaymentSchedule` · `payment_schedules` (`order_id` cascade, `sequence` 1..n unik per order, `due_on`, `amount`, `label` nullable ≤ 50). 2–6 termin, Σ `amount` = total order, `due_on` naik, terakhir ≤ `service_date`. **Status termin tidak disimpan** — `Order::scheduleStatuses()` FIFO dari `totalPaid()`; `Order::nextInstallment()` = termin berikutnya (`amount` = sisa termin itu). Rencana tagihan, bukan catatan uang: diganti utuh lewat Ubah Order (event `updated` field `schedules`); total berubah yang membuat Σ ≠ total menghapusnya dengan peringatan |
 | Item order | `OrderItem` · `order_items` (`catalog_item_id` null = item custom: nama & harga deal dari input, spek 1.3; props `is_custom`) |
 | Pembayaran (DP / termin / pelunasan) | `Payment` · `payments` (`proof_path` nullable = bukti transfer/QRIS di disk privat `local`, `payment-proofs/`, spek 6.7; dibuka via `Payment::proofUrl()` → route bertanda tangan 10 menit `payments.proof`; file dihapus setelah commit saat pembayaran dihapus) |
 | Biaya job (biaya langsung) | `JobCost` · `job_costs` |
@@ -39,7 +41,7 @@ PostgreSQL. Skema mengikuti entitas di [business-flow.md](./business-flow.md) ba
 | Kategori aset | `AssetCategory` · `asset_categories` (`name`, `code_prefix` unik; `useful_life_months` & `maintenance_interval_months` = default untuk aset BARU saja). Dikelola owner; terpakai → tidak bisa dihapus. FK `assets.asset_category_id` (dulu kolom teks `category`) |
 | Servis / perawatan aset | `AssetMaintenance` · `asset_maintenances` (`type`: routine / repair) |
 | Tutup buku (bulan final) | `PeriodClosing` · `period_closings` (`month`, `closed_at/by`, `reopened_at/by`; aktif = belum dibuka kembali) |
-| Template pesan (promo, terima kasih, reminder H-1, tagihan) | `MessageTemplate` · `message_templates` (`key` primary: `promo`, `thank_you`, `reminder`, `billing`; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`). Placeholder: semua `{nama}`; `thank_you` `{link}` hasil foto; `billing` `{nomor}`, `{sisa}`, `{jatuh_tempo}`, `{link}` invoice. Nama studio & rekening ditanam ke default dari `config/studio.php` |
+| Template pesan (promo, terima kasih, reminder H-1, tagihan) | `MessageTemplate` · `message_templates` (`key` primary: `promo`, `thank_you`, `reminder`, `billing`; baris hanya untuk template yang sudah diedit owner — default di `MessageTemplate::defaults()`). Placeholder: semua `{nama}`; `thank_you` `{link}` hasil foto; `billing` `{nomor}`, `{sisa}`, `{jatuh_tempo}` (jatuh tempo efektif), `{termin}` (spek 6.4; kosong tanpa termin), `{link}` invoice — diisi di klien (`billingValues()`). Nama studio & rekening ditanam ke default dari `config/studio.php` |
 | Pencatat (siapa yang menginput) | `created_by` → `users` di semua tabel transaksi (order, pembayaran, biaya job/operasional, aset, servis, setoran, pemakaian dana, investasi); trait `Modules\Shared\Models\Concerns\RecordsCreator`. `null` = sebelum pencatatan atau user sudah dihapus |
 | Riwayat perubahan order | `OrderEvent` · `order_events` (`type` → `OrderEventType`; `changes` jsonb hanya field yang berubah `{field: {from, to}}`; `user_id` nullable; hanya `created_at`). Ditulis hanya lewat `Modules\Order\Actions\RecordOrderEvent`, tidak pernah diedit/dihapus |
 | Pengembalian uang (retur, DP dikembalikan) | `Refund` · `refunds` (`refunded_on` tanggal uang keluar, `amount`, `method`, `reason`, `created_by`) — mengurangi omzet bulan `refunded_on` dan `Order::margin()`; `Order::balance()`/status bayar tetap bruto |
@@ -69,7 +71,7 @@ Status dan kategori disimpan sebagai string dengan cast ke enum PHP (`Modules/<M
 Not a blocker — approve with comment suggesting string + PHP enum cast.
 
 ### Turunan tidak disimpan
-Status bayar, laba rugi, piutang, bagi hasil, saldo pos dana, alokasi maintenance **dihitung ulang dari data mentah** setiap kali dibutuhkan. Tidak ada angka tersimpan yang bisa basi saat biaya bulan lalu diinput telat.
+Status bayar, status termin, laba rugi, piutang, bagi hasil, saldo pos dana, alokasi maintenance **dihitung ulang dari data mentah** setiap kali dibutuhkan. Tidak ada angka tersimpan yang bisa basi saat biaya bulan lalu diinput telat.
 
 ```php
 // ❌ Salah — kolom yang bisa tidak sinkron dengan pembayaran

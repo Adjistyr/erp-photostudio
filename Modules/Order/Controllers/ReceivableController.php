@@ -32,9 +32,10 @@ class ReceivableController extends Controller
                 'customer_phone' => $o->customer?->phone,
                 'invoice_url' => $o->invoiceUrl(),
                 'business_line' => $o->business_line->value,
-                // Tanggal layanan = jatuh tempo tagihan (docs/database.md).
-                'service_date' => $o->service_date->toDateString(),
+                // Jatuh tempo efektif: termin berikutnya (spek 6.4), atau tanggal layanan.
+                'due_on' => $o->dueOn()->toDateString(),
                 'days_until_due' => $o->daysUntilDue($today),
+                'next_installment' => $o->nextInstallment(),
                 'total' => $o->total(),
                 'paid' => $o->totalPaid(),
                 'balance' => $o->balance(),

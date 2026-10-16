@@ -1,6 +1,7 @@
 /**
  * Bagian form order yang dipakai Buat Order DAN Ubah Order (spek 1.2):
- * customer, item, jadwal & lokasi, catatan, plus ringkasan item.
+ * customer, item, jadwal & lokasi, catatan, termin (event, spek 6.4), plus
+ * ringkasan item.
  *
  * Dipilih komponen ber-props nilai/onChange, bukan satu form raksasa dengan
  * `mode`: bagian yang beda (jenis order + DP di Buat, "sudah dibayar" di
@@ -49,6 +50,8 @@ import {
     isServiceCategory,
 } from '@/modules/order/lib/category';
 import type { OrderType } from '@/modules/order/lib/category';
+import type { ScheduleRow } from '@/modules/order/lib/schedules';
+import { ScheduleEditor } from '@/modules/order/components/schedule-editor';
 
 export interface CustomerOption {
     id: number;
@@ -109,6 +112,8 @@ export interface OrderFields {
     /** Sumber lead order (spek 6.6); '' = tidak dicatat. */
     source: string;
     items: ItemRow[];
+    /** Termin pembayaran (spek 6.4) — selalu kosong untuk studio/retail. */
+    schedules: ScheduleRow[];
 }
 
 export interface Locked {
@@ -284,6 +289,7 @@ export function OrderFormFields({
     locked = UNLOCKED,
     header,
     sources,
+    scheduleNotice,
 }: {
     line: OrderType;
     data: OrderFields;
@@ -296,6 +302,8 @@ export function OrderFormFields({
     header?: ReactNode;
     /** Pilihan sumber order (spek 6.6); undefined = tidak dicatat (retail). */
     sources?: string[];
+    /** Peringatan aturan 5 (Ubah Order: termin akan dihapus karena total berubah). */
+    scheduleNotice?: string;
 }) {
     // Baris baru: paket jasa aktif yang cocok dengan lini order + produk
     // aktif (spek 7.5 — cetak tambahan, album, bingkai).
@@ -844,6 +852,17 @@ export function OrderFormFields({
                     </Field>
                 </FieldGroup>
             </Section>
+
+            {line === 'event' && (
+                <ScheduleEditor
+                    rows={data.schedules}
+                    onChange={(schedules) => onChange({ schedules })}
+                    total={orderTotal(data.items, catalog)}
+                    serviceDate={data.service_date}
+                    errors={errors}
+                    notice={scheduleNotice}
+                />
+            )}
         </>
     );
 }

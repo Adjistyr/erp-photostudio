@@ -213,6 +213,8 @@ Setelah pembayaran dicatat, app menawarkan **bukti bayar** untuk customer: kirim
 
 Dari sini muncul satu layar yang paling sering dibuka owner: **daftar piutang** — semua order yang status bayarnya belum Lunas, diurutkan berdasarkan tanggal acara atau umur tagihan. Tanpa layar ini, tagihan yang belum ditagih akan terlupakan, dan ini kebocoran paling umum di bisnis jasa. Tiap baris punya tombol **Tagih via WA**: pesannya dari template *Tagihan* di Komunikasi (bisa diubah owner; dipakai juga tombol WhatsApp di Invoice), pengiriman tetap manual.
 
+**Jatuh tempo & termin (spek 6.4).** Tanpa termin, jatuh tempo tagihan = tanggal layanan dan yang ditagih = seluruh sisa. Order **event** boleh punya 2–6 **termin pembayaran** (mis. DP saat booking – 50% H-7 – pelunasan H-1; tombol "Bagi 3" di form): jumlahnya harus sama dengan total order, tanggalnya naik, dan termin terakhir paling lambat di tanggal acara. Status termin tidak diinput — pembayaran menutup termin dari yang paling awal (FIFO): lunas bila total bayar ≥ kumulatif sampai termin itu, sebagian bila melewati kumulatif sebelumnya. **Jatuh tempo efektif** = tanggal termin pertama yang belum lunas; inilah yang dipakai umur tagihan di Pembayaran, Laporan Piutang, Dashboard, bukti bayar, dan `{jatuh_tempo}` pesan tagihan (ditambah `{termin}`: "termin 2 dari 3 — Rp 5.000.000 jatuh tempo 12 Nov 2026"). Ubah order yang mengubah total sehingga termin tidak lagi pas → termin dihapus dengan peringatan dan harus diatur ulang, bukan diskalakan diam-diam.
+
 ### 5.5 Invoice & Thank You Mail
 
 **Invoice** digenerate dari Order, tidak diketik ulang. Isinya: identitas studio, data customer, rincian item, total, riwayat pembayaran, sisa tagihan, dan instruksi transfer. Dibagikan sebagai link atau PDF.

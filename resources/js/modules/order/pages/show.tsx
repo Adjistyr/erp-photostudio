@@ -54,6 +54,7 @@ import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { RefundDialog } from '@/modules/order/components/refund-dialog';
 import {
     PAYMENT_METHOD_LABEL,
+    SCHEDULE_STATUS_LABEL,
     describeEvent,
     scheduleOf,
 } from '@/modules/order/types';
@@ -290,6 +291,55 @@ export default function OrderShow({
                         </div>
                     </div>
                 </Section>
+
+                {/* Termin pembayaran (spek 6.4): status FIFO dari pembayaran di
+                    atas; termin berikutnya (yang ditagih) ditebalkan. */}
+                {order.schedules.length > 0 && (
+                    <Section title="Termin pembayaran">
+                        <Table className={KELAS_DENSITY}>
+                            <TableBody>
+                                {order.schedules.map((s) => (
+                                    <TableRow
+                                        key={s.sequence}
+                                        data-next={
+                                            s.sequence ===
+                                                order.next_installment
+                                                    ?.sequence || undefined
+                                        }
+                                        className="data-next:font-semibold"
+                                    >
+                                        <TableCell>
+                                            {s.label ?? `Termin ${s.sequence}`}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {formatTanggal(s.due_on)}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {formatRp(s.amount)}
+                                        </TableCell>
+                                        <TableCell className="w-24 text-right">
+                                            <Badge
+                                                variant={
+                                                    s.status === 'paid'
+                                                        ? 'success'
+                                                        : s.status === 'partial'
+                                                          ? 'warning'
+                                                          : 'outline'
+                                                }
+                                            >
+                                                {
+                                                    SCHEDULE_STATUS_LABEL[
+                                                        s.status
+                                                    ]
+                                                }
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Section>
+                )}
 
                 {/* Alat yang dibawa (spek 8.4) — dicatat dari halaman aset; di sini baca saja. */}
                 {order.asset_checkouts.length > 0 && (

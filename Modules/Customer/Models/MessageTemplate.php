@@ -13,7 +13,10 @@ use Illuminate\Support\Carbon;
  * - thank_you: `{link}` = link hasil foto
  * - reminder: `{tanggal}`, `{jam}`, `{lokasi}` sesi (diisi tombol WA di Dashboard → Jadwal besok)
  * - billing: `{nomor}` nomor order, `{sisa}` sisa tagihan, `{jatuh_tempo}`
- *   tanggal, `{link}` link invoice bertanda tangan
+ *   jatuh tempo efektif (termin berikutnya, atau tanggal layanan), `{termin}`
+ *   "termin 2 dari 3 — Rp 5.000.000 jatuh tempo 12 Nov 2026" (kosong untuk
+ *   order tanpa termin, spek 6.4), `{link}` link invoice bertanda tangan.
+ *   Diisi di klien (`billingValues()` di invoice-document.tsx).
  * Nama studio & rekening DITANAM ke teks default dari config, bukan placeholder.
  *
  * @property string $key

@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/table';
 import { formatPersen, formatRp, formatUmurPiutang } from '@/lib/format';
 import { ReportNav } from '@/modules/finance/components/report-nav';
+import { installmentShort } from '@/modules/order';
+import type { NextInstallment } from '@/modules/order';
 import { profitLoss } from '@/routes/reports';
 import { LINE_COLOR, LINE_LABEL } from '@/types/domain';
 import type { BusinessLine, PaymentStatus } from '@/types/domain';
@@ -44,7 +46,9 @@ interface Props {
         customer_name: string | null;
         business_line: BusinessLine;
         balance: number;
+        /** Umur dari jatuh tempo efektif — termin berikutnya bila ada (spek 6.4). */
         days_until_due: number;
+        next_installment: NextInstallment | null;
         payment_status: PaymentStatus;
         paid_percent: number;
     }[];
@@ -262,6 +266,13 @@ export default function ReceivablesReport({
                                             >
                                                 {formatUmurPiutang(
                                                     o.days_until_due,
+                                                )}
+                                                {o.next_installment && (
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        {installmentShort(
+                                                            o.next_installment,
+                                                        )}
+                                                    </span>
                                                 )}
                                             </TableCell>
                                             <TableCell>

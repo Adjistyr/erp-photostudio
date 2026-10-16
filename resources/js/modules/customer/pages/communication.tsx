@@ -38,6 +38,7 @@ import {
     namaDepan,
     personalise,
 } from '@/lib/format';
+import { installmentText } from '@/modules/order';
 import { index as communicationIndex } from '@/routes/communication';
 import type { BusinessLine } from '@/types/domain';
 
@@ -76,6 +77,13 @@ function contoh(sampleName: string): Record<string, string> {
         nomor: 'ORD-0012',
         sisa: formatRp(1_200_000),
         jatuh_tempo: formatTanggal('2026-10-12'),
+        // Termin (spek 6.4) — kosong untuk order tanpa termin.
+        termin: installmentText({
+            sequence: 2,
+            of: 3,
+            amount: 5_000_000,
+            due_on: '2026-10-12',
+        }),
         // Reminder (spek 3.5).
         tanggal: formatTanggal('2026-10-12'),
         jam: '10:00',
@@ -410,7 +418,11 @@ function TemplatesTab({
                     hasil foto dari order. Template Tagihan juga memakai{' '}
                     <code className="font-mono">{'{nomor}'}</code>,{' '}
                     <code className="font-mono">{'{sisa}'}</code>,{' '}
-                    <code className="font-mono">{'{jatuh_tempo}'}</code>, dan{' '}
+                    <code className="font-mono">{'{jatuh_tempo}'}</code> (termin
+                    terdekat bila order bertermin),{' '}
+                    <code className="font-mono">{'{termin}'}</code> (mis.
+                    &ldquo;termin 2 dari 3 — Rp 5.000.000 jatuh tempo 12 Okt
+                    2026&rdquo;; kosong tanpa termin), dan{' '}
                     <code className="font-mono">{'{link}'}</code> (link
                     invoice); Reminder memakai{' '}
                     <code className="font-mono">{'{tanggal}'}</code>,{' '}

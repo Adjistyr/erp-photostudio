@@ -50,6 +50,7 @@ import {
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { filterReceivables } from '@/modules/order/lib/receivables-filter';
 import type { AgeTab } from '@/modules/order/lib/receivables-filter';
+import { installmentShort } from '@/modules/order/lib/schedules';
 import type { ReceivableRow, Receipt } from '@/modules/order/types';
 import { index as communicationIndex } from '@/routes/communication';
 import { index as receivablesIndex } from '@/routes/receivables';
@@ -257,7 +258,15 @@ export default function Receivables({
                                                 />
                                             </TableCell>
                                             <TableCell className="whitespace-nowrap">
-                                                {formatTanggal(o.service_date)}
+                                                {formatTanggal(o.due_on)}
+                                                {/* Termin berikutnya (spek 6.4): yang ditagih sekarang. */}
+                                                {o.next_installment && (
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        {installmentShort(
+                                                            o.next_installment,
+                                                        )}
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell
                                                 className={`whitespace-nowrap ${o.days_until_due < 0 ? 'text-destructive' : ''}`}

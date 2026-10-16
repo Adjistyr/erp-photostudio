@@ -29,7 +29,7 @@ class InvoiceController extends Controller
             'line' => BusinessLine::values(),
             'pay' => ['unpaid', 'partial', 'paid'],
         ]);
-        $orders = Order::with(['customer', 'items', 'payments', 'refunds'])
+        $orders = Order::with(['customer', 'items', 'payments', 'refunds', 'schedules'])
             ->where('work_status', '!=', WorkStatus::Cancelled)
             ->search($list)
             ->orderByDesc('id')
@@ -54,7 +54,7 @@ class InvoiceController extends Controller
         abort_if($order->isCancelled(), 404);
 
         return Inertia::render('order::invoice-public', [
-            'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments', 'refunds'])),
+            'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments', 'refunds', 'schedules'])),
             'studio' => config('studio'),
             // Hanya dari `print_url` (ditandatangani dengan print=1) — lihat Order::invoiceUrl().
             'auto_print' => $request->boolean('print'),
@@ -95,6 +95,9 @@ class InvoiceController extends Controller
             'balance' => $o->balance(),
             'payment_status' => $o->paymentStatus()->value,
             'paid_percent' => (int) round($o->paidRatio() * 100),
+            // Pesan tagihan (`{jatuh_tempo}`, `{termin}`, spek 6.4) — jatuh tempo efektif.
+            'due_on' => $o->dueOn()->toDateString(),
+            'next_installment' => $o->nextInstallment(),
             'public_url' => $o->invoiceUrl(),
             'print_url' => $o->invoiceUrl(print: true),
         ];

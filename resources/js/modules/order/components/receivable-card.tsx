@@ -15,6 +15,7 @@ import {
 } from '@/lib/format';
 import { billingValues } from '@/modules/order/components/invoice-document';
 import { PaymentProofLink } from '@/modules/order/components/payment-proof-link';
+import { installmentShort } from '@/modules/order/lib/schedules';
 import type { ReceivableRow } from '@/modules/order/types';
 
 export function ReceivableCard({
@@ -59,7 +60,7 @@ export function ReceivableCard({
             </div>
             <p className="text-xs text-muted-foreground">
                 dari <span className="font-mono">{formatRp(row.total)}</span> ·
-                jatuh tempo {formatTanggal(row.service_date)}
+                jatuh tempo {formatTanggal(row.due_on)}
             </p>
             {row.proofs.length > 0 && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -72,6 +73,11 @@ export function ReceivableCard({
                         />
                     ))}
                 </div>
+            )}
+            {row.next_installment && (
+                <p className="text-xs text-muted-foreground">
+                    {installmentShort(row.next_installment)}
+                </p>
             )}
             <div className="flex gap-2 pt-1">
                 <Button
@@ -111,7 +117,8 @@ export function BillButton({
             customer_name: row.customer_name,
             order_number: row.number,
             balance: row.balance,
-            service_date: row.service_date,
+            due_on: row.due_on,
+            next_installment: row.next_installment,
             public_url: row.invoice_url,
         }),
     );

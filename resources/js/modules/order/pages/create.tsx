@@ -30,12 +30,14 @@ import {
     rowsComplete,
     toPayload,
 } from '@/modules/order/components/order-form';
+import { ScheduleSummary } from '@/modules/order/components/schedule-editor';
 import type {
     CatalogOption,
     CustomerOption,
     OrderFields,
 } from '@/modules/order/components/order-form';
 import type { OrderType } from '@/modules/order/lib/category';
+import { schedulesPayload } from '@/modules/order/lib/schedules';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod } from '@/modules/order/types';
 import { create as ordersCreate, index as ordersIndex } from '@/routes/orders';
@@ -68,6 +70,7 @@ export default function OrdersCreate({
         notes: '',
         source: '',
         items: [{ key: 1, catalog_item_id: '', quantity: 1 }],
+        schedules: [],
         dp: '',
         dp_method: 'transfer',
     });
@@ -131,6 +134,8 @@ export default function OrdersCreate({
                                                 },
                                             ],
                                             location: '',
+                                            // Termin hanya untuk event (spek 6.4).
+                                            schedules: [],
                                         }));
                                     }}
                                 >
@@ -162,6 +167,10 @@ export default function OrdersCreate({
                             {formatRp(total)}
                         </span>
                     </div>
+
+                    {data.business_line === 'event' && (
+                        <ScheduleSummary rows={data.schedules} total={total} />
+                    )}
 
                     <Field>
                         <FieldLabel htmlFor="dp">
@@ -256,6 +265,7 @@ export default function OrdersCreate({
                                     ...d,
                                     ...customerPayload(d),
                                     items: toPayload(d.items),
+                                    schedules: schedulesPayload(d.schedules),
                                 }));
                                 form.post(OrderController.store().url);
                             }}

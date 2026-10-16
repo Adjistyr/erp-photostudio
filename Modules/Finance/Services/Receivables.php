@@ -24,7 +24,7 @@ class Receivables
      */
     public function open(): Collection
     {
-        return Order::with(['items', 'payments', 'customer'])
+        return Order::with(['items', 'payments', 'customer', 'schedules'])
             ->where('work_status', '!=', WorkStatus::Cancelled)
             ->get()
             ->filter(fn (Order $o) => $o->balance() > 0)

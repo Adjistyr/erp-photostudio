@@ -77,7 +77,8 @@ class OrderPaymentController extends Controller
             'business_line' => $order->business_line->value,
             'paid_amount' => $amount,
             'paid_on' => $request->validated('paid_on'),
-            'due_on' => $order->service_date->toDateString(),
+            // Jatuh tempo efektif SETELAH pembayaran ini: termin berikutnya (spek 6.4).
+            'due_on' => $order->dueOn()->toDateString(),
         ]);
 
         // Kembali ke layar asal: dialog ini dipakai Detail Order DAN layar
