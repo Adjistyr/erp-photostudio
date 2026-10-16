@@ -12,7 +12,7 @@ import AssetCategoryController from '@/actions/Modules/Asset/Controllers/AssetCa
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { TabelData } from '@/components/data-table';
 import InputError from '@/components/input-error';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -55,17 +55,24 @@ export default function AssetCategories({
     const [editing, setEditing] = useState<CategoryRow | 'new' | null>(null);
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title="Kategori aset" />
-            <h1 className="sr-only">Kategori aset</h1>
-            <PageActions>
-                <Button onClick={() => setEditing('new')}>
-                    <Plus data-icon="inline-start" />
-                    Tambah kategori
-                </Button>
-            </PageActions>
+            <PageHeader
+                title="Kategori aset"
+                description="Default umur ekonomis, jadwal rawat, dan prefiks kode untuk aset baru."
+                actions={
+                    <Button onClick={() => setEditing('new')}>
+                        <Plus data-icon="inline-start" />
+                        Tambah kategori
+                    </Button>
+                }
+            />
 
-            <div className="flex flex-col gap-4 p-6">
+            <Panel
+                title="Daftar kategori"
+                aside={`${categories.length} kategori`}
+                flush
+            >
                 <TabelData>
                     <TableHeader>
                         <TableRow>
@@ -93,15 +100,15 @@ export default function AssetCategories({
                                         berikutnya {c.next_code}
                                     </span>
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell className="text-right">
                                     {c.useful_life_months} bln
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell className="text-right">
                                     {c.maintenance_interval_months === null
                                         ? '—'
                                         : `${c.maintenance_interval_months} bln`}
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell className="text-right">
                                     {c.assets_count}
                                 </TableCell>
                                 <TableCell>
@@ -135,12 +142,12 @@ export default function AssetCategories({
                         ))}
                     </TableBody>
                 </TabelData>
-                <p className="text-xs text-muted-foreground">
-                    Umur & interval adalah default yang terisi saat menambah
-                    aset baru. Mengubahnya tidak mengubah aset yang sudah
-                    tercatat; prefiks dipakai kode otomatis (mis. KAM-001).
-                </p>
-            </div>
+            </Panel>
+            <Notice>
+                Umur & interval adalah default yang terisi saat menambah aset
+                baru. Mengubahnya tidak mengubah aset yang sudah tercatat;
+                prefiks dipakai kode otomatis (mis. KAM-001).
+            </Notice>
 
             {editing && (
                 <CategoryDialog
@@ -149,7 +156,7 @@ export default function AssetCategories({
                     onClose={() => setEditing(null)}
                 />
             )}
-        </>
+        </div>
     );
 }
 
@@ -254,7 +261,6 @@ function CategoryDialog({
                             <Input
                                 id="cat-life"
                                 inputMode="numeric"
-                                className="font-mono"
                                 value={data.useful_life_months}
                                 aria-invalid={Boolean(
                                     errors.useful_life_months,
@@ -275,7 +281,6 @@ function CategoryDialog({
                             <Input
                                 id="cat-interval"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="tanpa jadwal"
                                 value={data.maintenance_interval_months}
                                 aria-invalid={Boolean(

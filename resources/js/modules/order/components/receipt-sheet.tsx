@@ -84,10 +84,10 @@ function ReceiptBody({
                 </SheetTitle>
             </SheetHeader>
 
-            <div className="flex flex-col gap-4 p-4">
+            <div className="flex flex-col gap-4 px-6">
                 <div className="flex items-baseline justify-between">
                     <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="font-mono text-xl font-semibold">
+                    <span className="text-xl font-semibold">
                         {formatRp(receipt.total)}
                     </span>
                 </div>
@@ -99,9 +99,7 @@ function ReceiptBody({
                                 ? ` · ${formatTanggal(receipt.paid_on)}`
                                 : ''}
                         </span>
-                        <span className="font-mono">
-                            {formatRp(receipt.paid_amount ?? 0)}
-                        </span>
+                        <span>{formatRp(receipt.paid_amount ?? 0)}</span>
                     </div>
                 )}
                 {(receipt.balance > 0 || payment) && (

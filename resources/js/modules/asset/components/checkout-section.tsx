@@ -10,6 +10,7 @@ import { useState } from 'react';
 import AssetCheckoutController from '@/actions/Modules/Asset/Controllers/AssetCheckoutController';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
+import { Panel } from '@/components/page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -66,101 +67,106 @@ export function CheckoutSection({
             : null;
 
     return (
-        <section className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold">
-                    Peminjaman{' '}
-                    <span className="font-normal text-muted-foreground">
-                        · tersedia {a.available_units} dari {a.units} unit
+        <Panel
+            title={
+                <>
+                    Peminjaman
+                    <span className="hidden text-sm font-normal text-muted-foreground sm:inline">
+                        tersedia {a.available_units} dari {a.units} unit
                     </span>
-                </h3>
+                </>
+            }
+            aside={
                 <div className="flex items-center gap-2">
                     {blocked && (
-                        <span className="text-xs text-muted-foreground">
-                            {blocked}
-                        </span>
+                        <span className="hidden sm:inline">{blocked}</span>
                     )}
                     <Button
                         size="sm"
                         variant="outline"
                         disabled={blocked !== null}
+                        title={blocked ?? undefined}
                         onClick={() => setLending(true)}
                     >
                         <LogOut data-icon="inline-start" />
                         Pinjamkan
                     </Button>
                 </div>
-            </div>
-            <div className="overflow-hidden rounded-lg border">
-                {a.checkouts.length === 0 ? (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">
-                        Belum pernah dibawa keluar.
-                    </p>
-                ) : (
-                    <ul className="flex flex-col divide-y text-sm">
-                        {[...open, ...history].map((c) => (
-                            <li
-                                key={c.id}
-                                className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 ${c.returned_on ? 'text-muted-foreground' : ''}`}
-                            >
-                                <span className="font-medium text-foreground">
-                                    {c.quantity} × {c.holder}
-                                </span>
-                                {c.order && (
-                                    <span>
-                                        <span className="font-mono">
-                                            {c.order.number}
-                                        </span>
-                                        {c.order.customer_name
-                                            ? ` · ${c.order.customer_name}`
-                                            : ''}
+            }
+            flush
+        >
+            <p className="border-b px-[18px] py-2 text-xs text-muted-foreground sm:hidden">
+                Tersedia {a.available_units} dari {a.units} unit
+                {blocked ? ` · ${blocked}` : ''}
+            </p>
+            {a.checkouts.length === 0 ? (
+                <p className="px-[18px] py-4 text-sm text-muted-foreground">
+                    Belum pernah dibawa keluar.
+                </p>
+            ) : (
+                <ul className="flex flex-col divide-y text-sm">
+                    {[...open, ...history].map((c) => (
+                        <li
+                            key={c.id}
+                            className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-[18px] py-2.5 ${c.returned_on ? 'text-muted-foreground' : ''}`}
+                        >
+                            <span className="font-medium text-foreground">
+                                {c.quantity} × {c.holder}
+                            </span>
+                            {c.order && (
+                                <span>
+                                    <span className="font-mono">
+                                        {c.order.number}
                                     </span>
-                                )}
-                                <span className="text-xs">
-                                    keluar {formatTanggal(c.checked_out_on)}
-                                    {c.returned_on
-                                        ? ` · kembali ${formatTanggal(c.returned_on)}`
-                                        : c.due_back_on
-                                          ? ` · rencana kembali ${formatTanggal(c.due_back_on)}`
-                                          : ''}
+                                    {c.order.customer_name
+                                        ? ` · ${c.order.customer_name}`
+                                        : ''}
                                 </span>
-                                {c.overdue && (
-                                    <Badge variant="destructive">
-                                        Lewat jadwal
-                                    </Badge>
-                                )}
-                                {c.note && (
-                                    <span className="w-full text-xs text-muted-foreground">
-                                        {c.note}
-                                    </span>
-                                )}
-                                <span className="ml-auto flex items-center gap-1">
-                                    {c.returned_on === null && (
-                                        <Button
-                                            size="sm"
-                                            onClick={() => setReturning(c)}
-                                        >
-                                            Kembalikan
-                                        </Button>
-                                    )}
-                                    <ConfirmDelete
-                                        url={
-                                            AssetCheckoutController.destroy({
-                                                asset: a.id,
-                                                checkout: c.id,
-                                            }).url
-                                        }
-                                        label={`peminjaman ${c.holder}`}
-                                        title="Hapus catatan peminjaman?"
-                                        description="Hanya untuk salah catat — riwayat peminjaman ini hilang."
-                                        hint=""
-                                    />
+                            )}
+                            <span className="text-xs">
+                                keluar {formatTanggal(c.checked_out_on)}
+                                {c.returned_on
+                                    ? ` · kembali ${formatTanggal(c.returned_on)}`
+                                    : c.due_back_on
+                                      ? ` · rencana kembali ${formatTanggal(c.due_back_on)}`
+                                      : ''}
+                            </span>
+                            {c.overdue && (
+                                <Badge variant="destructive">
+                                    Lewat jadwal
+                                </Badge>
+                            )}
+                            {c.note && (
+                                <span className="w-full text-xs text-muted-foreground">
+                                    {c.note}
                                 </span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
+                            )}
+                            <span className="ml-auto flex items-center gap-1">
+                                {c.returned_on === null && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => setReturning(c)}
+                                    >
+                                        Kembalikan
+                                    </Button>
+                                )}
+                                <ConfirmDelete
+                                    url={
+                                        AssetCheckoutController.destroy({
+                                            asset: a.id,
+                                            checkout: c.id,
+                                        }).url
+                                    }
+                                    label={`peminjaman ${c.holder}`}
+                                    title="Hapus catatan peminjaman?"
+                                    description="Hanya untuk salah catat — riwayat peminjaman ini hilang."
+                                    hint=""
+                                />
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             {lending && (
                 <LendDialog
@@ -178,7 +184,7 @@ export function CheckoutSection({
                     onClose={() => setReturning(null)}
                 />
             )}
-        </section>
+        </Panel>
     );
 }
 
@@ -249,7 +255,6 @@ function LendDialog({
                             <Input
                                 id="lend-qty"
                                 inputMode="numeric"
-                                className="font-mono"
                                 value={data.quantity}
                                 aria-invalid={Boolean(errors.quantity)}
                                 onChange={(e) =>

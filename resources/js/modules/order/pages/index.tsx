@@ -4,7 +4,7 @@
  *
  * Layar dengan aturan paling banyak sekaligus: dua dimensi status, badge DP
  * berpersentase, baris Batal opacity 60%, legenda titik progres, kolom uang
- * mono rata kanan. Detail dulu Sheet (R9); sejak spek 7.4 halaman penuh
+ * rata kanan. Detail dulu Sheet (R9); sejak spek 7.4 halaman penuh
  * (`show.tsx`) — keputusan user: Sheet terlalu sempit dan tombol Ubah tersembunyi.
  */
 
@@ -24,7 +24,7 @@ import {
     hasActiveFilter,
 } from '@/components/list-toolbar';
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
-import { PageActions } from '@/components/page-actions';
+import { PageHeader, Panel } from '@/components/page';
 import { Pagination } from '@/components/pagination';
 import type { Paginated } from '@/components/pagination';
 import {
@@ -113,50 +113,56 @@ export default function OrdersIndex({
     const filtered = hasActiveFilter(filters);
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title="Order & Booking" />
-            <h1 className="sr-only">Order & Booking</h1>
 
-            <PageActions>
-                {/* <a href>, bukan Link: Inertia tidak menangani unduhan.
-                    Filter yang terlihat = yang diekspor. Ekspor memuat HPP &
-                    margin — hanya owner (spek 5.1). */}
-                {can.view_finance && (
-                    <Button
-                        variant="outline"
-                        nativeButton={false}
-                        title="Mengekspor sesuai filter yang aktif"
-                        render={
-                            <a
-                                href={
-                                    ordersExport({ query: cleanQuery(filters) })
-                                        .url
+            <PageHeader
+                title="Order & Booking"
+                description="Order studio dan event beserta status kerja dan bayarnya."
+                actions={
+                    <>
+                        {/* <a href>, bukan Link: Inertia tidak menangani unduhan.
+                            Filter yang terlihat = yang diekspor. Ekspor memuat HPP &
+                            margin — hanya owner (spek 5.1). */}
+                        {can.view_finance && (
+                            <Button
+                                variant="outline"
+                                nativeButton={false}
+                                title="Mengekspor sesuai filter yang aktif"
+                                render={
+                                    <a
+                                        href={
+                                            ordersExport({
+                                                query: cleanQuery(filters),
+                                            }).url
+                                        }
+                                    />
                                 }
-                            />
-                        }
-                    >
-                        <Download data-icon="inline-start" />
-                        Ekspor CSV
-                    </Button>
-                )}
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={ordersCalendar()} />}
-                >
-                    <CalendarDays data-icon="inline-start" />
-                    Kalender
-                </Button>
-                <Button
-                    nativeButton={false}
-                    render={<Link href={ordersCreate()} />}
-                >
-                    <Plus data-icon="inline-start" />
-                    Buat Order
-                </Button>
-            </PageActions>
+                            >
+                                <Download data-icon="inline-start" />
+                                Ekspor CSV
+                            </Button>
+                        )}
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={<Link href={ordersCalendar()} />}
+                        >
+                            <CalendarDays data-icon="inline-start" />
+                            Kalender
+                        </Button>
+                        <Button
+                            nativeButton={false}
+                            render={<Link href={ordersCreate()} />}
+                        >
+                            <Plus data-icon="inline-start" />
+                            Buat Order
+                        </Button>
+                    </>
+                }
+            />
 
-            <div className="flex flex-col gap-6 p-6">
+            <Panel label="Filter order">
                 <ListToolbar
                     value={filters}
                     filters={ORDER_FILTERS}
@@ -186,129 +192,129 @@ export default function OrdersIndex({
                         }
                     />
                 </ListToolbar>
+            </Panel>
 
-                {visible.length === 0 ? (
-                    filtered ? (
-                        <KosongTabel
-                            kalimat="Tidak ada order yang cocok."
-                            aksi={{
-                                label: 'Hapus filter',
-                                onClick: () => go({ q: '' }),
-                            }}
-                        />
-                    ) : (
-                        <KosongTabel
-                            kalimat="Belum ada order. Order studio dan event akan muncul di sini."
-                            aksi={{ label: 'Buat Order', ke: ordersCreate() }}
-                        />
-                    )
+            {visible.length === 0 ? (
+                filtered ? (
+                    <KosongTabel
+                        kalimat="Tidak ada order yang cocok."
+                        aksi={{
+                            label: 'Hapus filter',
+                            onClick: () => go({ q: '' }),
+                        }}
+                    />
                 ) : (
-                    <TabelData>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>No</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Lini</TableHead>
-                                <TableHead>Item</TableHead>
-                                <TableHead>Jadwal</TableHead>
-                                {/*
+                    <KosongTabel
+                        kalimat="Belum ada order. Order studio dan event akan muncul di sini."
+                        aksi={{ label: 'Buat Order', ke: ordersCreate() }}
+                    />
+                )
+            ) : (
+                <TabelData>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>No</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Lini</TableHead>
+                            <TableHead>Item</TableHead>
+                            <TableHead>Jadwal</TableHead>
+                            {/*
                                     "Dibayar" sengaja tidak di sini: sepuluh
                                     kolom tidak muat di laptop 1280px, dan nilainya
                                     terbaca dari Total × persen badge DP. Yang
                                     menuntut tindakan adalah Sisa.
                                 */}
-                                <KepalaUang>Total</KepalaUang>
-                                <KepalaUang>Sisa</KepalaUang>
-                                <TableHead>
-                                    <WorkProgressLegend>
-                                        Status Kerja
-                                    </WorkProgressLegend>
-                                </TableHead>
-                                <TableHead>Status Bayar</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {visible.map((o) => (
-                                <TableRow
-                                    key={o.id}
-                                    className={`cursor-pointer ${orderRowClass(o.work_status)}`}
-                                    onClick={() =>
-                                        router.visit(OrderController.show(o.id))
-                                    }
-                                >
-                                    {/* Link untuk keyboard & buka di tab baru; baris tetap bisa diklik. */}
-                                    <SelKode>
-                                        <Link
-                                            href={OrderController.show(o.id)}
-                                            className="hover:underline"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            {o.number}
-                                        </Link>
-                                    </SelKode>
-                                    <TableCell className="font-medium whitespace-nowrap">
-                                        {o.customer_name ?? (
-                                            <span className="text-muted-foreground">
-                                                Walk-in
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <LineMark line={o.business_line} />
-                                    </TableCell>
-                                    <TableCell
-                                        className="max-w-36 truncate text-muted-foreground"
-                                        title={o.items_summary}
+                            <KepalaUang>Total</KepalaUang>
+                            <KepalaUang>Sisa</KepalaUang>
+                            <TableHead>
+                                <WorkProgressLegend>
+                                    Status Kerja
+                                </WorkProgressLegend>
+                            </TableHead>
+                            <TableHead>Status Bayar</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {visible.map((o) => (
+                            <TableRow
+                                key={o.id}
+                                className={`cursor-pointer ${orderRowClass(o.work_status)}`}
+                                onClick={() =>
+                                    router.visit(OrderController.show(o.id))
+                                }
+                            >
+                                {/* Link untuk keyboard & buka di tab baru; baris tetap bisa diklik. */}
+                                <SelKode>
+                                    <Link
+                                        href={OrderController.show(o.id)}
+                                        className="hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
                                     >
-                                        {o.items_summary}
-                                    </TableCell>
-                                    <TableCell className="whitespace-nowrap">
-                                        {formatJadwal(scheduleOf(o))}
-                                    </TableCell>
-                                    <SelUang nominal={o.total} />
-                                    {/* Order Batal tidak ditagih lagi — nominal dicoret, bukan disembunyikan, supaya sisa yang hangus tetap terbaca. */}
-                                    <SelUang
-                                        nominal={o.balance}
-                                        className={
-                                            o.work_status === 'cancelled'
-                                                ? 'line-through'
-                                                : ''
-                                        }
-                                    />
-                                    <TableCell>
-                                        <WorkProgress status={o.work_status} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="flex items-center gap-1">
-                                            <PaymentBadge
-                                                status={o.payment_status}
-                                                paidPercent={o.paid_percent}
-                                            />
-                                            <RefundBadge
-                                                amount={o.total_refunded}
-                                            />
+                                        {o.number}
+                                    </Link>
+                                </SelKode>
+                                <TableCell className="font-medium whitespace-nowrap">
+                                    {o.customer_name ?? (
+                                        <span className="text-muted-foreground">
+                                            Walk-in
                                         </span>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </TabelData>
-                )}
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <LineMark line={o.business_line} />
+                                </TableCell>
+                                <TableCell
+                                    className="max-w-36 truncate text-muted-foreground"
+                                    title={o.items_summary}
+                                >
+                                    {o.items_summary}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                    {formatJadwal(scheduleOf(o))}
+                                </TableCell>
+                                <SelUang nominal={o.total} />
+                                {/* Order Batal tidak ditagih lagi — nominal dicoret, bukan disembunyikan, supaya sisa yang hangus tetap terbaca. */}
+                                <SelUang
+                                    nominal={o.balance}
+                                    className={
+                                        o.work_status === 'cancelled'
+                                            ? 'line-through'
+                                            : ''
+                                    }
+                                />
+                                <TableCell>
+                                    <WorkProgress status={o.work_status} />
+                                </TableCell>
+                                <TableCell>
+                                    <span className="flex items-center gap-1">
+                                        <PaymentBadge
+                                            status={o.payment_status}
+                                            paidPercent={o.paid_percent}
+                                        />
+                                        <RefundBadge
+                                            amount={o.total_refunded}
+                                        />
+                                    </span>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </TabelData>
+            )}
 
-                <Pagination
-                    page={orders}
-                    noun="order"
-                    href={(page) =>
-                        ordersIndex({
-                            query: {
-                                ...cleanQuery(filters),
-                                page: String(page),
-                            },
-                        }).url
-                    }
-                />
-            </div>
-        </>
+            <Pagination
+                page={orders}
+                noun="order"
+                href={(page) =>
+                    ordersIndex({
+                        query: {
+                            ...cleanQuery(filters),
+                            page: String(page),
+                        },
+                    }).url
+                }
+            />
+        </div>
     );
 }
 

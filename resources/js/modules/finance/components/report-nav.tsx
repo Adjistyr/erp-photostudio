@@ -5,6 +5,7 @@
  */
 
 import { Link } from '@inertiajs/react';
+import { useEffect, useRef } from 'react';
 import { MonthNav } from '@/components/month-nav';
 import { Button } from '@/components/ui/button';
 import { cash, margin, profitLoss, receivables, sales } from '@/routes/reports';
@@ -40,14 +41,35 @@ export function ReportNav({
     const hrefOf = (r: Report) =>
         r === 'receivables' ? receivables() : MONTHLY[r]({ query: { month } });
 
+    // Di layar sempit pil aktif (mis. Piutang) bisa jatuh di luar baris yang
+    // tergeser; geser baris itu sendiri — bukan scrollIntoView, yang ikut
+    // menggulir halaman.
+    const navRef = useRef<HTMLElement>(null);
+    useEffect(() => {
+        const nav = navRef.current;
+        const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+        if (nav && active) {
+            nav.scrollLeft =
+                active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
+        }
+    }, [current]);
+
     return (
         <div className="flex flex-wrap items-center justify-between gap-3">
-            <nav className="flex flex-wrap gap-1" aria-label="Laporan">
+            {/* Satu baris pil di atas kanvas; di layar sempit digeser, bukan
+                dilipat — lima tombol yang turun ke dua baris terbaca sebagai
+                dua kelompok. */}
+            <nav
+                ref={navRef}
+                className="relative flex max-w-full [scrollbar-width:none] gap-1 overflow-x-auto rounded-4xl bg-card p-1"
+                aria-label="Laporan"
+            >
                 {REPORTS.map((r) => (
                     <Button
                         key={r}
                         size="sm"
-                        variant={r === current ? 'secondary' : 'ghost'}
+                        variant={r === current ? 'default' : 'ghost'}
+                        className="shrink-0"
                         aria-current={r === current ? 'page' : undefined}
                         nativeButton={false}
                         render={<Link href={hrefOf(r)} />}

@@ -29,7 +29,7 @@ import {
 } from '@/components/data-table';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilters } from '@/components/list-toolbar';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader } from '@/components/page';
 import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -98,22 +98,32 @@ export default function CatalogIndex({
     return (
         <>
             <Head title="Katalog" />
-            <h1 className="sr-only">Katalog</h1>
-            {/* Mengelola katalog hanya owner (spek 5.1); admin melihat saja. */}
-            {can.manage_catalog && (
-                <PageActions>
-                    {/* Halaman penuh, bukan dialog (spek 7.2). */}
-                    <Button
-                        nativeButton={false}
-                        render={<Link href={CatalogItemController.create()} />}
-                    >
-                        <Plus data-icon="inline-start" />
-                        Tambah Item
-                    </Button>
-                </PageActions>
-            )}
-
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Katalog"
+                    description={
+                        low_margin_ratio === undefined
+                            ? 'Produk dan jasa yang dijual beserta harganya.'
+                            : 'Produk dan jasa yang dijual, beserta harga dan HPP bahannya.'
+                    }
+                    actions={
+                        // Mengelola katalog hanya owner (spek 5.1); admin melihat saja.
+                        can.manage_catalog && (
+                            // Halaman penuh, bukan dialog (spek 7.2).
+                            <Button
+                                nativeButton={false}
+                                render={
+                                    <Link
+                                        href={CatalogItemController.create()}
+                                    />
+                                }
+                            >
+                                <Plus data-icon="inline-start" />
+                                Tambah Item
+                            </Button>
+                        )
+                    }
+                />
                 <Tabs
                     value={filter}
                     onValueChange={(v) => {
@@ -272,10 +282,10 @@ export default function CatalogIndex({
                                         </TableCell>
                                         {item.variants.length > 0 ? (
                                             // Harga sebenarnya per varian (sub-baris di bawah).
-                                            <TableCell className="text-right font-mono whitespace-nowrap">
+                                            <TableCell className="text-right whitespace-nowrap">
                                                 {/* "mulai" di baris sendiri — lebar kolom tetap
                                                 selebar angka, tabel tetap muat 1280 px. */}
-                                                <span className="block font-sans text-xs text-muted-foreground">
+                                                <span className="block text-xs text-muted-foreground">
                                                     mulai
                                                 </span>
                                                 {formatRp(item.price)}
@@ -320,7 +330,7 @@ export default function CatalogIndex({
                                                 {/* Produk bermargin tipis menonjol tanpa
                                                 harus membaca angkanya satu per satu. */}
                                                 <TableCell
-                                                    className={`text-right font-mono ${isLowMargin(item.price, item.unit_cost, low_margin_ratio) ? 'text-destructive' : ''}`}
+                                                    className={`text-right ${isLowMargin(item.price, item.unit_cost, low_margin_ratio) ? 'text-destructive' : ''}`}
                                                     title={
                                                         isLowMargin(
                                                             item.price,
@@ -445,13 +455,13 @@ export default function CatalogIndex({
                 )}
 
                 {low_margin_ratio !== undefined && (
-                    <p className="text-xs text-muted-foreground">
+                    <Notice>
                         HPP bahan hanya berlaku untuk produk fisik. HPP jasa
                         berbeda tiap job — fee crew, transport, sewa — dan
                         dicatat per order lewat menu Biaya. Paket jasa
                         berkomponen menampilkan HPP bahan komponennya (dihitung,
                         ikut ke order berikutnya).
-                    </p>
+                    </Notice>
                 )}
             </div>
         </>
@@ -501,7 +511,7 @@ function VariantSubRow({
                     <SelUang nominal={cost} />
                     <SelUang nominal={v.price - cost} />
                     <TableCell
-                        className={`text-right font-mono ${low ? 'text-destructive' : ''}`}
+                        className={`text-right ${low ? 'text-destructive' : ''}`}
                         title={low ? lowMarginNote : undefined}
                     >
                         {formatPersen((v.price - cost) / v.price)}
@@ -518,16 +528,14 @@ function VariantSubRow({
 
 function NotApplicable() {
     return (
-        <TableCell className="text-right font-mono text-muted-foreground">
-            —
-        </TableCell>
+        <TableCell className="text-right text-muted-foreground">—</TableCell>
     );
 }
 
 /** HPP bahan paket berkomponen (spek 6.3) — hasil hitung, bukan isian. */
 function BundleCostCell({ cost }: { cost: number }) {
     return (
-        <TableCell className="text-right font-mono whitespace-nowrap">
+        <TableCell className="text-right whitespace-nowrap">
             <Tooltip>
                 <TooltipTrigger
                     render={

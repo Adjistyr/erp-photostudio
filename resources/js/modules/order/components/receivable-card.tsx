@@ -31,7 +31,7 @@ export function ReceivableCard({
     const overdue = row.days_until_due < 0;
 
     return (
-        <li className="flex flex-col gap-2 rounded-lg border p-4">
+        <li className="flex flex-col gap-2 rounded-3xl bg-card px-[18px] py-4 text-card-foreground">
             <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-sm">{row.number}</span>
                 <PaymentBadge
@@ -48,7 +48,7 @@ export function ReceivableCard({
                 <LineMark line={row.business_line} />
             </div>
             <div className="flex items-baseline justify-between gap-2">
-                <span className="font-mono font-semibold">
+                <span className="text-lg font-medium tracking-[-0.01em]">
                     Sisa {formatRp(row.balance)}
                 </span>
                 <span
@@ -59,8 +59,8 @@ export function ReceivableCard({
                 </span>
             </div>
             <p className="text-xs text-muted-foreground">
-                dari <span className="font-mono">{formatRp(row.total)}</span> ·
-                jatuh tempo {formatTanggal(row.due_on)}
+                dari {formatRp(row.total)} · jatuh tempo{' '}
+                {formatTanggal(row.due_on)}
             </p>
             {row.proofs.length > 0 && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">

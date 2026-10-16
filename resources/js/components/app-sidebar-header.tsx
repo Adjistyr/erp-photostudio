@@ -5,9 +5,8 @@ import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 /**
  * Header halaman — DESIGN.md R8: bar 64px di atas kanvas (tanpa garis bawah),
- * breadcrumb kiri, aksi utama halaman + chip profil kanan. Slot aksi diisi
- * halaman lewat <PageActions> (portal) — tiap halaman hanya menentukan
- * tombolnya, bukan ikut mendefinisikan tinggi dan posisinya.
+ * breadcrumb kiri, chip profil kanan. Aksi utama halaman ada di
+ * `PageHeader actions` (components/page.tsx), bukan di bar ini.
  *
  * Tidak sticky: POS (mobile) dan form katalog/aset punya elemen `sticky top-*`
  * sendiri yang akan tergelincir ke bawah header.
@@ -17,10 +16,8 @@ import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
  */
 export function AppSidebarHeader({
     breadcrumbs = [],
-    actionsRef,
 }: {
     breadcrumbs?: BreadcrumbItemType[];
-    actionsRef?: (el: HTMLElement | null) => void;
 }) {
     return (
         <header className="flex h-16 shrink-0 items-center gap-3 px-4 md:px-6">
@@ -29,7 +26,6 @@ export function AppSidebarHeader({
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             <div className="ml-auto flex items-center gap-3">
-                <div ref={actionsRef} className="flex items-center gap-2" />
                 <NavUser />
             </div>
         </header>

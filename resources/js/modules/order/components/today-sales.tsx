@@ -18,6 +18,7 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { formatRp } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod, Receipt } from '@/modules/order/types';
 import { index as ordersIndex } from '@/routes/orders';
@@ -66,13 +67,13 @@ export function TodaySales({
     const active = sales.filter((s) => !s.cancelled).length;
 
     return (
-        <Collapsible className="rounded-lg border">
+        <Collapsible className="overflow-hidden rounded-3xl bg-card text-card-foreground">
             <CollapsibleTrigger
                 disabled={sales.length === 0}
                 render={
                     <Button
                         variant="ghost"
-                        className="group w-full justify-between rounded-lg px-4"
+                        className="group h-12 w-full justify-between rounded-none px-[18px] aria-expanded:bg-transparent"
                     />
                 }
             >
@@ -82,8 +83,7 @@ export function TodaySales({
                         'belum ada transaksi'
                     ) : (
                         <>
-                            {active} transaksi ·{' '}
-                            <span className="font-mono">{formatRp(total)}</span>
+                            {active} transaksi · {formatRp(total)}
                         </>
                     )}
                 </span>
@@ -99,9 +99,12 @@ export function TodaySales({
                         return (
                             <li
                                 key={s.id}
-                                className={`flex items-center gap-2 px-4 py-2 ${s.cancelled ? 'opacity-60' : ''}`}
+                                className={cn(
+                                    'flex items-center gap-2 px-[18px] py-2.5',
+                                    s.cancelled && 'opacity-60',
+                                )}
                             >
-                                <span className="w-10 shrink-0 font-mono text-xs text-muted-foreground">
+                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
                                     {s.time ?? '—'}
                                 </span>
                                 <span
@@ -124,7 +127,7 @@ export function TodaySales({
                                             .join(' + ')}
                                     </span>
                                 )}
-                                <span className="w-24 shrink-0 text-right font-mono">
+                                <span className="w-24 shrink-0 text-right">
                                     {formatRp(s.total)}
                                 </span>
                                 {receipt ? (
@@ -143,7 +146,7 @@ export function TodaySales({
                         );
                     })}
                 </ul>
-                <p className="border-t px-4 py-2 text-xs text-muted-foreground">
+                <p className="border-t px-[18px] py-2.5 text-xs text-muted-foreground">
                     Menampilkan 50 transaksi terbaru hari ini. Semua order ada
                     di{' '}
                     <Link

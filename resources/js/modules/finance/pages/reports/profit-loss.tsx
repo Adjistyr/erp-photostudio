@@ -11,6 +11,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, Info } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -67,6 +68,9 @@ interface Props {
     } | null;
 }
 
+/** Baris laporan rapat ke tepi panel; inset 6px `Table` sudah memberi jarak. */
+const KELAS_LAPORAN = '[&_td]:py-2';
+
 export default function ProfitLoss({
     month,
     statement: s,
@@ -78,9 +82,12 @@ export default function ProfitLoss({
     return (
         <>
             <Head title="Laba Rugi" />
-            <h1 className="sr-only">Laba Rugi</h1>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Laba Rugi"
+                    description="Omzet, biaya, laba bersih, dan bagi hasil per bulan."
+                />
                 <ReportNav current="profit-loss" month={month} />
 
                 {/*
@@ -101,8 +108,12 @@ export default function ProfitLoss({
                                 {formatRp(
                                     cash_basis_example.paid_in_month,
                                 )}{' '}
-                                untuk {cash_basis_example.number} masuk omzet{' '}
-                                {formatBulan(month)} walaupun acaranya{' '}
+                                untuk{' '}
+                                <span className="font-mono">
+                                    {cash_basis_example.number}
+                                </span>{' '}
+                                masuk omzet {formatBulan(month)} walaupun
+                                acaranya{' '}
                                 {formatTanggal(cash_basis_example.service_date)}
                                 .
                             </>
@@ -113,155 +124,153 @@ export default function ProfitLoss({
                     </AlertDescription>
                 </Alert>
 
-                <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[1fr_20rem]">
-                    <section className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-                        <h2 className="font-heading text-base font-semibold">
-                            {formatBulan(month)}
-                        </h2>
-
-                        <Table className="[&_td]:px-0 [&_td]:py-2">
-                            <TableBody>
-                                <Heading>Omzet</Heading>
-                                {s.revenue_by_line.map(({ line, amount }) => (
-                                    <Detail
-                                        key={line}
-                                        label={LINE_LABEL[line]}
-                                        amount={amount}
-                                        color={LINE_COLOR[line]}
+                <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_20rem]">
+                    <Panel title={formatBulan(month)}>
+                        <div className="flex flex-col gap-4">
+                            <Table className={KELAS_LAPORAN}>
+                                <TableBody>
+                                    <Heading>Omzet</Heading>
+                                    {s.revenue_by_line.map(
+                                        ({ line, amount }) => (
+                                            <Detail
+                                                key={line}
+                                                label={LINE_LABEL[line]}
+                                                amount={amount}
+                                                color={LINE_COLOR[line]}
+                                            />
+                                        ),
+                                    )}
+                                    <Total
+                                        label="Total Omzet"
+                                        amount={s.total_revenue}
                                     />
-                                ))}
-                                <Total
-                                    label="Total Omzet"
-                                    amount={s.total_revenue}
-                                />
 
-                                <Heading>Biaya Langsung</Heading>
-                                <Detail
-                                    label="HPP bahan produk"
-                                    amount={s.material_cost}
-                                />
-                                <Detail
-                                    label="Biaya job (crew, transport, sewa)"
-                                    amount={s.job_cost}
-                                />
-                                <Total
-                                    label="Total Biaya Langsung"
-                                    amount={s.total_direct_cost}
-                                />
-
-                                <Total
-                                    label="Laba Kotor"
-                                    amount={s.gross_profit}
-                                    note={formatPersen(s.gross_margin)}
-                                    bold
-                                />
-
-                                <Heading>Biaya Operasional</Heading>
-                                {s.operating.map((e) => (
+                                    <Heading>Biaya Langsung</Heading>
                                     <Detail
-                                        key={e.id}
-                                        label={e.category}
-                                        amount={e.amount}
+                                        label="HPP bahan produk"
+                                        amount={s.material_cost}
                                     />
-                                ))}
-                                <Total
-                                    label="Total Biaya Operasional"
-                                    amount={s.total_operating}
+                                    <Detail
+                                        label="Biaya job (crew, transport, sewa)"
+                                        amount={s.job_cost}
+                                    />
+                                    <Total
+                                        label="Total Biaya Langsung"
+                                        amount={s.total_direct_cost}
+                                    />
+
+                                    <Total
+                                        label="Laba Kotor"
+                                        amount={s.gross_profit}
+                                        note={formatPersen(s.gross_margin)}
+                                        bold
+                                    />
+
+                                    <Heading>Biaya Operasional</Heading>
+                                    {s.operating.map((e) => (
+                                        <Detail
+                                            key={e.id}
+                                            label={e.category}
+                                            amount={e.amount}
+                                        />
+                                    ))}
+                                    <Total
+                                        label="Total Biaya Operasional"
+                                        amount={s.total_operating}
+                                    />
+
+                                    {/*
+                                        Baris sendiri, bukan rincian operasional: ini
+                                        dana yang DISISIHKAN, bukan uang keluar. Servis
+                                        alat dibayar dari saldonya dan tidak muncul lagi
+                                        di sini (business-flow 8.2).
+                                    */}
+                                    <Heading>Dana Disisihkan</Heading>
+                                    <Detail
+                                        label="Alokasi dana maintenance"
+                                        amount={s.maintenance_allocation}
+                                    />
+                                </TableBody>
+                            </Table>
+
+                            <Separator />
+
+                            <div className="flex flex-wrap items-baseline justify-between gap-x-4 px-3">
+                                <span className="text-lg font-medium tracking-[-0.01em]">
+                                    Laba Bersih
+                                </span>
+                                <span
+                                    className={`text-[30px] leading-tight font-medium tracking-[-0.02em] ${kelasRp(s.net_profit)}`}
+                                >
+                                    {formatRp(s.net_profit)}
+                                </span>
+                            </div>
+
+                            {profit_share && (
+                                <ProfitShareBlock
+                                    month={month}
+                                    share={profit_share}
                                 />
-
-                                {/*
-                                    Baris sendiri, bukan rincian operasional: ini
-                                    dana yang DISISIHKAN, bukan uang keluar. Servis
-                                    alat dibayar dari saldonya dan tidak muncul lagi
-                                    di sini (business-flow 8.2).
-                                */}
-                                <Heading>Dana Disisihkan</Heading>
-                                <Detail
-                                    label="Alokasi dana maintenance"
-                                    amount={s.maintenance_allocation}
-                                />
-                            </TableBody>
-                        </Table>
-
-                        <Separator />
-
-                        <div className="flex items-baseline justify-between">
-                            <span className="font-heading text-base font-semibold">
-                                Laba Bersih
-                            </span>
-                            <span
-                                className={`font-mono text-3xl font-semibold ${kelasRp(s.net_profit)}`}
-                            >
-                                {formatRp(s.net_profit)}
-                            </span>
+                            )}
                         </div>
+                    </Panel>
 
-                        {profit_share && (
-                            <ProfitShareBlock
-                                month={month}
-                                share={profit_share}
-                            />
-                        )}
-                    </section>
-
-                    <aside className="flex min-w-0 flex-col gap-4">
+                    <aside className="flex min-w-0 flex-col gap-6">
                         {/*
                             Kesimpulan ditulis sebagai kalimat. Rugi di awal bisnis
                             bukan tanda gagal — biaya tetap sebulan penuh bertemu
                             omzet yang baru terkumpul sebagian. Kalau tidak
                             dijelaskan, angka merahnya jadi satu-satunya yang diingat.
                         */}
-                        <div className="flex flex-col gap-2 rounded-lg border p-5">
-                            <h3 className="text-sm font-semibold">
-                                Cara membacanya
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                                Laba kotor {formatRp(s.gross_profit)} (
-                                {formatPersen(s.gross_margin)})
-                                {s.gross_profit > 0
-                                    ? ' — operasional jual-beli dan jasanya untung.'
-                                    : ' — biaya langsung belum tertutup omzet.'}
-                            </p>
-                            {s.net_profit < 0 && s.gross_margin > 0 && (
+                        <Panel title="Cara membacanya">
+                            <div className="flex flex-col gap-2">
                                 <p className="text-sm text-muted-foreground">
-                                    Yang membuat bulan ini rugi adalah biaya
-                                    tetap {formatRp(fixedCosts)} — operasional
-                                    plus dana maintenance. Titik balik ada di
-                                    omzet sekitar{' '}
-                                    <span className="font-mono text-foreground">
-                                        {formatRp(
-                                            Math.ceil(
-                                                fixedCosts /
-                                                    s.gross_margin /
-                                                    100_000,
-                                            ) * 100_000,
-                                        )}
-                                    </span>{' '}
-                                    per bulan pada margin yang sama.
+                                    Laba kotor {formatRp(s.gross_profit)} (
+                                    {formatPersen(s.gross_margin)})
+                                    {s.gross_profit > 0
+                                        ? ' — operasional jual-beli dan jasanya untung.'
+                                        : ' — biaya langsung belum tertutup omzet.'}
                                 </p>
-                            )}
-                        </div>
+                                {s.net_profit < 0 && s.gross_margin > 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Yang membuat bulan ini rugi adalah biaya
+                                        tetap {formatRp(fixedCosts)} —
+                                        operasional plus dana maintenance. Titik
+                                        balik ada di omzet sekitar{' '}
+                                        <span className="font-medium text-foreground">
+                                            {formatRp(
+                                                Math.ceil(
+                                                    fixedCosts /
+                                                        s.gross_margin /
+                                                        100_000,
+                                                ) * 100_000,
+                                            )}
+                                        </span>{' '}
+                                        per bulan pada margin yang sama.
+                                    </p>
+                                )}
+                            </div>
+                        </Panel>
 
-                        <div className="flex flex-col gap-2 rounded-lg border p-5">
-                            <h3 className="text-sm font-semibold">
-                                Yang tidak ada di sini
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                                Pekerjaan yang sudah dikerjakan tapi belum
-                                dibayar penuh tidak muncul sebagai omzet di
-                                basis kas. Angkanya ada di Piutang.
-                            </p>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="self-start"
-                                nativeButton={false}
-                                render={<Link href={receivablesIndex()} />}
-                            >
-                                Lihat piutang
-                                <ArrowRight data-icon="inline-end" />
-                            </Button>
-                        </div>
+                        <Panel title="Yang tidak ada di sini">
+                            <div className="flex flex-col gap-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Pekerjaan yang sudah dikerjakan tapi belum
+                                    dibayar penuh tidak muncul sebagai omzet di
+                                    basis kas. Angkanya ada di Piutang.
+                                </p>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="-ml-2.5 self-start"
+                                    nativeButton={false}
+                                    render={<Link href={receivablesIndex()} />}
+                                >
+                                    Lihat piutang
+                                    <ArrowRight data-icon="inline-end" />
+                                </Button>
+                            </div>
+                        </Panel>
                     </aside>
                 </div>
             </div>
@@ -287,7 +296,7 @@ function ProfitShareBlock({
 }) {
     return (
         <div className="flex flex-col gap-2">
-            <Table className="[&_td]:px-0 [&_td]:py-2">
+            <Table className={KELAS_LAPORAN}>
                 <TableBody>
                     <Heading>
                         Bagi Hasil
@@ -317,12 +326,12 @@ function ProfitShareBlock({
                 </TableBody>
             </Table>
             {share.net_profit < 0 && (
-                <p className="text-sm text-muted-foreground">
+                <Notice>
                     Tidak ada bagi hasil {formatBulan(month)}. Rugi{' '}
                     {formatRp(share.accumulated_loss)} dibawa ke{' '}
                     {formatBulan(share.next_month)} dan ditutup dulu sebelum
                     laba berikutnya dibagi.
-                </p>
+                </Notice>
             )}
             <Button
                 variant="ghost"
@@ -343,7 +352,7 @@ function Heading({ children }: { children: ReactNode }) {
         <TableRow className="hover:bg-transparent">
             <TableCell
                 colSpan={2}
-                className="pt-5 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                className="pt-5 text-xs font-medium whitespace-normal text-muted-foreground"
             >
                 {children}
             </TableCell>
@@ -362,7 +371,7 @@ function Detail({
 }) {
     return (
         <TableRow className="hover:bg-transparent">
-            <TableCell className="pl-4 text-sm">
+            <TableCell className="pl-6 text-sm whitespace-normal">
                 <span className="flex items-center gap-2">
                     {color && (
                         <span
@@ -373,9 +382,7 @@ function Detail({
                     {label}
                 </span>
             </TableCell>
-            <TableCell
-                className={`text-right font-mono text-sm ${kelasRp(amount)}`}
-            >
+            <TableCell className={`text-right text-sm ${kelasRp(amount)}`}>
                 {formatRp(amount)}
             </TableCell>
         </TableRow>
@@ -397,18 +404,20 @@ function Total({
         <TableRow className="border-t hover:bg-transparent">
             <TableCell
                 className={
-                    bold ? 'text-sm font-semibold' : 'text-sm font-medium'
+                    bold
+                        ? 'text-sm font-semibold whitespace-normal'
+                        : 'text-sm font-medium whitespace-normal'
                 }
             >
                 {label}
                 {note && (
-                    <span className="ml-2 font-mono text-xs text-muted-foreground">
+                    <span className="ml-2 text-xs text-muted-foreground">
                         {note}
                     </span>
                 )}
             </TableCell>
             <TableCell
-                className={`text-right font-mono ${bold ? 'text-base font-semibold' : 'text-sm font-medium'} ${kelasRp(amount)}`}
+                className={`text-right ${bold ? 'text-base font-semibold' : 'text-sm font-medium'} ${kelasRp(amount)}`}
             >
                 {formatRp(amount)}
             </TableCell>

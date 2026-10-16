@@ -41,7 +41,7 @@ export default function PasskeyVerify({
 
     return (
         <>
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
                 <Button
                     type="button"
                     variant="outline"
@@ -49,7 +49,11 @@ export default function PasskeyVerify({
                     onClick={verify}
                     disabled={isLoading}
                 >
-                    {isLoading ? <Spinner /> : <KeyRound className="h-4 w-4" />}
+                    {isLoading ? (
+                        <Spinner data-icon="inline-start" />
+                    ) : (
+                        <KeyRound data-icon="inline-start" />
+                    )}
                     {isLoading
                         ? (loadingLabel ?? 'Memverifikasi...')
                         : (label ?? 'Masuk dengan passkey')}
@@ -59,15 +63,14 @@ export default function PasskeyVerify({
                 )}
             </div>
 
-            <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                        {separator ?? 'Atau lanjut dengan email'}
-                    </span>
-                </div>
+            {/* Dipakai di kartu auth (`bg-card`), jadi label menutup garis
+                dengan warna kartu, bukan kanvas. Jarak cukup dari gap-6
+                induknya. */}
+            <div className="relative flex items-center justify-center">
+                <Separator className="absolute inset-x-0 top-1/2" />
+                <span className="relative bg-card px-2 text-xs text-muted-foreground uppercase">
+                    {separator ?? 'Atau lanjut dengan email'}
+                </span>
             </div>
         </>
     );

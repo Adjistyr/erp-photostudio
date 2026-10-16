@@ -11,6 +11,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import InputError from '@/components/input-error';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { formatRp, kelasRp } from '@/lib/format';
@@ -105,11 +106,15 @@ export default function OrdersEdit({
         rowsComplete(data.items, catalog);
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title={`Ubah ${order.number}`} />
-            <h1 className="sr-only">Ubah {order.number}</h1>
 
-            <div className="grid min-w-0 grid-cols-1 gap-6 p-6 xl:grid-cols-[1fr_20rem]">
+            <PageHeader
+                title={`Ubah ${order.number}`}
+                description={`${LINE_LABEL[order.business_line]} · jenis order tidak bisa diganti`}
+            />
+
+            <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[1fr_20rem]">
                 <div className="flex min-w-0 flex-col gap-6">
                     <InputError message={allErrors.order} />
                     <OrderFormFields
@@ -132,91 +137,89 @@ export default function OrdersEdit({
                     />
                 </div>
 
-                <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5">
-                    <div className="flex flex-col gap-0.5">
-                        <h2 className="font-heading text-base font-semibold">
-                            {order.number}
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                            {LINE_LABEL[order.business_line]} · jenis order
-                            tidak bisa diganti
-                        </p>
-                    </div>
+                <Panel title="Ringkasan" className="self-start">
+                    <div className="flex flex-col gap-4">
+                        <SummaryLines items={data.items} catalog={catalog} />
 
-                    <SummaryLines items={data.items} catalog={catalog} />
+                        <Separator />
 
-                    <Separator />
-
-                    <div className="flex flex-col gap-2 text-sm">
-                        <div className="flex items-baseline justify-between">
-                            <span className="font-medium">Total</span>
-                            <span className="font-mono text-2xl font-semibold">
-                                {formatRp(total)}
-                            </span>
+                        <div className="flex flex-col gap-2 text-sm">
+                            <div className="flex items-baseline justify-between">
+                                <span className="font-medium">Total</span>
+                                <span className="text-2xl font-medium tracking-[-0.02em]">
+                                    {formatRp(total)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between text-muted-foreground">
+                                <span>Sudah dibayar</span>
+                                <span>{formatRp(order.paid)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Sisa</span>
+                                <span className={kelasRp(total - order.paid)}>
+                                    {formatRp(total - order.paid)}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex justify-between text-muted-foreground">
-                            <span>Sudah dibayar</span>
-                            <span className="font-mono">
-                                {formatRp(order.paid)}
-                            </span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Sisa</span>
-                            <span
-                                className={`font-mono ${kelasRp(total - order.paid)}`}
+
+                        {line === 'event' && (
+                            <ScheduleSummary
+                                rows={data.schedules}
+                                total={total}
+                            />
+                        )}
+
+                        {belowPaid && (
+                            // Server juga menolak; di sini supaya kelihatan sebelum simpan.
+                            <p className="text-xs text-destructive">
+                                Total lebih kecil dari yang sudah dibayar. Hapus
+                                pembayaran dulu kalau memang mau mengurangi.
+                            </p>
+                        )}
+
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                nativeButton={false}
+                                render={
+                                    <Link
+                                        href={OrderController.show(order.id)}
+                                    />
+                                }
                             >
-                                {formatRp(total - order.paid)}
-                            </span>
+                                Batal
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                disabled={!complete || belowPaid || processing}
+                                onClick={() => {
+                                    // transform() mendaftarkan pengubah, tidak mengembalikan form.
+                                    form.transform((d) => ({
+                                        ...d,
+                                        ...customerPayload(d),
+                                        items: toPayload(d.items),
+                                        schedules: schedulesPayload(
+                                            d.schedules,
+                                        ),
+                                    }));
+                                    form.put(
+                                        OrderController.update(order.id).url,
+                                    );
+                                }}
+                            >
+                                Simpan perubahan
+                            </Button>
                         </div>
+                        <Notice>
+                            Harga item yang sudah ada tidak ikut berubah walau
+                            harga katalog naik. Perubahan tercatat di riwayat
+                            order.
+                        </Notice>
                     </div>
-
-                    {line === 'event' && (
-                        <ScheduleSummary rows={data.schedules} total={total} />
-                    )}
-
-                    {belowPaid && (
-                        // Server juga menolak; di sini supaya kelihatan sebelum simpan.
-                        <p className="text-xs text-destructive">
-                            Total lebih kecil dari yang sudah dibayar. Hapus
-                            pembayaran dulu kalau memang mau mengurangi.
-                        </p>
-                    )}
-
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            nativeButton={false}
-                            render={
-                                <Link href={OrderController.show(order.id)} />
-                            }
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            className="flex-1"
-                            disabled={!complete || belowPaid || processing}
-                            onClick={() => {
-                                // transform() mendaftarkan pengubah, tidak mengembalikan form.
-                                form.transform((d) => ({
-                                    ...d,
-                                    ...customerPayload(d),
-                                    items: toPayload(d.items),
-                                    schedules: schedulesPayload(d.schedules),
-                                }));
-                                form.put(OrderController.update(order.id).url);
-                            }}
-                        >
-                            Simpan perubahan
-                        </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                        Harga item yang sudah ada tidak ikut berubah walau harga
-                        katalog naik. Perubahan tercatat di riwayat order.
-                    </p>
-                </aside>
+                </Panel>
             </div>
-        </>
+        </div>
     );
 }
 

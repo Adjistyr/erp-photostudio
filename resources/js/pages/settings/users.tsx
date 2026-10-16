@@ -79,13 +79,15 @@ export default function Users({
             <Head title="Pengguna" />
             <h1 className="sr-only">Pengguna</h1>
 
-            <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                    <Heading
-                        variant="small"
-                        title="Pengguna"
-                        description="Admin tidak melihat laporan, modal, margin, dan tidak bisa menghapus catatan uang."
-                    />
+            <div className="flex flex-col gap-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1 basis-64">
+                        <Heading
+                            variant="small"
+                            title="Pengguna"
+                            description="Admin tidak melihat laporan, modal, margin, dan tidak bisa menghapus catatan uang."
+                        />
+                    </div>
                     <Button onClick={() => setEditing('new')}>
                         <Plus data-icon="inline-start" />
                         Tambah pengguna
@@ -97,7 +99,9 @@ export default function Users({
                         <TableRow>
                             <TableHead>Nama</TableHead>
                             <TableHead>Peran</TableHead>
-                            <TableHead>Dibuat</TableHead>
+                            <TableHead className="hidden sm:table-cell">
+                                Dibuat
+                            </TableHead>
                             <TableHead />
                         </TableRow>
                     </TableHeader>
@@ -129,7 +133,7 @@ export default function Users({
                                             ?.label ?? u.role}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">
+                                <TableCell className="hidden text-muted-foreground sm:table-cell">
                                     {u.created_at
                                         ? formatTanggal(u.created_at)
                                         : '—'}
@@ -279,7 +283,7 @@ function UserDialog({
                         </FieldDescription>
                         <InputError message={errors.role} />
                     </Field>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <Field>
                             <FieldLabel htmlFor="user-password">
                                 {user ? 'Sandi baru' : 'Sandi'}

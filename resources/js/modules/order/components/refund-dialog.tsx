@@ -69,11 +69,11 @@ export function RefundDialog({
                 </DialogHeader>
 
                 <FieldGroup>
-                    <div className="flex justify-between rounded-md bg-muted px-3 py-2 text-sm">
+                    <div className="flex justify-between rounded-2xl bg-muted px-4 py-2.5 text-sm">
                         <span className="text-muted-foreground">
                             Bisa dikembalikan
                         </span>
-                        <span className="font-mono font-medium">
+                        <span className="font-medium">
                             {formatRp(order.refundable)}
                         </span>
                     </div>
@@ -86,7 +86,6 @@ export function RefundDialog({
                             <Input
                                 id="refund_amount"
                                 inputMode="numeric"
-                                className="font-mono"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
                                 onChange={(e) =>

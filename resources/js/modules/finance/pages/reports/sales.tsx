@@ -11,6 +11,7 @@
 import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { KepalaUang, KosongTabel, TabelData } from '@/components/data-table';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { LineMark } from '@/components/status-order';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -96,14 +97,30 @@ export default function Sales({
     return (
         <>
             <Head title="Penjualan" />
-            <h1 className="sr-only">Penjualan</h1>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Penjualan"
+                    description="Produk, paket jasa, customer, dan sumber order bulan ini."
+                />
                 <ReportNav current="sales" month={month} />
 
                 <Section
                     title="Produk terlaris"
-                    note="dihitung dari uang yang diterima bulan ini (basis kas) · qty dan omzet produk belum dikurangi retur"
+                    note="Dihitung dari uang yang diterima bulan ini (basis kas) · qty dan omzet produk belum dikurangi retur."
+                    footer={
+                        unsold.length > 0 && (
+                            <Notice>
+                                {unsold.length === 1
+                                    ? 'Satu produk'
+                                    : `${unsold.length} produk`}{' '}
+                                belum terjual sama sekali bulan ini:{' '}
+                                {unsold.map((p) => p.name).join(', ')}. Modal
+                                yang menganggur — kandidat pertama untuk
+                                dihentikan atau didiskon.
+                            </Notice>
+                        )
+                    }
                 >
                     {products.length === 0 ? (
                         <KosongTabel kalimat="Belum ada produk di katalog." />
@@ -132,21 +149,21 @@ export default function Sales({
                                         <TableCell className="font-medium">
                                             {p.name}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {p.quantity}
                                         </TableCell>
                                         <TableCell
-                                            className={`text-right font-mono ${kelasRp(p.revenue)}`}
+                                            className={`text-right ${kelasRp(p.revenue)}`}
                                         >
                                             {formatRp(p.revenue)}
                                         </TableCell>
                                         <TableCell
-                                            className={`text-right font-mono ${kelasRp(p.cost)}`}
+                                            className={`text-right ${kelasRp(p.cost)}`}
                                         >
                                             {formatRp(p.cost)}
                                         </TableCell>
                                         <TableCell
-                                            className={`text-right font-mono ${kelasRp(p.margin)}`}
+                                            className={`text-right ${kelasRp(p.margin)}`}
                                         >
                                             {formatRp(p.margin)}
                                         </TableCell>
@@ -155,7 +172,7 @@ export default function Sales({
                                             "dijual tanpa untung", yang benar "belum pernah
                                             terjual" — kesimpulan yang sangat berbeda.
                                         */}
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {p.quantity === 0 ? (
                                                 <span className="text-muted-foreground">
                                                     —
@@ -172,19 +189,19 @@ export default function Sales({
                                     <TableCell className="font-semibold">
                                         Total
                                     </TableCell>
-                                    <TableCell className="text-right font-mono font-semibold">
+                                    <TableCell className="text-right font-semibold">
                                         {total.quantity}
                                     </TableCell>
-                                    <TableCell className="text-right font-mono font-semibold">
+                                    <TableCell className="text-right font-semibold">
                                         {formatRp(total.revenue)}
                                     </TableCell>
-                                    <TableCell className="text-right font-mono font-semibold">
+                                    <TableCell className="text-right font-semibold">
                                         {formatRp(total.cost)}
                                     </TableCell>
-                                    <TableCell className="text-right font-mono font-semibold">
+                                    <TableCell className="text-right font-semibold">
                                         {formatRp(totalMargin)}
                                     </TableCell>
-                                    <TableCell className="text-right font-mono font-semibold">
+                                    <TableCell className="text-right font-semibold">
                                         {total.revenue === 0
                                             ? '—'
                                             : formatPersen(
@@ -195,23 +212,22 @@ export default function Sales({
                             </TableFooter>
                         </TabelData>
                     )}
-
-                    {unsold.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                            {unsold.length === 1
-                                ? 'Satu produk'
-                                : `${unsold.length} produk`}{' '}
-                            belum terjual sama sekali bulan ini:{' '}
-                            {unsold.map((p) => p.name).join(', ')}. Modal yang
-                            menganggur — kandidat pertama untuk dihentikan atau
-                            didiskon.
-                        </p>
-                    )}
                 </Section>
 
                 <Section
                     title="Jasa terlaris"
-                    note="dihitung dari nilai order yang disepakati, order batal tidak dihitung"
+                    note={
+                        <>
+                            Dihitung dari nilai order yang disepakati, order
+                            batal tidak dihitung. Kolom margin sengaja tidak
+                            ada: HPP jasa berbeda tiap job dan tidak bisa
+                            dihitung per paket. Marginnya ada di Margin per
+                            Lini. HPP bahan hanya terisi untuk paket berkomponen
+                            (mis. termasuk cetak), disalin saat order dibuat.
+                            {custom_items &&
+                                ' Item custom = item di luar katalog (harga nego) — tidak dibandingkan per paket.'}
+                        </>
+                    }
                 >
                     {services.length === 0 && !custom_items ? (
                         <KosongTabel kalimat="Belum ada jasa terjual." />
@@ -237,14 +253,14 @@ export default function Sales({
                                         <TableCell className="text-muted-foreground">
                                             {s.category}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {s.quantity}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {formatRp(s.value)}
                                         </TableCell>
                                         {/* "—", bukan Rp 0: paket tanpa komponen tidak punya HPP tetap. */}
-                                        <TableCell className="text-right font-mono text-muted-foreground">
+                                        <TableCell className="text-right text-muted-foreground">
                                             {s.cost === null
                                                 ? '—'
                                                 : formatRp(s.cost)}
@@ -264,13 +280,13 @@ export default function Sales({
                                         <TableCell className="text-muted-foreground">
                                             —
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {custom_items.quantity}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {formatRp(custom_items.value)}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono text-muted-foreground">
+                                        <TableCell className="text-right text-muted-foreground">
                                             —
                                         </TableCell>
                                     </TableRow>
@@ -278,20 +294,22 @@ export default function Sales({
                             </TableBody>
                         </TabelData>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                        Kolom margin sengaja tidak ada: HPP jasa berbeda tiap
-                        job dan tidak bisa dihitung per paket. Marginnya ada di
-                        Margin per Lini. HPP bahan hanya terisi untuk paket
-                        berkomponen (mis. termasuk cetak), disalin saat order
-                        dibuat.
-                        {custom_items &&
-                            ' Item custom = item di luar katalog (harga nego) — tidak dibandingkan per paket.'}
-                    </p>
                 </Section>
 
                 <Section
                     title="Customer teratas"
-                    note="nilai order vs uang yang benar-benar sudah disetor · transaksi tanpa nama customer tidak dirangking"
+                    note="Nilai order vs uang yang benar-benar sudah disetor · transaksi tanpa nama customer tidak dirangking."
+                    footer={
+                        walk_in.value > 0 && (
+                            <Notice>
+                                Di luar tabel ini, {formatRp(walk_in.value)}{' '}
+                                dari {walk_in.count} transaksi walk-in tanpa
+                                nama customer. Mencatat nama di POS bersifat
+                                opsional supaya transaksinya tidak dilewat — ini
+                                harga yang dibayar untuk itu.
+                            </Notice>
+                        )
+                    }
                 >
                     {customers.length === 0 ? (
                         <KosongTabel kalimat="Customer akan terkumpul otomatis dari setiap transaksi." />
@@ -326,13 +344,13 @@ export default function Sales({
                                                 ))}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {c.order_count}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {formatRp(c.order_value)}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {formatRp(c.paid)}
                                         </TableCell>
                                         {/*
@@ -340,7 +358,7 @@ export default function Sales({
                                             terbesar belum tentu yang paling banyak
                                             menyetor uang.
                                         */}
-                                        <TableCell className="text-right font-mono">
+                                        <TableCell className="text-right">
                                             {c.order_value === 0 ? (
                                                 <span className="text-muted-foreground">
                                                     —
@@ -363,20 +381,11 @@ export default function Sales({
                             </TableBody>
                         </TabelData>
                     )}
-                    {walk_in.value > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                            Di luar tabel ini, {formatRp(walk_in.value)} dari{' '}
-                            {walk_in.count} transaksi walk-in tanpa nama
-                            customer. Mencatat nama di POS bersifat opsional
-                            supaya transaksinya tidak dilewat — ini harga yang
-                            dibayar untuk itu.
-                        </p>
-                    )}
                 </Section>
 
                 <Section
                     title="Sumber order"
-                    note="uang yang diterima bulan ini (basis kas) per sumber order · studio & event saja — walk-in retail tidak dicatat sumbernya"
+                    note="Uang yang diterima bulan ini (basis kas) per sumber order · studio & event saja — walk-in retail tidak dicatat sumbernya."
                 >
                     {by_source.length === 0 ? (
                         <KosongTabel kalimat="Belum ada pembayaran order studio/event bulan ini." />
@@ -406,10 +415,10 @@ export default function Sales({
                                             >
                                                 {label}
                                             </TableCell>
-                                            <TableCell className="text-right font-mono">
+                                            <TableCell className="text-right">
                                                 {s.orders}
                                             </TableCell>
-                                            <TableCell className="text-right font-mono">
+                                            <TableCell className="text-right">
                                                 {formatRp(s.revenue)}
                                             </TableCell>
                                             <TableCell>
@@ -421,7 +430,7 @@ export default function Sales({
                                                         className="w-24"
                                                         aria-label={`Share ${label}`}
                                                     />
-                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                    <span className="text-xs text-muted-foreground">
                                                         {formatPersen(s.share)}
                                                     </span>
                                                 </span>
@@ -442,24 +451,29 @@ Sales.layout = {
     breadcrumbs: [{ title: 'Laporan', href: profitLoss() }],
 };
 
+/**
+ * Satu pertanyaan per panel: tabel menempel ke tepi, cakupan datanya (basis
+ * kas atau nilai order) di strip Notice di bawahnya — dua tabel bersebelahan
+ * dengan basis berbeda harus kelihatan berbeda asalnya.
+ */
 function Section({
     title,
     note,
+    footer,
     children,
 }: {
     title: string;
-    note: string;
+    note: ReactNode;
+    footer?: ReactNode;
     children: ReactNode;
 }) {
     return (
-        <section className="flex min-w-0 flex-col gap-3">
-            <div className="flex flex-col gap-0.5">
-                <h2 className="font-heading text-base font-semibold">
-                    {title}
-                </h2>
-                <p className="text-xs text-muted-foreground">{note}</p>
-            </div>
+        <Panel title={title} flush>
             {children}
-        </section>
+            <div className="flex flex-col gap-2 px-1.5 pb-1.5">
+                <Notice>{note}</Notice>
+                {footer}
+            </div>
+        </Panel>
     );
 }

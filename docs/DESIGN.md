@@ -494,7 +494,7 @@ Primitif tata letak di `resources/js/components/page.tsx` (diadaptasi dari maste
 
 | Primitif | Pakai untuk | Aturan |
 |---|---|---|
-| `PageHeader` | judul halaman (satu-satunya `h1`), deskripsi singkat, `meta` (badge status/lini di samping judul), `actions` (tombol, turun ke bawah judul di layar sempit) | Halaman dengan PageHeader tidak lagi memakai `<h1 className="sr-only">`. Aksi utama pindah dari `<PageActions>` (portal ke header) ke `actions`; slot header dicabut setelah semua halaman pindah |
+| `PageHeader` | judul halaman (satu-satunya `h1`), deskripsi singkat, `meta` (badge status/lini di samping judul), `actions` (tombol, turun ke bawah judul di bawah `sm`) | Halaman dengan PageHeader tidak memakai `<h1 className="sr-only">` (pengecualian: halaman Pengaturan — judul yang tampak milik layout). Aksi utama halaman selalu di `actions`; bar header aplikasi tidak punya slot aksi (`<PageActions>` dicabut 17 Okt 2026) |
 | `Panel` | setiap kelompok isi di atas kanvas: form section, ringkasan, tabel | `title` → `h2` di kepala panel bergaris bawah; `aside` untuk jumlah/tautan kecil di kanan; `flush` untuk tabel/daftar yang menempel ke tepi; tanpa `title`, beri `label` (jadi `aria-label` section). Ganti pola lama `rounded-lg border p-5` |
 | `Notice` | strip petunjuk abu-abu: catatan read-only, cakupan data, alasan angka | bukan peringatan — yang menuntut perhatian tetap `Alert` |
 

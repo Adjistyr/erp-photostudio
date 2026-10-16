@@ -4,8 +4,8 @@ import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -21,6 +21,12 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Masuk" />
 
+            {status && (
+                <p className="text-center text-sm font-medium text-success">
+                    {status}
+                </p>
+            )}
+
             <PasskeyVerify />
 
             <Form
@@ -30,9 +36,11 @@ export default function Login({ status, canResetPassword }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Alamat email</Label>
+                        <FieldGroup>
+                            <Field>
+                                <FieldLabel htmlFor="email">
+                                    Alamat email
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
@@ -42,13 +50,16 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
                                 <InputError message={errors.email} />
-                            </div>
+                            </Field>
 
-                            <div className="grid gap-2">
+                            <Field>
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Kata sandi</Label>
+                                    <FieldLabel htmlFor="password">
+                                        Kata sandi
+                                    </FieldLabel>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
@@ -66,39 +77,36 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Kata sandi"
+                                    aria-invalid={Boolean(errors.password)}
                                 />
                                 <InputError message={errors.password} />
-                            </div>
+                            </Field>
 
-                            <div className="flex items-center space-x-3">
+                            <Field orientation="horizontal">
                                 <Checkbox
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember">Ingat saya</Label>
-                            </div>
+                                <FieldLabel htmlFor="remember">
+                                    Ingat saya
+                                </FieldLabel>
+                            </Field>
+                        </FieldGroup>
 
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Masuk
-                            </Button>
-                        </div>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            tabIndex={4}
+                            disabled={processing}
+                            data-test="login-button"
+                        >
+                            {processing && <Spinner />}
+                            Masuk
+                        </Button>
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }

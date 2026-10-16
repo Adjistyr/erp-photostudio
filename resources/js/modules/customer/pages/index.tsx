@@ -29,7 +29,7 @@ import {
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { Pagination } from '@/components/pagination';
 import type { Paginated } from '@/components/pagination';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader } from '@/components/page';
 import {
     LineMark,
     PaymentBadge,
@@ -72,6 +72,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatJadwal, formatRp, formatTanggal, keNomorWa } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { index as customersIndex } from '@/routes/customers';
 import { BUSINESS_LINES } from '@/types/domain';
 import type { BusinessLine, PaymentStatus, WorkStatus } from '@/types/domain';
@@ -158,20 +159,24 @@ export default function CustomersIndex({
     return (
         <>
             <Head title="Customer" />
-            <h1 className="sr-only">Customer</h1>
-            <PageActions>
-                {/*
-                    Tambah ada meski customer terkumpul dari order: owner sering
-                    dapat kontak lebih dulu (DM Instagram, teman) sebelum ada
-                    transaksi sama sekali.
-                */}
-                <Button onClick={() => setEditing('new')}>
-                    <Plus data-icon="inline-start" />
-                    Tambah Customer
-                </Button>
-            </PageActions>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Customer"
+                    description="Kontak dan riwayat transaksi, untuk blast dan tindak lanjut."
+                    actions={
+                        /*
+                            Tambah ada meski customer terkumpul dari order: owner
+                            sering dapat kontak lebih dulu (DM Instagram, teman)
+                            sebelum ada transaksi sama sekali.
+                        */
+                        <Button onClick={() => setEditing('new')}>
+                            <Plus data-icon="inline-start" />
+                            Tambah Customer
+                        </Button>
+                    }
+                />
+
                 <ListToolbar
                     value={filters}
                     filters={CUSTOMER_FILTERS}
@@ -250,7 +255,7 @@ export default function CustomersIndex({
                                             )}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-right font-mono">
+                                    <TableCell className="text-right">
                                         {c.order_count}
                                     </TableCell>
                                     <SelUang nominal={c.order_value} />
@@ -276,11 +281,11 @@ export default function CustomersIndex({
                     }
                 />
 
-                <p className="text-xs text-muted-foreground">
+                <Notice>
                     Customer terkumpul otomatis dari transaksi. Order yang
                     dibatalkan tidak menaikkan nilai order, tapi tetap muncul di
                     riwayat.
-                </p>
+                </Notice>
             </div>
 
             <CustomerSheet
@@ -342,8 +347,8 @@ function CustomerSheet({
                             </SheetDescription>
                         </SheetHeader>
 
-                        <div className="flex flex-col gap-6 p-4">
-                            <div className="grid grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-6 px-4 pb-4">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 <Figure
                                     label="Order"
                                     value={String(customer.order_count)}
@@ -360,22 +365,22 @@ function CustomerSheet({
                             </div>
 
                             {customer.notes && (
-                                <div className="rounded-md bg-muted p-3 text-sm">
+                                <Notice className="text-sm">
                                     {customer.notes}
-                                </div>
+                                </Notice>
                             )}
 
                             <section className="flex flex-col gap-2">
-                                <h3 className="text-sm font-semibold">
+                                <h3 className="text-base font-medium">
                                     Riwayat transaksi
                                 </h3>
                                 {customer.orders.length === 0 ? (
-                                    <p className="rounded-lg border px-3 py-2 text-sm text-muted-foreground">
+                                    <p className="rounded-2xl bg-background px-4 py-3 text-sm text-muted-foreground">
                                         Belum ada transaksi — kontak ini masih
                                         lead.
                                     </p>
                                 ) : (
-                                    <div className="overflow-hidden rounded-lg border">
+                                    <div className="-mx-1.5">
                                         <Table className={KELAS_DENSITY}>
                                             <TableHeader>
                                                 <TableRow>
@@ -409,7 +414,7 @@ function CustomerSheet({
                                                         <TableCell className="whitespace-nowrap">
                                                             {orderSchedule(o)}
                                                         </TableCell>
-                                                        <TableCell className="text-right font-mono">
+                                                        <TableCell className="text-right whitespace-nowrap">
                                                             {formatRp(o.total)}
                                                         </TableCell>
                                                         <TableCell>
@@ -480,10 +485,13 @@ function Figure({
     urgent?: boolean;
 }) {
     return (
-        <div className="flex flex-col gap-1 rounded-lg border p-3">
+        <div className="flex flex-col gap-1 rounded-2xl bg-background px-4 py-3">
             <span className="text-xs text-muted-foreground">{label}</span>
             <span
-                className={`font-mono text-lg font-semibold ${urgent ? 'text-destructive' : ''}`}
+                className={cn(
+                    'text-xl leading-tight font-medium tracking-[-0.01em]',
+                    urgent && 'text-destructive',
+                )}
             >
                 {value}
             </span>

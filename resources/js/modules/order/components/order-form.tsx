@@ -16,6 +16,7 @@ import { Plus, Trash2, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
+import { Panel } from '@/components/page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -267,21 +268,6 @@ export function sourceAfterCustomer(
     return customers.find((c) => String(c.id) === customerId)?.source ?? '';
 }
 
-export function Section({
-    title,
-    children,
-}: {
-    title: string;
-    children: ReactNode;
-}) {
-    return (
-        <section className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-            <h2 className="font-heading text-base font-semibold">{title}</h2>
-            {children}
-        </section>
-    );
-}
-
 export function OrderFormFields({
     line,
     data,
@@ -337,7 +323,7 @@ export function OrderFormFields({
 
     return (
         <>
-            <Section title={header ? 'Jenis & customer' : 'Customer'}>
+            <Panel title={header ? 'Jenis & customer' : 'Customer'}>
                 <FieldGroup>
                     {header}
                     <Field>
@@ -410,9 +396,9 @@ export function OrderFormFields({
                         </Field>
                     )}
                 </FieldGroup>
-            </Section>
+            </Panel>
 
-            <Section title="Item">
+            <Panel title="Item">
                 <div className="flex flex-col gap-3">
                     {data.items.map((r, i) => {
                         const old = r.id !== undefined;
@@ -441,12 +427,12 @@ export function OrderFormFields({
                             : bundleIncludes(chosen?.components, r.quantity);
                         return (
                             <div key={r.key} className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                                     {r.custom ? (
                                         // Baris custom lama: nama & harga dikunci —
                                         // ubah = hapus baris lalu tambah baru.
                                         <div
-                                            className="flex min-w-0 flex-1 items-center gap-2"
+                                            className="flex min-w-0 basis-full items-center gap-2 sm:flex-1 sm:basis-auto"
                                             title={
                                                 old
                                                     ? 'Ubah item custom: hapus baris ini lalu tambah yang baru'
@@ -475,7 +461,7 @@ export function OrderFormFields({
                                                 aria-label="Harga item custom"
                                                 inputMode="numeric"
                                                 placeholder="Harga"
-                                                className="w-32 font-mono"
+                                                className="w-32"
                                                 disabled={old || locked.items}
                                                 aria-invalid={Boolean(
                                                     errors[
@@ -493,7 +479,7 @@ export function OrderFormFields({
                                             />
                                         </div>
                                     ) : (
-                                        <div className="min-w-0 flex-1">
+                                        <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
                                             <Select
                                                 items={options.map((s) => ({
                                                     value: String(s.id),
@@ -616,7 +602,7 @@ export function OrderFormFields({
                                     <Input
                                         inputMode="numeric"
                                         aria-label="Qty"
-                                        className="w-16 text-center font-mono"
+                                        className="w-16 text-center"
                                         disabled={locked.items}
                                         value={String(r.quantity)}
                                         onChange={(e) =>
@@ -632,7 +618,7 @@ export function OrderFormFields({
                                             })
                                         }
                                     />
-                                    <span className="w-32 shrink-0 text-right font-mono text-sm">
+                                    <span className="w-32 shrink-0 text-right text-sm max-sm:ml-auto">
                                         {total > 0 ? formatRp(total) : '—'}
                                     </span>
                                     <Button
@@ -774,9 +760,9 @@ export function OrderFormFields({
                         </p>
                     )}
                 </div>
-            </Section>
+            </Panel>
 
-            <Section title="Jadwal & lokasi">
+            <Panel title="Jadwal & lokasi">
                 <FieldGroup>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Field>
@@ -863,7 +849,7 @@ export function OrderFormFields({
                         <InputError message={errors.notes} />
                     </Field>
                 </FieldGroup>
-            </Section>
+            </Panel>
 
             {line === 'event' && (
                 <ScheduleEditor
@@ -908,9 +894,7 @@ export function SummaryLines({
                     <span className="min-w-0 truncate text-muted-foreground">
                         {l.name} × {l.qty}
                     </span>
-                    <span className="shrink-0 font-mono">
-                        {formatRp(l.total)}
-                    </span>
+                    <span className="shrink-0">{formatRp(l.total)}</span>
                 </div>
             ))}
             {lines.length === 0 && (
@@ -944,7 +928,7 @@ function CustomerPicker({
 
     if (newCustomer) {
         return (
-            <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
+            <div className="flex flex-col gap-2 rounded-2xl border border-dashed p-3">
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary">Customer baru</Badge>
                     <Button

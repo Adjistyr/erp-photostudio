@@ -16,7 +16,8 @@ function Selisih({ nilai }: { nilai: number | null }) {
 }
 
 /**
- * Riwayat harga & HPP (spek 6.5) di halaman Edit katalog. Kolom HPP hanya
+ * Riwayat harga & HPP (spek 6.5) di halaman Edit katalog — judulnya dari
+ * Panel pembungkus. Kolom HPP hanya
  * tampil bila ada baris yang membawa `unit_cost` (jasa, atau nanti admin
  * tanpa akses HPP — 5.1).
  */
@@ -26,12 +27,6 @@ export function PriceHistory({ rows }: { rows: CatalogPriceChange[] }) {
 
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">Riwayat harga</span>
-                <p className="text-xs text-muted-foreground">
-                    Tercatat otomatis setiap harga jual atau HPP berubah.
-                </p>
-            </div>
             {rows.length <= 1 ? (
                 <p className="text-sm text-muted-foreground">
                     {rows.length === 0
@@ -66,14 +61,14 @@ export function PriceHistory({ rows }: { rows: CatalogPriceChange[] }) {
                                     <td className="py-1.5 pr-3">
                                         {periode[i].replace(/^Berlaku /, '')}
                                     </td>
-                                    <td className="py-1.5 pr-3 text-right font-mono">
+                                    <td className="py-1.5 pr-3 text-right">
                                         {formatRp(row.price)}
                                         <Selisih
                                             nilai={selisih(rows, i, 'price')}
                                         />
                                     </td>
                                     {showCost && (
-                                        <td className="py-1.5 pr-3 text-right font-mono">
+                                        <td className="py-1.5 pr-3 text-right">
                                             {row.unit_cost === null
                                                 ? '—'
                                                 : formatRp(row.unit_cost)}

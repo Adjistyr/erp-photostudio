@@ -15,8 +15,8 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { LineMark, PaymentBadge } from '@/components/status-order';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import {
     TableBody,
@@ -68,9 +68,12 @@ export default function ReceivablesReport({
     return (
         <>
             <Head title="Laporan Piutang" />
-            <h1 className="sr-only">Laporan Piutang</h1>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Laporan Piutang"
+                    description="Risiko tagihan yang menggantung, per hari ini."
+                />
                 <ReportNav current="receivables" month={month} />
 
                 {orders.length === 0 || !topOrder || !topLine ? (
@@ -111,126 +114,129 @@ export default function ReceivablesReport({
                             />
                         </div>
 
-                        <section className="flex min-w-0 flex-col gap-3">
-                            <h2 className="font-heading text-base font-semibold">
-                                Kelompok umur
-                            </h2>
-                            <TabelData>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Kelompok</TableHead>
-                                        <TableHead className="text-right">
-                                            Order
-                                        </TableHead>
-                                        <KepalaUang>Nilai</KepalaUang>
-                                        <TableHead>Share</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {aging.map((b) => (
-                                        <TableRow
-                                            key={b.label}
-                                            className={
-                                                b.amount === 0
-                                                    ? 'opacity-60'
-                                                    : ''
-                                            }
-                                        >
-                                            <TableCell className="font-medium">
-                                                {b.label}
-                                            </TableCell>
-                                            <TableCell className="text-right font-mono">
-                                                {b.count}
-                                            </TableCell>
-                                            <SelUang nominal={b.amount} />
-                                            <TableCell>
-                                                {/* Mata membaca panjang lebih cepat daripada
-                                                    membandingkan empat angka persen. */}
-                                                <span className="flex items-center gap-2">
-                                                    <Progress
-                                                        value={Math.round(
-                                                            b.share * 100,
-                                                        )}
-                                                        className="w-24"
-                                                        aria-label={`Share ${b.label}`}
-                                                    />
-                                                    <span className="font-mono text-xs text-muted-foreground">
-                                                        {formatPersen(b.share)}
+                        <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[3fr_2fr]">
+                            <Panel title="Kelompok umur" flush>
+                                <TabelData>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Kelompok</TableHead>
+                                            <TableHead className="text-right">
+                                                Order
+                                            </TableHead>
+                                            <KepalaUang>Nilai</KepalaUang>
+                                            <TableHead>Share</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {aging.map((b) => (
+                                            <TableRow
+                                                key={b.label}
+                                                className={
+                                                    b.amount === 0
+                                                        ? 'opacity-60'
+                                                        : ''
+                                                }
+                                            >
+                                                <TableCell className="font-medium">
+                                                    {b.label}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {b.count}
+                                                </TableCell>
+                                                <SelUang nominal={b.amount} />
+                                                <TableCell>
+                                                    {/* Mata membaca panjang lebih cepat daripada
+                                                        membandingkan empat angka persen. */}
+                                                    <span className="flex items-center gap-2">
+                                                        <Progress
+                                                            value={Math.round(
+                                                                b.share * 100,
+                                                            )}
+                                                            className="w-24"
+                                                            aria-label={`Share ${b.label}`}
+                                                        />
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {formatPersen(
+                                                                b.share,
+                                                            )}
+                                                        </span>
                                                     </span>
-                                                </span>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <TableFooter>
+                                        <TableRow>
+                                            <TableCell className="font-semibold">
+                                                Total
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">
+                                                {orders.length}
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">
+                                                {formatRp(total)}
+                                            </TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">
+                                                100%
                                             </TableCell>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                                <TableFooter>
-                                    <TableRow>
-                                        <TableCell className="font-semibold">
-                                            Total
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono font-semibold">
-                                            {orders.length}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono font-semibold">
-                                            {formatRp(total)}
-                                        </TableCell>
-                                        <TableCell className="font-mono text-xs text-muted-foreground">
-                                            100%
-                                        </TableCell>
-                                    </TableRow>
-                                </TableFooter>
-                            </TabelData>
-                            <p className="text-xs text-muted-foreground">
-                                Tagihan yang jatuh tempo tepat hari ini dihitung
-                                belum lewat — sama dengan kartu "Lewat jatuh
-                                tempo" di layar Pembayaran.
-                            </p>
-                        </section>
+                                    </TableFooter>
+                                </TabelData>
+                                <div className="px-1.5 pb-1.5">
+                                    <Notice>
+                                        Tagihan yang jatuh tempo tepat hari ini
+                                        dihitung belum lewat — sama dengan kartu
+                                        "Lewat jatuh tempo" di layar Pembayaran.
+                                    </Notice>
+                                </div>
+                            </Panel>
 
-                        <section className="flex min-w-0 flex-col gap-3">
-                            <h2 className="font-heading text-base font-semibold">
-                                Per lini
-                            </h2>
-                            <div className="flex flex-col gap-3 rounded-lg border p-5">
-                                {by_line.map((l) => (
-                                    <div
-                                        key={l.line}
-                                        className="flex flex-col gap-1.5"
-                                    >
-                                        <div className="flex items-baseline justify-between text-sm">
-                                            <span className="flex items-center gap-2 font-medium">
-                                                <span
-                                                    className="size-2 rounded-full"
+                            <Panel title="Per lini">
+                                <div className="flex flex-col gap-4">
+                                    {by_line.map((l) => (
+                                        <div
+                                            key={l.line}
+                                            className="flex flex-col gap-1.5"
+                                        >
+                                            <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+                                                <span className="flex items-center gap-2 font-medium">
+                                                    <span
+                                                        className="size-2 rounded-full"
+                                                        style={{
+                                                            background:
+                                                                LINE_COLOR[
+                                                                    l.line
+                                                                ],
+                                                        }}
+                                                    />
+                                                    {LINE_LABEL[l.line]}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                    {formatRp(l.amount)} ·{' '}
+                                                    {formatPersen(l.share)}
+                                                </span>
+                                            </div>
+                                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                                                <div
+                                                    className="h-full rounded-full"
                                                     style={{
+                                                        width: `${l.share * 100}%`,
                                                         background:
                                                             LINE_COLOR[l.line],
                                                     }}
                                                 />
-                                                {LINE_LABEL[l.line]}
-                                            </span>
-                                            <span className="font-mono text-muted-foreground">
-                                                {formatRp(l.amount)} ·{' '}
-                                                {formatPersen(l.share)}
-                                            </span>
+                                            </div>
                                         </div>
-                                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                                            <div
-                                                className="h-full rounded-full"
-                                                style={{
-                                                    width: `${l.share * 100}%`,
-                                                    background:
-                                                        LINE_COLOR[l.line],
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                                    ))}
+                                </div>
+                            </Panel>
+                        </div>
 
-                        <section className="flex min-w-0 flex-col gap-3">
-                            <h2 className="font-heading text-base font-semibold">
-                                Rincian
-                            </h2>
+                        <Panel
+                            title="Rincian"
+                            aside={`${orders.length} order`}
+                            flush
+                        >
                             <TabelData>
                                 <TableHeader>
                                     <TableRow>
@@ -256,7 +262,7 @@ export default function ReceivablesReport({
                                                 />
                                             </TableCell>
                                             <SelUang nominal={o.balance} />
-                                            <TableCell className="font-mono text-muted-foreground">
+                                            <TableCell className="text-muted-foreground">
                                                 {formatPersen(
                                                     o.balance / total,
                                                 )}
@@ -285,7 +291,7 @@ export default function ReceivablesReport({
                                     ))}
                                 </TableBody>
                             </TabelData>
-                        </section>
+                        </Panel>
                     </>
                 )}
             </div>
@@ -297,6 +303,11 @@ ReceivablesReport.layout = {
     breadcrumbs: [{ title: 'Laporan', href: profitLoss() }],
 };
 
+/**
+ * Satu angka risiko + kalimat yang menjelaskannya. Panel biasa, bukan Alert:
+ * ini bacaan rutin, bukan peringatan — kalau ketiganya berbingkai peringatan,
+ * yang benar-benar mendesak kehilangan bobotnya.
+ */
 function Highlight({
     figure,
     title,
@@ -307,14 +318,16 @@ function Highlight({
     body: string;
 }) {
     return (
-        <Alert className="flex-col items-start">
-            <AlertTitle className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-mono text-2xl font-semibold whitespace-nowrap">
-                    {figure}
-                </span>
-                <span className="font-normal">{title}</span>
-            </AlertTitle>
-            <AlertDescription>{body}</AlertDescription>
-        </Alert>
+        <Panel label={`${figure} ${title}`}>
+            <div className="flex flex-col gap-1.5">
+                <p className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="text-[30px] leading-tight font-medium tracking-[-0.02em] whitespace-nowrap">
+                        {figure}
+                    </span>
+                    <span className="text-sm font-medium">{title}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">{body}</p>
+            </div>
+        </Panel>
     );
 }

@@ -156,7 +156,7 @@ export function BundleComponents({
                             <Input
                                 aria-label={`Qty komponen ${i + 1}`}
                                 inputMode="numeric"
-                                className="text-right font-mono"
+                                className="text-right"
                                 value={r.quantity}
                                 aria-invalid={Boolean(
                                     errors[`components.${i}.quantity`],
@@ -206,7 +206,7 @@ export function BundleComponents({
             <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
                 <span className="text-sm">
                     HPP bahan paket saat ini:{' '}
-                    <span className="font-mono font-semibold">
+                    <span className="font-semibold">
                         {rows.length === 0 ? '—' : formatRp(cost)}
                     </span>
                 </span>

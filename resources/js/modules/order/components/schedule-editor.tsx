@@ -6,6 +6,7 @@
 
 import { ChevronDown, Plus, Trash2, TriangleAlert } from 'lucide-react';
 import InputError from '@/components/input-error';
+import { Notice } from '@/components/page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,19 +47,19 @@ export function ScheduleEditor({
     return (
         <Collapsible
             defaultOpen={rows.length > 0}
-            className="flex min-w-0 flex-col rounded-lg border"
+            className="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-card text-card-foreground"
         >
             <CollapsibleTrigger
                 render={
                     <Button
                         variant="ghost"
-                        className="group h-auto w-full justify-between rounded-lg px-5 py-4"
+                        className="group h-auto w-full justify-between rounded-none px-[18px] py-3.5 hover:bg-muted/60 aria-expanded:bg-transparent aria-expanded:hover:bg-muted/60"
                     />
                 }
             >
-                <span className="font-heading text-base font-semibold">
+                <span className="text-lg leading-tight font-medium tracking-[-0.01em]">
                     Termin pembayaran{' '}
-                    <span className="text-sm font-normal text-muted-foreground">
+                    <span className="text-sm font-normal tracking-normal text-muted-foreground">
                         {rows.length > 0
                             ? `— ${rows.length} termin`
                             : '— opsional'}
@@ -67,12 +68,12 @@ export function ScheduleEditor({
                 <ChevronDown className="transition-transform group-data-[panel-open]:rotate-180" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-                <div className="flex flex-col gap-3 px-5 pb-5">
-                    <p className="text-xs text-muted-foreground">
+                <div className="flex flex-col gap-3 border-t px-[18px] py-4">
+                    <Notice>
                         Untuk event besar yang dibayar bertahap. Piutang dan
                         pesan tagihan memakai termin terdekat yang belum lunas;
                         pembayaran menutup termin dari yang paling awal.
-                    </p>
+                    </Notice>
                     {notice && (
                         <Alert variant="destructive">
                             <TriangleAlert />
@@ -96,6 +97,7 @@ export function ScheduleEditor({
                                 <Input
                                     type="date"
                                     aria-label={`Jatuh tempo termin ${i + 1}`}
+                                    className="max-sm:col-span-2"
                                     value={r.due_on}
                                     aria-invalid={Boolean(
                                         errors[`schedules.${i}.due_on`],
@@ -110,7 +112,7 @@ export function ScheduleEditor({
                                     inputMode="numeric"
                                     aria-label={`Nominal termin ${i + 1}`}
                                     placeholder="0"
-                                    className="font-mono max-sm:col-start-1"
+                                    className="max-sm:col-start-1"
                                     value={r.amount}
                                     aria-invalid={Boolean(
                                         errors[`schedules.${i}.amount`],
@@ -203,7 +205,7 @@ export function ScheduleSummary({
         <div className="flex flex-col gap-1 text-sm">
             <div className="flex justify-between text-muted-foreground">
                 <span>Jumlah {rows.length} termin</span>
-                <span className="font-mono">{formatRp(scheduleSum(rows))}</span>
+                <span>{formatRp(scheduleSum(rows))}</span>
             </div>
             <div
                 className={`flex justify-between ${diff === 0 ? 'text-success' : 'text-destructive'}`}
@@ -215,7 +217,7 @@ export function ScheduleSummary({
                           ? 'Termin kurang dari total'
                           : 'Termin lebih dari total'}
                 </span>
-                <span className="font-mono">{formatRp(Math.abs(diff))}</span>
+                <span>{formatRp(Math.abs(diff))}</span>
             </div>
         </div>
     );

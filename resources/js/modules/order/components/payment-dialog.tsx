@@ -95,11 +95,11 @@ export function PaymentDialog({
                 </DialogHeader>
 
                 <FieldGroup>
-                    <div className="flex justify-between rounded-md bg-muted px-3 py-2 text-sm">
+                    <div className="flex justify-between rounded-2xl bg-muted px-4 py-2.5 text-sm">
                         <span className="text-muted-foreground">
                             Sisa tagihan
                         </span>
-                        <span className="font-mono font-medium">
+                        <span className="font-medium">
                             {formatRp(order.balance)}
                         </span>
                     </div>
@@ -112,7 +112,6 @@ export function PaymentDialog({
                             <Input
                                 id="amount"
                                 inputMode="numeric"
-                                className="font-mono"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
                                 onChange={(e) =>

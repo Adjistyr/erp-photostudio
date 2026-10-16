@@ -137,7 +137,6 @@ export function ServiceDialog({
                             <Input
                                 id="service-cost"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="0"
                                 value={data.cost}
                                 aria-invalid={Boolean(errors.cost)}
@@ -150,7 +149,7 @@ export function ServiceDialog({
                     </div>
 
                     {balance !== undefined && (
-                        <p className="font-mono text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                             Saldo dana maintenance {formatRp(balance)}
                         </p>
                     )}

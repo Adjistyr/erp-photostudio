@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import CommunicationController from '@/actions/Modules/Customer/Controllers/CommunicationController';
 import { KosongTabel, TabelData } from '@/components/data-table';
 import InputError from '@/components/input-error';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { LineMark } from '@/components/status-order';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -104,9 +105,13 @@ export default function Communication({
     return (
         <>
             <Head title="Komunikasi" />
-            <h1 className="sr-only">Komunikasi</h1>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Komunikasi"
+                    description="Siapkan blast WhatsApp, kirim email, dan atur template pesan."
+                />
+
                 <Tabs defaultValue="wa">
                     <TabsList>
                         <TabsTrigger value="wa">Blast WhatsApp</TabsTrigger>
@@ -409,30 +414,28 @@ function TemplatesTab({
 }) {
     return (
         <div className="flex min-w-0 flex-col gap-6">
-            <Alert>
-                <Info />
-                <AlertTitle>Template bisa diedit owner</AlertTitle>
-                <AlertDescription>
-                    <code className="font-mono">{'{nama}'}</code> diganti nama
-                    depan customer,{' '}
-                    <code className="font-mono">{'{link}'}</code> diganti link
-                    hasil foto dari order. Template Tagihan juga memakai{' '}
-                    <code className="font-mono">{'{nomor}'}</code>,{' '}
-                    <code className="font-mono">{'{sisa}'}</code>,{' '}
-                    <code className="font-mono">{'{jatuh_tempo}'}</code> (termin
-                    terdekat bila order bertermin),{' '}
-                    <code className="font-mono">{'{termin}'}</code> (mis.
-                    &ldquo;termin 2 dari 3 — Rp 5.000.000 jatuh tempo 12 Okt
-                    2026&rdquo;; kosong tanpa termin), dan{' '}
-                    <code className="font-mono">{'{link}'}</code> (link
-                    invoice); Reminder memakai{' '}
-                    <code className="font-mono">{'{tanggal}'}</code>,{' '}
-                    <code className="font-mono">{'{jam}'}</code>, dan{' '}
-                    <code className="font-mono">{'{lokasi}'}</code> sesi
-                    (dikirim dari Dashboard → Jadwal besok). Template Promo jadi
-                    isi awal pesan di tab blast.
-                </AlertDescription>
-            </Alert>
+            <Notice>
+                <span className="font-medium text-foreground">
+                    Template bisa diedit owner.
+                </span>{' '}
+                <code className="font-mono">{'{nama}'}</code> diganti nama depan
+                customer, <code className="font-mono">{'{link}'}</code> diganti
+                link hasil foto dari order. Template Tagihan juga memakai{' '}
+                <code className="font-mono">{'{nomor}'}</code>,{' '}
+                <code className="font-mono">{'{sisa}'}</code>,{' '}
+                <code className="font-mono">{'{jatuh_tempo}'}</code> (termin
+                terdekat bila order bertermin),{' '}
+                <code className="font-mono">{'{termin}'}</code> (mis.
+                &ldquo;termin 2 dari 3 — Rp 5.000.000 jatuh tempo 12 Okt
+                2026&rdquo;; kosong tanpa termin), dan{' '}
+                <code className="font-mono">{'{link}'}</code> (link invoice);
+                Reminder memakai{' '}
+                <code className="font-mono">{'{tanggal}'}</code>,{' '}
+                <code className="font-mono">{'{jam}'}</code>, dan{' '}
+                <code className="font-mono">{'{lokasi}'}</code> sesi (dikirim
+                dari Dashboard → Jadwal besok). Template Promo jadi isi awal
+                pesan di tab blast.
+            </Notice>
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 {templates.map((t) => (
@@ -460,41 +463,36 @@ function TemplateCard({
     const canEdit = useCan().manage_templates;
 
     return (
-        <section className="flex min-w-0 flex-col gap-3 rounded-lg border p-5">
-            <div className="flex flex-col gap-0.5">
-                <h3 className="text-sm font-semibold">{template.title}</h3>
+        <Panel title={template.title} className="min-w-0">
+            <div className="flex flex-col gap-3">
                 <p className="text-xs text-muted-foreground">{template.when}</p>
+                <Textarea
+                    rows={6}
+                    value={data.body}
+                    readOnly={!canEdit}
+                    onChange={(e) => setData('body', e.target.value)}
+                />
+                <InputError message={errors.body} />
+                <Preview text={personalise(data.body, contoh(sampleName))} />
+                {canEdit && (
+                    <Button
+                        variant="outline"
+                        className="self-end"
+                        disabled={processing || data.body === template.body}
+                        onClick={() =>
+                            form.put(
+                                CommunicationController.updateTemplate(
+                                    template.key,
+                                ).url,
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        Simpan template
+                    </Button>
+                )}
             </div>
-            <Textarea
-                rows={6}
-                value={data.body}
-                readOnly={!canEdit}
-                onChange={(e) => setData('body', e.target.value)}
-            />
-            <InputError message={errors.body} />
-            <div className="flex flex-col gap-1 rounded-md bg-muted p-3">
-                <span className="text-xs text-muted-foreground">Pratinjau</span>
-                <p className="text-sm whitespace-pre-line">
-                    {personalise(data.body, contoh(sampleName))}
-                </p>
-            </div>
-            {canEdit && (
-                <Button
-                    variant="outline"
-                    className="self-end"
-                    disabled={processing || data.body === template.body}
-                    onClick={() =>
-                        form.put(
-                            CommunicationController.updateTemplate(template.key)
-                                .url,
-                            { preserveScroll: true },
-                        )
-                    }
-                >
-                    Simpan template
-                </Button>
-            )}
-        </section>
+        </Panel>
     );
 }
 
@@ -513,7 +511,8 @@ function LineFilterTabs({
                 if (f) onChange(f);
             }}
         >
-            <TabsList>
+            {/* Empat filter tidak muat di 390px — geser, bukan terpotong. */}
+            <TabsList className="max-w-full justify-start overflow-x-auto">
                 <TabsTrigger value="all">Semua</TabsTrigger>
                 <TabsTrigger value="studio">Pernah studio</TabsTrigger>
                 <TabsTrigger value="event">Pernah event</TabsTrigger>
@@ -628,36 +627,38 @@ function MessagePanel({
     children: ReactNode;
 }) {
     return (
-        <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5">
-            <div className="flex flex-col gap-1">
-                <h2 className="font-heading text-base font-semibold">Pesan</h2>
+        <Panel title="Pesan" className="self-start">
+            <div className="flex flex-col gap-4">
                 <p className="text-xs text-muted-foreground">
                     <code className="font-mono">{'{nama}'}</code> diganti nama
                     depan customer. Isi awal dari template Promo; perubahan di
                     sini hanya untuk blast ini.
                 </p>
-            </div>
-            {header}
-            <Textarea
-                rows={7}
-                value={body}
-                onChange={(e) => onChange(e.target.value)}
-            />
-            {sampleName && (
-                <div className="flex flex-col gap-1 rounded-md bg-muted p-3">
-                    <span className="text-xs text-muted-foreground">
-                        Pratinjau
-                    </span>
-                    <p className="text-sm whitespace-pre-line">
-                        {personalise(body, contoh(sampleName))}
-                    </p>
+                {header}
+                <Textarea
+                    rows={7}
+                    value={body}
+                    onChange={(e) => onChange(e.target.value)}
+                />
+                {sampleName && (
+                    <Preview text={personalise(body, contoh(sampleName))} />
+                )}
+                <div className="flex items-baseline justify-between text-sm">
+                    <span className="text-muted-foreground">Terpilih</span>
+                    <span className="font-medium">{count} customer</span>
                 </div>
-            )}
-            <div className="flex items-baseline justify-between text-sm">
-                <span className="text-muted-foreground">Terpilih</span>
-                <span className="font-mono font-medium">{count} customer</span>
+                {children}
             </div>
-            {children}
-        </aside>
+        </Panel>
+    );
+}
+
+/** Hasil akhir pesan dengan nilai contoh, di atas kanvas supaya terpisah dari isian. */
+function Preview({ text }: { text: string }) {
+    return (
+        <div className="flex flex-col gap-1 rounded-2xl bg-background px-4 py-3">
+            <span className="text-xs text-muted-foreground">Pratinjau</span>
+            <p className="text-sm whitespace-pre-line">{text}</p>
+        </div>
     );
 }

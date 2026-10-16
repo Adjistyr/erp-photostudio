@@ -138,7 +138,7 @@ export function VariantRows({
                                 aria-label={`Harga jual varian ${i + 1}`}
                                 placeholder="Harga jual"
                                 inputMode="numeric"
-                                className="text-right font-mono"
+                                className="text-right"
                                 value={r.price}
                                 aria-invalid={Boolean(
                                     errors[`variants.${i}.price`],
@@ -158,7 +158,7 @@ export function VariantRows({
                                 aria-label={`HPP varian ${i + 1}`}
                                 placeholder="HPP bahan"
                                 inputMode="numeric"
-                                className="text-right font-mono"
+                                className="text-right"
                                 value={r.unit_cost}
                                 aria-invalid={Boolean(
                                     errors[`variants.${i}.unit_cost`],

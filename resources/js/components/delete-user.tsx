@@ -1,9 +1,11 @@
 import { Form } from '@inertiajs/react';
+import { TriangleAlert } from 'lucide-react';
 import { useRef } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -20,20 +22,21 @@ export default function DeleteUser() {
     const passwordInput = useRef<HTMLInputElement>(null);
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <Heading
                 variant="small"
                 title="Hapus akun"
                 description="Hapus akun beserta semua datanya"
             />
-            <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
-                    <p className="font-medium">Peringatan</p>
-                    <p className="text-sm">
+            <div className="flex flex-col items-start gap-4">
+                <Alert variant="destructive">
+                    <TriangleAlert />
+                    <AlertTitle>Peringatan</AlertTitle>
+                    <AlertDescription>
                         Lanjutkan dengan hati-hati, tindakan ini tidak bisa
                         dibatalkan.
-                    </p>
-                </div>
+                    </AlertDescription>
+                </Alert>
 
                 <Dialog>
                     <DialogTrigger
@@ -61,11 +64,11 @@ export default function DeleteUser() {
                             }}
                             onError={() => passwordInput.current?.focus()}
                             resetOnSuccess
-                            className="space-y-6"
+                            className="flex flex-col gap-6"
                         >
                             {({ resetAndClearErrors, processing, errors }) => (
                                 <>
-                                    <div className="grid gap-2">
+                                    <div className="flex flex-col gap-2">
                                         <Label
                                             htmlFor="password"
                                             className="sr-only"

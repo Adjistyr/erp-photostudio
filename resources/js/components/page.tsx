@@ -26,7 +26,7 @@ export function PageHeader({
 }: PageHeaderProps) {
     return (
         <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex min-w-0 flex-1 basis-full flex-col gap-1 sm:basis-auto">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <h1 className="text-[28px] leading-[1.15] font-medium tracking-[-0.02em] md:text-[34px]">
                         {title}

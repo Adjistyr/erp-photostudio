@@ -2,11 +2,12 @@ import { Form, Head, usePage } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
+import { Notice } from '@/components/page';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
 import { send } from '@/routes/verification';
@@ -30,7 +31,7 @@ export default function Profile({
 
             <h1 className="sr-only">Pengaturan profil</h1>
 
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
                 <Heading
                     variant="small"
                     title="Profil"
@@ -42,75 +43,69 @@ export default function Profile({
                     options={{
                         preserveScroll: true,
                     }}
-                    className="space-y-6"
+                    className="flex flex-col gap-6"
                 >
                     {({ processing, errors }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Nama</Label>
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel htmlFor="name">Nama</FieldLabel>
+                                    <Input
+                                        id="name"
+                                        defaultValue={auth.user.name}
+                                        name="name"
+                                        required
+                                        autoComplete="name"
+                                        placeholder="Nama lengkap"
+                                        aria-invalid={Boolean(errors.name)}
+                                    />
+                                    <InputError message={errors.name} />
+                                </Field>
 
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Nama lengkap"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Alamat email</Label>
-
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Alamat email"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
-                                />
-                            </div>
+                                <Field>
+                                    <FieldLabel htmlFor="email">
+                                        Alamat email
+                                    </FieldLabel>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        defaultValue={auth.user.email}
+                                        name="email"
+                                        required
+                                        autoComplete="username"
+                                        placeholder="Alamat email"
+                                        aria-invalid={Boolean(errors.email)}
+                                    />
+                                    <InputError message={errors.email} />
+                                </Field>
+                            </FieldGroup>
 
                             {mustVerifyEmail &&
                                 auth.user.email_verified_at === null && (
-                                    <div>
-                                        <p className="-mt-4 text-sm text-muted-foreground">
+                                    <div className="flex flex-col gap-2">
+                                        <Notice>
                                             Alamat email belum diverifikasi.{' '}
                                             <Link
                                                 href={send()}
                                                 as="button"
-                                                className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                                className="font-medium text-foreground underline underline-offset-2"
                                             >
                                                 Klik di sini untuk mengirim
                                                 ulang email verifikasi.
                                             </Link>
-                                        </p>
+                                        </Notice>
 
                                         {status ===
                                             'verification-link-sent' && (
-                                            <div className="mt-2 text-sm font-medium text-green-600">
+                                            <p className="text-sm font-medium text-success">
                                                 Link verifikasi baru sudah
                                                 dikirim ke alamat email.
-                                            </div>
+                                            </p>
                                         )}
                                     </div>
                                 )}
 
-                            <div className="flex items-center gap-4">
+                            <div>
                                 <Button
                                     disabled={processing}
                                     data-test="update-profile-button"

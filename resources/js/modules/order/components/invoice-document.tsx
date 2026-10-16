@@ -23,6 +23,7 @@ import {
     namaDepan,
     personalise,
 } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { installmentText } from '@/modules/order/lib/schedules';
 import { bundleIncludes } from '@/modules/catalog';
 import type { BundlePart } from '@/modules/catalog';
@@ -215,11 +216,14 @@ export function InvoiceDocument({
 
     return (
         <div
-            className={`flex flex-col gap-5 rounded-lg border bg-background p-5 ${retail ? 'print:gap-3 print:border-0 print:p-0' : ''}`}
+            className={cn(
+                'flex flex-col gap-5 rounded-3xl border bg-card p-5 text-card-foreground sm:p-6',
+                retail && 'print:gap-3 print:border-0 print:p-0',
+            )}
         >
             <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col">
-                    <span className="font-heading text-base font-semibold">
+                    <span className="text-lg leading-tight font-medium tracking-[-0.01em]">
                         {studio.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -230,7 +234,7 @@ export function InvoiceDocument({
                     </span>
                 </div>
                 <div className="flex flex-col items-end">
-                    <span className="text-xs tracking-wide text-muted-foreground uppercase">
+                    <span className="text-xs font-medium text-muted-foreground">
                         {documentTitle(invoice.business_line)}
                     </span>
                     <span className="font-mono text-sm font-medium whitespace-nowrap">
@@ -263,63 +267,59 @@ export function InvoiceDocument({
                 )}
             </div>
 
-            <div className="overflow-hidden rounded-lg border">
-                <Table className={KELAS_DENSITY}>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="text-right">Qty</TableHead>
-                            <TableHead className={`text-right ${hideOnSlip}`}>
-                                Harga
-                            </TableHead>
-                            <TableHead className="text-right">Jumlah</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {invoice.items.map((i) => {
-                            const includes = bundleIncludes(
-                                i.components,
-                                i.quantity,
-                            );
-                            return (
-                                <Fragment key={i.id}>
-                                    <TableRow
-                                        className={includes ? 'border-0' : ''}
+            <Table className={KELAS_DENSITY}>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className={`text-right ${hideOnSlip}`}>
+                            Harga
+                        </TableHead>
+                        <TableHead className="text-right">Jumlah</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {invoice.items.map((i) => {
+                        const includes = bundleIncludes(
+                            i.components,
+                            i.quantity,
+                        );
+                        return (
+                            <Fragment key={i.id}>
+                                <TableRow
+                                    className={includes ? 'border-0' : ''}
+                                >
+                                    <TableCell className="font-medium whitespace-normal">
+                                        {i.name}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {i.quantity}
+                                    </TableCell>
+                                    <TableCell
+                                        className={cn('text-right', hideOnSlip)}
                                     >
-                                        <TableCell className="font-medium">
-                                            {i.name}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono">
-                                            {i.quantity}
-                                        </TableCell>
+                                        {formatRp(i.unit_price)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {formatRp(i.quantity * i.unit_price)}
+                                    </TableCell>
+                                </TableRow>
+                                {/* Isi paket (spek 6.3): sub-baris tanpa harga — sudah termasuk harga paket. */}
+                                {includes && (
+                                    <TableRow>
                                         <TableCell
-                                            className={`text-right font-mono ${hideOnSlip}`}
+                                            colSpan={4}
+                                            className="pt-0 pl-6 text-xs whitespace-normal text-muted-foreground"
                                         >
-                                            {formatRp(i.unit_price)}
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono">
-                                            {formatRp(
-                                                i.quantity * i.unit_price,
-                                            )}
+                                            {includes}
                                         </TableCell>
                                     </TableRow>
-                                    {/* Isi paket (spek 6.3): sub-baris tanpa harga — sudah termasuk harga paket. */}
-                                    {includes && (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={4}
-                                                className="pt-0 pl-6 text-xs whitespace-normal text-muted-foreground"
-                                            >
-                                                {includes}
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </Fragment>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
+                                )}
+                            </Fragment>
+                        );
+                    })}
+                </TableBody>
+            </Table>
 
             <div className="flex flex-col gap-2 text-sm">
                 {invoice.discount > 0 && (
@@ -346,7 +346,7 @@ export function InvoiceDocument({
                             {p.note} · {formatTanggal(p.paid_on)} ·{' '}
                             {PAYMENT_METHOD_LABEL[p.method]}
                         </span>
-                        <span className="font-mono whitespace-nowrap">
+                        <span className="whitespace-nowrap">
                             −{formatRp(p.amount)}
                         </span>
                     </div>
@@ -357,7 +357,10 @@ export function InvoiceDocument({
                         {invoice.balance > 0 ? 'Sisa tagihan' : 'Lunas'}
                     </span>
                     <span
-                        className={`font-mono text-xl font-semibold ${invoice.balance > 0 ? '' : 'text-success'}`}
+                        className={cn(
+                            'text-xl font-semibold tracking-[-0.01em]',
+                            invoice.balance <= 0 && 'text-success',
+                        )}
                     >
                         {formatRp(invoice.balance)}
                     </span>
@@ -365,7 +368,7 @@ export function InvoiceDocument({
                 {/* Pengembalian di bawah, bukan di antara pembayaran: tidak
                     mengubah Sisa/Lunas — customer tidak berutang lagi. */}
                 {invoice.refunds.length > 0 && (
-                    <div className="flex flex-col gap-1 rounded-md bg-muted p-3 text-xs">
+                    <div className="flex flex-col gap-1 rounded-2xl bg-muted px-4 py-3 text-xs">
                         <span className="text-muted-foreground">
                             Dikembalikan ke customer
                         </span>
@@ -378,7 +381,7 @@ export function InvoiceDocument({
                                     {formatTanggal(r.refunded_on)} · {r.reason}{' '}
                                     · {PAYMENT_METHOD_LABEL[r.method]}
                                 </span>
-                                <span className="font-mono whitespace-nowrap">
+                                <span className="whitespace-nowrap">
                                     {formatRp(r.amount)}
                                 </span>
                             </div>
@@ -388,7 +391,7 @@ export function InvoiceDocument({
             </div>
 
             {invoice.balance > 0 && (
-                <div className="rounded-md bg-muted p-3 text-sm">
+                <div className="rounded-2xl bg-muted px-4 py-3 text-sm">
                     <p className="text-xs text-muted-foreground">
                         Pembayaran ke
                     </p>
@@ -403,7 +406,7 @@ function Line({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex justify-between">
             <span>{label}</span>
-            <span className="font-mono whitespace-nowrap">{value}</span>
+            <span className="whitespace-nowrap">{value}</span>
         </div>
     );
 }

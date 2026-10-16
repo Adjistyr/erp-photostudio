@@ -118,7 +118,6 @@ export function DisposeDialog({
                                 <Input
                                     id="dispose-price"
                                     inputMode="numeric"
-                                    className="font-mono"
                                     placeholder="0"
                                     value={data.sale_price}
                                     aria-invalid={Boolean(errors.sale_price)}

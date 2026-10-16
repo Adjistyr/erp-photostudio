@@ -47,18 +47,18 @@ export function VariantPicker({
                             key={v.id}
                             type="button"
                             onClick={() => onPick(v)}
-                            className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                            className="flex flex-col items-start gap-1 rounded-2xl border p-3 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
                         >
                             {withPhotos && (
                                 <ProductPhoto
                                     url={v.photo_url}
-                                    className="mb-1 aspect-[4/3] w-full rounded-md"
+                                    className="mb-1 aspect-[4/3] w-full rounded-xl"
                                 />
                             )}
                             <span className="line-clamp-2 text-sm font-medium">
                                 {v.name}
                             </span>
-                            <span className="font-mono text-sm text-muted-foreground">
+                            <span className="text-sm text-muted-foreground">
                                 {formatRp(v.price)}
                             </span>
                         </button>

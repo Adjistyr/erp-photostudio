@@ -2,7 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/password/confirm';
 import {
@@ -26,33 +26,37 @@ export default function ConfirmPassword() {
                 separator="Atau konfirmasi dengan kata sandi"
             />
 
-            <Form {...store.form()} resetOnSuccess={['password']}>
+            <Form
+                {...store.form()}
+                resetOnSuccess={['password']}
+                className="flex flex-col gap-6"
+            >
                 {({ processing, errors }) => (
-                    <div className="space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">Kata sandi</Label>
+                    <>
+                        <Field>
+                            <FieldLabel htmlFor="password">
+                                Kata sandi
+                            </FieldLabel>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 placeholder="Kata sandi"
                                 autoComplete="current-password"
                                 autoFocus
+                                aria-invalid={Boolean(errors.password)}
                             />
-
                             <InputError message={errors.password} />
-                        </div>
+                        </Field>
 
-                        <div className="flex items-center">
-                            <Button
-                                className="w-full"
-                                disabled={processing}
-                                data-test="confirm-password-button"
-                            >
-                                {processing && <Spinner />}
-                                Konfirmasi kata sandi
-                            </Button>
-                        </div>
-                    </div>
+                        <Button
+                            className="w-full"
+                            disabled={processing}
+                            data-test="confirm-password-button"
+                        >
+                            {processing && <Spinner />}
+                            Konfirmasi kata sandi
+                        </Button>
+                    </>
                 )}
             </Form>
         </>

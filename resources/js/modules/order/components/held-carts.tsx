@@ -148,12 +148,15 @@ export function HeldCarts({
 
     return (
         <>
-            <Collapsible defaultOpen className="rounded-lg border">
+            <Collapsible
+                defaultOpen
+                className="overflow-hidden rounded-3xl bg-card text-card-foreground"
+            >
                 <CollapsibleTrigger
                     render={
                         <Button
                             variant="ghost"
-                            className="group w-full justify-between rounded-lg px-4"
+                            className="group h-12 w-full justify-between rounded-none px-[18px] aria-expanded:bg-transparent"
                         />
                     }
                 >
@@ -165,7 +168,7 @@ export function HeldCarts({
                         {carts.map((c) => (
                             <li
                                 key={c.id}
-                                className="flex items-center gap-2 px-4 py-2"
+                                className="flex items-center gap-2 px-[18px] py-2.5"
                             >
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate font-medium">
@@ -180,10 +183,8 @@ export function HeldCarts({
                                             (s, i) => s + i.quantity,
                                             0,
                                         )}{' '}
-                                        item ·{' '}
-                                        <span className="font-mono">
-                                            ±{formatRp(heldTotal(c, products))}
-                                        </span>
+                                        item · ±
+                                        {formatRp(heldTotal(c, products))}
                                     </p>
                                 </div>
                                 <Button
