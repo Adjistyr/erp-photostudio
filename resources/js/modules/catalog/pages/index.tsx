@@ -10,10 +10,12 @@
 
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    Calculator,
     CornerDownRight,
     Eye,
     EyeOff,
     MoreHorizontal,
+    Package,
     Pencil,
     Plus,
 } from 'lucide-react';
@@ -27,7 +29,7 @@ import {
 } from '@/components/data-table';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilters } from '@/components/list-toolbar';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader } from '@/components/page';
 import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +54,9 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useCan } from '@/hooks/use-can';
 import { formatPersen, formatRp } from '@/lib/format';
+import { bundleIncludes } from '@/modules/catalog/lib/bundle';
 import { filterCatalog, isLowMargin } from '@/modules/catalog/lib/filter';
 import type { CatalogItem, CatalogVariant } from '@/modules/catalog/types';
 import { index as catalogIndex } from '@/routes/catalog';
@@ -65,14 +69,22 @@ export default function CatalogIndex({
     low_margin_ratio,
 }: {
     items: CatalogItem[];
-    /** Ambang margin rendah 0..1 dari config/studio.php (spek 3.6). */
-    low_margin_ratio: number;
+    /**
+     * Ambang margin rendah 0..1 dari config/studio.php (spek 3.6). Tidak
+     * dikirim untuk admin bersama `unit_cost` (spek 5.1) — kolom HPP & margin
+     * hanya dirender bila ada.
+     */
+    low_margin_ratio?: number;
 }) {
+    const can = useCan();
     const [filter, setFilter] = useState<Filter>('all');
     // Cari di klien (spek 3.6) — katalog kecil dan dimuat penuh.
     const [search, setSearch] = useState<ListFilters>({ q: '' });
     const visible = filterCatalog(items, { type: filter, q: search.q });
-    const lowMarginNote = `Merah bila di bawah ${formatPersen(low_margin_ratio)} — ambang di konfigurasi studio.`;
+    const lowMarginNote =
+        low_margin_ratio === undefined
+            ? ''
+            : `Merah bila di bawah ${formatPersen(low_margin_ratio)} — ambang di konfigurasi studio.`;
     const tersesat = items.filter((i) => i.unknown_category).length;
 
     const toggleActive = (item: CatalogItem) => {
@@ -86,19 +98,32 @@ export default function CatalogIndex({
     return (
         <>
             <Head title="Katalog" />
-            <h1 className="sr-only">Katalog</h1>
-            <PageActions>
-                {/* Halaman penuh, bukan dialog (spek 7.2). */}
-                <Button
-                    nativeButton={false}
-                    render={<Link href={CatalogItemController.create()} />}
-                >
-                    <Plus data-icon="inline-start" />
-                    Tambah Item
-                </Button>
-            </PageActions>
-
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Katalog"
+                    description={
+                        low_margin_ratio === undefined
+                            ? 'Produk dan jasa yang dijual beserta harganya.'
+                            : 'Produk dan jasa yang dijual, beserta harga dan HPP bahannya.'
+                    }
+                    actions={
+                        // Mengelola katalog hanya owner (spek 5.1); admin melihat saja.
+                        can.manage_catalog && (
+                            // Halaman penuh, bukan dialog (spek 7.2).
+                            <Button
+                                nativeButton={false}
+                                render={
+                                    <Link
+                                        href={CatalogItemController.create()}
+                                    />
+                                }
+                            >
+                                <Plus data-icon="inline-start" />
+                                Tambah Item
+                            </Button>
+                        )
+                    }
+                />
                 <Tabs
                     value={filter}
                     onValueChange={(v) => {
@@ -142,11 +167,17 @@ export default function CatalogIndex({
                 ) : visible.length === 0 ? (
                     <KosongTabel
                         kalimat="Belum ada produk atau jasa. Tambahkan yang paling sering dijual dulu."
-                        aksi={{
-                            label: 'Tambah Item',
-                            onClick: () =>
-                                router.visit(CatalogItemController.create()),
-                        }}
+                        aksi={
+                            can.manage_catalog
+                                ? {
+                                      label: 'Tambah Item',
+                                      onClick: () =>
+                                          router.visit(
+                                              CatalogItemController.create(),
+                                          ),
+                                  }
+                                : undefined
+                        }
                     />
                 ) : (
                     <TabelData>
@@ -156,22 +187,26 @@ export default function CatalogIndex({
                                 <TableHead>Jenis</TableHead>
                                 <TableHead>Kategori</TableHead>
                                 <KepalaUang>Harga jual</KepalaUang>
-                                <KepalaUang>HPP bahan</KepalaUang>
-                                <KepalaUang>Margin</KepalaUang>
-                                <KepalaUang>
-                                    <Tooltip>
-                                        <TooltipTrigger
-                                            render={
-                                                <span className="cursor-help underline decoration-dotted decoration-from-font underline-offset-4" />
-                                            }
-                                        >
-                                            Margin %
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {lowMarginNote}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </KepalaUang>
+                                {low_margin_ratio !== undefined && (
+                                    <>
+                                        <KepalaUang>HPP bahan</KepalaUang>
+                                        <KepalaUang>Margin</KepalaUang>
+                                        <KepalaUang>
+                                            <Tooltip>
+                                                <TooltipTrigger
+                                                    render={
+                                                        <span className="cursor-help underline decoration-dotted decoration-from-font underline-offset-4" />
+                                                    }
+                                                >
+                                                    Margin %
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {lowMarginNote}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </KepalaUang>
+                                    </>
+                                )}
                                 <TableHead>Status</TableHead>
                                 <TableHead />
                             </TableRow>
@@ -207,6 +242,15 @@ export default function CatalogIndex({
                                                             varian
                                                         </span>
                                                     )}
+                                                    {/* Isi paket jasa (spek 6.3). */}
+                                                    {item.components.length >
+                                                        0 && (
+                                                        <span className="text-xs font-normal text-muted-foreground">
+                                                            {bundleIncludes(
+                                                                item.components,
+                                                            )}
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </span>
                                         </TableCell>
@@ -238,10 +282,10 @@ export default function CatalogIndex({
                                         </TableCell>
                                         {item.variants.length > 0 ? (
                                             // Harga sebenarnya per varian (sub-baris di bawah).
-                                            <TableCell className="text-right font-mono whitespace-nowrap">
+                                            <TableCell className="text-right whitespace-nowrap">
                                                 {/* "mulai" di baris sendiri — lebar kolom tetap
                                                 selebar angka, tabel tetap muat 1280 px. */}
-                                                <span className="block font-sans text-xs text-muted-foreground">
+                                                <span className="block text-xs text-muted-foreground">
                                                     mulai
                                                 </span>
                                                 {formatRp(item.price)}
@@ -253,12 +297,22 @@ export default function CatalogIndex({
                                         "—" untuk jasa. Sengaja BUKAN Rp 0: nol
                                         berarti "tidak ada biaya", padahal yang
                                         benar "biayanya tidak tetap, dicatat per
-                                        job".
+                                        job". Paket berkomponen (spek 6.3): HPP
+                                        bahan hasil hitung; margin tetap "—"
+                                        karena biaya job belum termasuk.
                                     */}
-                                        {item.unit_cost === null ||
-                                        item.variants.length > 0 ? (
+                                        {low_margin_ratio ===
+                                        undefined ? null : item.unit_cost ==
+                                              null ||
+                                          item.variants.length > 0 ? (
                                             <>
-                                                <NotApplicable />
+                                                {item.bundle_cost != null ? (
+                                                    <BundleCostCell
+                                                        cost={item.bundle_cost}
+                                                    />
+                                                ) : (
+                                                    <NotApplicable />
+                                                )}
                                                 <NotApplicable />
                                                 <NotApplicable />
                                             </>
@@ -276,7 +330,7 @@ export default function CatalogIndex({
                                                 {/* Produk bermargin tipis menonjol tanpa
                                                 harus membaca angkanya satu per satu. */}
                                                 <TableCell
-                                                    className={`text-right font-mono ${isLowMargin(item.price, item.unit_cost, low_margin_ratio) ? 'text-destructive' : ''}`}
+                                                    className={`text-right ${isLowMargin(item.price, item.unit_cost, low_margin_ratio) ? 'text-destructive' : ''}`}
                                                     title={
                                                         isLowMargin(
                                                             item.price,
@@ -322,51 +376,67 @@ export default function CatalogIndex({
                                             {/* Tidak ada Hapus — item yang pernah
                                             terjual hanya dinonaktifkan supaya
                                             riwayat order tidak rusak. */}
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger
-                                                    render={
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            aria-label={`Aksi ${item.name}`}
-                                                        />
-                                                    }
-                                                >
-                                                    <MoreHorizontal />
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuGroup>
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                router.visit(
-                                                                    CatalogItemController.edit(
-                                                                        item.id,
-                                                                    ),
-                                                                )
-                                                            }
-                                                        >
-                                                            <Pencil />
-                                                            Edit
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                toggleActive(
-                                                                    item,
-                                                                )
-                                                            }
-                                                        >
-                                                            {item.is_active ? (
-                                                                <EyeOff />
-                                                            ) : (
-                                                                <Eye />
+                                            {can.manage_catalog && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        render={
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                aria-label={`Aksi ${item.name}`}
+                                                            />
+                                                        }
+                                                    >
+                                                        <MoreHorizontal />
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuGroup>
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    router.visit(
+                                                                        CatalogItemController.edit(
+                                                                            item.id,
+                                                                        ),
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Pencil />
+                                                                Edit
+                                                            </DropdownMenuItem>
+                                                            {/* Komponen paket (spek 6.3) — bagian di halaman Edit. */}
+                                                            {item.type ===
+                                                                'service' && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        router.visit(
+                                                                            `${CatalogItemController.edit.url(item.id)}#komponen`,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Package />
+                                                                    Komponen…
+                                                                </DropdownMenuItem>
                                                             )}
-                                                            {item.is_active
-                                                                ? 'Nonaktifkan'
-                                                                : 'Aktifkan'}
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuGroup>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    toggleActive(
+                                                                        item,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {item.is_active ? (
+                                                                    <EyeOff />
+                                                                ) : (
+                                                                    <Eye />
+                                                                )}
+                                                                {item.is_active
+                                                                    ? 'Nonaktifkan'
+                                                                    : 'Aktifkan'}
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuGroup>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                     {item.variants.map((v) => (
@@ -384,11 +454,15 @@ export default function CatalogIndex({
                     </TabelData>
                 )}
 
-                <p className="text-xs text-muted-foreground">
-                    HPP bahan hanya berlaku untuk produk fisik. HPP jasa berbeda
-                    tiap job — fee crew, transport, sewa — dan dicatat per order
-                    lewat menu Biaya.
-                </p>
+                {low_margin_ratio !== undefined && (
+                    <Notice>
+                        HPP bahan hanya berlaku untuk produk fisik. HPP jasa
+                        berbeda tiap job — fee crew, transport, sewa — dan
+                        dicatat per order lewat menu Biaya. Paket jasa
+                        berkomponen menampilkan HPP bahan komponennya (dihitung,
+                        ikut ke order berikutnya).
+                    </Notice>
+                )}
             </div>
         </>
     );
@@ -398,7 +472,10 @@ CatalogIndex.layout = {
     breadcrumbs: [{ title: 'Katalog', href: catalogIndex() }],
 };
 
-/** Varian di bawah produknya (spek 7.3) — harga, HPP, dan margin sendiri. */
+/**
+ * Varian di bawah produknya (spek 7.3) — harga, HPP, dan margin sendiri.
+ * Tanpa `lowMarginRatio` (admin, spek 5.1) kolom HPP & margin tidak ada.
+ */
 function VariantSubRow({
     variant: v,
     dimmed,
@@ -408,10 +485,14 @@ function VariantSubRow({
     variant: CatalogVariant;
     /** Produknya nonaktif — variannya ikut tidak dijual. */
     dimmed: boolean;
-    lowMarginRatio: number;
+    lowMarginRatio?: number;
     lowMarginNote: string;
 }) {
-    const low = isLowMargin(v.price, v.unit_cost, lowMarginRatio);
+    const cost = v.unit_cost;
+    const low =
+        lowMarginRatio !== undefined &&
+        cost !== undefined &&
+        isLowMargin(v.price, cost, lowMarginRatio);
     return (
         <TableRow
             className={`bg-muted/30 ${dimmed || !v.is_active ? 'opacity-60' : ''}`}
@@ -425,14 +506,18 @@ function VariantSubRow({
             <TableCell />
             <TableCell />
             <SelUang nominal={v.price} />
-            <SelUang nominal={v.unit_cost} />
-            <SelUang nominal={v.price - v.unit_cost} />
-            <TableCell
-                className={`text-right font-mono ${low ? 'text-destructive' : ''}`}
-                title={low ? lowMarginNote : undefined}
-            >
-                {formatPersen((v.price - v.unit_cost) / v.price)}
-            </TableCell>
+            {lowMarginRatio !== undefined && cost !== undefined && (
+                <>
+                    <SelUang nominal={cost} />
+                    <SelUang nominal={v.price - cost} />
+                    <TableCell
+                        className={`text-right ${low ? 'text-destructive' : ''}`}
+                        title={low ? lowMarginNote : undefined}
+                    >
+                        {formatPersen((v.price - cost) / v.price)}
+                    </TableCell>
+                </>
+            )}
             <TableCell>
                 {!v.is_active && <Badge variant="secondary">Nonaktif</Badge>}
             </TableCell>
@@ -443,8 +528,30 @@ function VariantSubRow({
 
 function NotApplicable() {
     return (
-        <TableCell className="text-right font-mono text-muted-foreground">
-            —
+        <TableCell className="text-right text-muted-foreground">—</TableCell>
+    );
+}
+
+/** HPP bahan paket berkomponen (spek 6.3) — hasil hitung, bukan isian. */
+function BundleCostCell({ cost }: { cost: number }) {
+    return (
+        <TableCell className="text-right whitespace-nowrap">
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <span className="inline-flex cursor-help items-center gap-1" />
+                    }
+                >
+                    <Calculator
+                        className="size-3.5 text-muted-foreground"
+                        aria-label="Dihitung dari komponen"
+                    />
+                    {formatRp(cost)}
+                </TooltipTrigger>
+                <TooltipContent>
+                    Dihitung dari komponen paket dengan HPP katalog saat ini.
+                </TooltipContent>
+            </Tooltip>
         </TableCell>
     );
 }

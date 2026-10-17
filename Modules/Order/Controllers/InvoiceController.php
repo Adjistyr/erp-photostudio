@@ -29,7 +29,7 @@ class InvoiceController extends Controller
             'line' => BusinessLine::values(),
             'pay' => ['unpaid', 'partial', 'paid'],
         ]);
-        $orders = Order::with(['customer', 'items', 'payments', 'refunds'])
+        $orders = Order::with(['customer', 'items', 'payments', 'refunds', 'schedules'])
             ->where('work_status', '!=', WorkStatus::Cancelled)
             ->search($list)
             ->orderByDesc('id')
@@ -54,7 +54,7 @@ class InvoiceController extends Controller
         abort_if($order->isCancelled(), 404);
 
         return Inertia::render('order::invoice-public', [
-            'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments', 'refunds'])),
+            'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments', 'refunds', 'schedules'])),
             'studio' => config('studio'),
             // Hanya dari `print_url` (ditandatangani dengan print=1) — lihat Order::invoiceUrl().
             'auto_print' => $request->boolean('print'),
@@ -78,6 +78,9 @@ class InvoiceController extends Controller
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
                 'is_custom' => $i->catalog_item_id === null,
+                // Isi paket (spek 6.3) untuk sub-baris "termasuk …" — tanpa HPP: halaman ini dibuka customer.
+                'components' => $i->components === null ? null
+                    : array_map(fn (array $c) => ['name' => $c['name'], 'quantity' => $c['quantity']], $i->components),
             ])->values()->all(),
             'discount' => $o->discount,
             'total' => $o->total(),
@@ -95,6 +98,9 @@ class InvoiceController extends Controller
             'balance' => $o->balance(),
             'payment_status' => $o->paymentStatus()->value,
             'paid_percent' => (int) round($o->paidRatio() * 100),
+            // Pesan tagihan (`{jatuh_tempo}`, `{termin}`, spek 6.4) — jatuh tempo efektif.
+            'due_on' => $o->dueOn()->toDateString(),
+            'next_installment' => $o->nextInstallment(),
             'public_url' => $o->invoiceUrl(),
             'print_url' => $o->invoiceUrl(print: true),
         ];

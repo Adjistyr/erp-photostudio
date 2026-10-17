@@ -15,7 +15,7 @@ import {
     SelUang,
     TabelData,
 } from '@/components/data-table';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader } from '@/components/page';
 import { SummaryCard } from '@/components/summary-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -71,20 +71,27 @@ export default function CashReport({
     return (
         <>
             <Head title="Kas Harian" />
-            <h1 className="sr-only">Kas Harian</h1>
-            <PageActions>
-                {/* <a href>, bukan Link: Inertia tidak menangani unduhan. */}
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<a href={cashExport({ query: { month } }).url} />}
-                >
-                    <Download data-icon="inline-start" />
-                    Ekspor CSV
-                </Button>
-            </PageActions>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Kas Harian"
+                    description="Penerimaan per hari dan per metode bayar, untuk tutup hari."
+                    actions={
+                        // <a href>, bukan Link: Inertia tidak menangani unduhan.
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={
+                                <a
+                                    href={cashExport({ query: { month } }).url}
+                                />
+                            }
+                        >
+                            <Download data-icon="inline-start" />
+                            Ekspor CSV
+                        </Button>
+                    }
+                />
                 <ReportNav current="cash" month={month} />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -142,7 +149,7 @@ export default function CashReport({
                                     {methods.map((m) => (
                                         <TableCell
                                             key={m}
-                                            className="text-right font-mono"
+                                            className="text-right"
                                         >
                                             {formatRp(d.by_method[m])}
                                             {/* Bersih = masuk − retur; returnya disebut supaya
@@ -159,7 +166,7 @@ export default function CashReport({
                                         nominal={d.total}
                                         className="font-semibold"
                                     />
-                                    <TableCell className="text-right font-mono">
+                                    <TableCell className="text-right">
                                         {d.count}
                                     </TableCell>
                                 </TableRow>
@@ -173,15 +180,15 @@ export default function CashReport({
                                 {methods.map((m) => (
                                     <TableCell
                                         key={m}
-                                        className="text-right font-mono font-semibold"
+                                        className="text-right font-semibold"
                                     >
                                         {formatRp(totals[m])}
                                     </TableCell>
                                 ))}
-                                <TableCell className="text-right font-mono font-semibold">
+                                <TableCell className="text-right font-semibold">
                                     {formatRp(total)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono font-semibold">
+                                <TableCell className="text-right font-semibold">
                                     {count}
                                 </TableCell>
                             </TableRow>
@@ -189,13 +196,13 @@ export default function CashReport({
                     </TabelData>
                 )}
 
-                <p className="text-xs text-muted-foreground">
+                <Notice>
                     Penerimaan berdasarkan tanggal bayar (basis kas) — totalnya
                     sama dengan omzet di Laba Rugi. Pembayaran order batal ikut
                     dihitung: uangnya sudah masuk.
                     {anyRefund &&
                         ' Angka per metode sudah dikurangi retur (uang dikembalikan) pada tanggal pengembaliannya.'}
-                </p>
+                </Notice>
             </div>
         </>
     );

@@ -30,13 +30,39 @@ export interface Receipt {
     /** Hanya dari Catat Bayar (bukti bayar); POS tidak mengirimnya. */
     paid_amount?: number;
     paid_on?: string;
-    /** Jatuh tempo sisa = tanggal layanan. */
+    /** Jatuh tempo efektif SETELAH pembayaran ini (termin berikutnya, spek 6.4). */
     due_on?: string;
+}
+
+/** Status termin — diturunkan FIFO dari pembayaran di server (spek 6.4). */
+export type ScheduleStatus = 'paid' | 'partial' | 'unpaid';
+
+export const SCHEDULE_STATUS_LABEL: Record<ScheduleStatus, string> = {
+    paid: 'Lunas',
+    partial: 'Sebagian',
+    unpaid: 'Belum',
+};
+
+export interface OrderSchedule {
+    sequence: number;
+    label: string | null;
+    due_on: string;
+    amount: number;
+    status: ScheduleStatus;
+}
+
+/** Termin pertama yang belum lunas; `amount` = sisa termin itu. */
+export interface NextInstallment {
+    sequence: number;
+    of: number;
+    amount: number;
+    due_on: string;
 }
 
 /**
  * Bentuk props order dari OrderController — angka turunan (total, sisa,
- * status bayar, persen DP, margin) sudah dihitung server.
+ * status bayar, persen DP, margin) sudah dihitung server. Field finansial
+ * opsional: tidak dikirim untuk admin (spek 5.1) — render dari ada-tidaknya.
  */
 export interface OrderRow {
     id: number;
@@ -54,14 +80,18 @@ export interface OrderRow {
     service_time: string | null;
     location: string | null;
     notes: string | null;
+    /** Sumber lead (spek 6.6, `Customer::SOURCES`); null = tidak dicatat. */
+    source: string | null;
     result_link: string | null;
     /** Link invoice untuk customer (signed); null = order batal, tidak ditagih. */
     invoice_url: string | null;
     total: number;
     paid: number;
     balance: number;
-    direct_cost: number;
-    margin: number;
+    /** Hanya owner (`view_finance`). */
+    direct_cost?: number;
+    /** Hanya owner (`view_finance`). */
+    margin?: number;
     work_status: WorkStatus;
     /** Langkah berikutnya; null kalau sudah Diserahkan atau Batal. */
     next_status: WorkStatus | null;
@@ -69,15 +99,26 @@ export interface OrderRow {
     previous_status: WorkStatus | null;
     payment_status: PaymentStatus;
     paid_percent: number;
+    /** Termin pembayaran (spek 6.4); kosong = tanpa termin. */
+    schedules: OrderSchedule[];
+    /** null = tanpa termin atau semua termin lunas. */
+    next_installment: NextInstallment | null;
+    /** Jatuh tempo efektif: termin berikutnya, atau tanggal layanan. */
+    due_on: string;
     items: {
         id: number;
         name: string;
         quantity: number;
         unit_price: number;
         catalog_item_id: number | null;
-        unit_cost: number | null;
+        /** HPP — hanya owner (`view_finance`). */
+        unit_cost?: number | null;
         /** Item custom (harga nego di luar katalog, spek 1.3). */
         is_custom: boolean;
+        /** Snapshot isi paket jasa saat transaksi (spek 6.3), per 1 paket; null = bukan paket berkomponen. */
+        components:
+            | { name: string; quantity: number; unit_cost?: number | null }[]
+            | null;
     }[];
     payments: {
         id: number;
@@ -86,6 +127,8 @@ export interface OrderRow {
         method: PaymentMethod;
         note: string;
         created_by_name: string | null;
+        /** Bukti transfer/QRIS, URL bertanda tangan sementara (spek 6.7). */
+        proof_url: string | null;
     }[];
     /** Alat yang dibawa (spek 8.4, modul Aset) — baca saja. */
     asset_checkouts: {
@@ -99,7 +142,8 @@ export interface OrderRow {
         returned_on: string | null;
         overdue: boolean;
     }[];
-    job_costs: {
+    /** Biaya job = komponen margin — hanya owner (`view_finance`). */
+    job_costs?: {
         id: number;
         incurred_on: string;
         category: string;
@@ -185,6 +229,7 @@ export const ORDER_FIELD_LABEL: Record<string, string> = {
     service_time: 'Jam',
     location: 'Lokasi',
     notes: 'Catatan',
+    source: 'Sumber',
     customer_id: 'Customer',
     work_status: 'Status',
     result_link: 'Link hasil',
@@ -195,6 +240,8 @@ export const ORDER_FIELD_LABEL: Record<string, string> = {
     reason: 'Alasan',
     // Edit order (spek 1.2): ringkasan item sebelum → sesudah.
     items: 'Item',
+    // Termin pembayaran (spek 6.4).
+    schedules: 'Termin',
 };
 
 /** `changes` berisi unknown — objek tak terduga jadi JSON, bukan "[object Object]". */
@@ -220,6 +267,15 @@ function nilaiField(field: string, v: unknown): string {
             return WORK_STATUS_LABEL[v as WorkStatus] ?? keTeks(v);
         case 'method':
             return PAYMENT_METHOD_LABEL[v as PaymentMethod] ?? keTeks(v);
+        case 'schedules':
+            return Array.isArray(v)
+                ? v
+                      .map(
+                          (s: { due_on?: string; amount?: number }) =>
+                              `${formatRp(Number(s.amount))} (${formatTanggal(String(s.due_on))})`,
+                      )
+                      .join(', ')
+                : keTeks(v);
         default:
             return keTeks(v);
     }
@@ -275,12 +331,17 @@ export interface ReceivableRow {
     /** Link invoice bertanda tangan (dipakai Tagih via WA, spek 2.4). */
     invoice_url: string;
     business_line: BusinessLine;
-    service_date: string;
-    /** > 0 belum jatuh tempo, 0 hari ini, < 0 lewat (dihitung server). */
+    /** Jatuh tempo efektif: termin berikutnya (spek 6.4), atau tanggal layanan. */
+    due_on: string;
+    /** > 0 belum jatuh tempo, 0 hari ini, < 0 lewat (dihitung server dari due_on). */
     days_until_due: number;
+    /** null = tanpa termin. */
+    next_installment: NextInstallment | null;
     total: number;
     paid: number;
     balance: number;
     payment_status: PaymentStatus;
     paid_percent: number;
+    /** Bukti transfer pembayaran sebelumnya (spek 6.7); hanya yang berlampiran. */
+    proofs: { id: number; note: string; amount: number; url: string }[];
 }

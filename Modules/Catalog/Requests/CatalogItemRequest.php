@@ -65,6 +65,19 @@ class CatalogItemRequest extends FormRequest
 
                 return;
             }
+            // Bundel (spek 6.3): komponen hanya produk, paket hanya jasa —
+            // mengganti jenis akan membuat paket bersarang atau produk berkomponen.
+            $isProduct = $this->input('type') === CatalogItemType::Product->value;
+            if ($item && ! $isProduct && $item->bundles()->exists()) {
+                $validator->errors()->add('type', 'Produk ini komponen paket jasa — tidak bisa diubah jadi jasa. Keluarkan dulu dari paketnya.');
+
+                return;
+            }
+            if ($item && $isProduct && $item->components()->exists()) {
+                $validator->errors()->add('type', 'Paket ini punya komponen — tidak bisa diubah jadi produk. Kosongkan komponennya dulu.');
+
+                return;
+            }
             $seen = [];
             foreach ($this->variantsData() as $i => $v) {
                 $key = mb_strtolower($v['name']);

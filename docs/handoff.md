@@ -1,6 +1,6 @@
 # Handoff — posisi proyek & cara melanjutkan
 
-Diperbarui **11 Oktober 2026**. Baca ini dulu di sesi baru; dokumen lain dirujuk dari sini. Perbarui bagian "Posisi" dan "Langkah berikutnya" setiap kali ada PR yang di-merge.
+Diperbarui **17 Oktober 2026**. Baca ini dulu di sesi baru; dokumen lain dirujuk dari sini. Perbarui bagian "Posisi" dan "Langkah berikutnya" setiap kali ada PR yang di-merge.
 
 ## 1. Peta dokumen
 
@@ -13,7 +13,7 @@ Diperbarui **11 Oktober 2026**. Baca ini dulu di sesi baru; dokumen lain dirujuk
 | Urutan fase + keputusan sementara K1–K5 | `docs/rencana-pengembangan-operasional.md` |
 | **Apa yang dikerjakan berikutnya, detail per PR** | `docs/specs/README.md` → file spek per item |
 | Naskah demo ke client (belum diperbarui sejak prototype) | `docs/demo-client.md` |
-| Desain visual | `docs/DESIGN.md` |
+| Desain visual (sistem ala master-outlet sejak #64, "Konvensi halaman") | `docs/DESIGN.md` |
 
 ## 2. Stack & struktur (ringkas)
 
@@ -30,12 +30,13 @@ npx vp check --fix && npm test
 php artisan wayfinder:generate --with-form   # bila route berubah
 ```
 
-Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`. Data demo: `php artisan migrate:fresh --seed`. Login `agung@potraittime.test` atau `raka@potraittime.test`, sandi `password`. Data demo: Juli 2026 sudah tutup buku, Agustus–September belum.
+Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`. Data demo: `php artisan migrate:fresh --seed`. Login `agung@potraittime.test` atau `raka@potraittime.test` (owner), `admin@potraittime.test` (admin, dari `DemoSeeder`), sandi `password`. Data demo: Juli 2026 sudah tutup buku, Agustus–September belum.
 
-## 3. Posisi per 11 Oktober 2026
+## 3. Posisi per 17 Oktober 2026
 
-- `develop` memuat PR #10–#28 (semua layar prototype `web/` dipindah ke Laravel, keputusan bisnis 6 Okt: margin order batal, tutup buku manual, koreksi = hapus) dan **PR #29–#60**: analisis + 32 spek, **seluruh spek Fase 0–4 (22 item)**, 5.2 dibatalkan (#53, POS tanpa shift), **Fase 7** permintaan tambahan katalog (galeri foto & profil publik, form halaman penuh, varian produk — #54–#56), dan **Fase 8** modul Aset jadi register alat (#57–#60).
-- Test terakhir: **478 PHPUnit, 100 Vitest**, PHPStan level 7 bersih, `composer ci:check` hijau.
+- `develop` memuat PR #10–#28 (semua layar prototype `web/` dipindah ke Laravel, keputusan bisnis 6 Okt: margin order batal, tutup buku manual, koreksi = hapus) dan **PR #29–#63**: analisis + 32 spek, **seluruh spek Fase 0–4 (22 item)**, 5.2 dibatalkan (#53, POS tanpa shift), **Fase 7** permintaan tambahan katalog/order (#54–#56, #62, #63), dan **Fase 8** modul Aset jadi register alat (#57–#60).
+- **PR #64** (branch `feat/sisa-spek-design-system`, satu commit per item): spek tersisa **5.1, 6.3, 6.4, 6.5, 6.6, 6.7** + **sistem desain ala master-outlet** (token, komponen `ui/*`, shell rail, `PageHeader`/`Panel`/`Notice` di semua halaman, slot `PageActions` dicabut). Setelah #64 tidak ada spek terbuka.
+- Test terakhir: **571 PHPUnit, 128 Vitest**, PHPStan level 7 bersih, Pint, `vp check`, `types:check`, `npm run build` hijau.
 - CI GitHub Actions tidak berjalan sejak awal (akun terkunci billing — job gagal dalam 2–3 detik tanpa dijalankan). Gate yang dipakai: `composer ci:check` lokal sebelum merge.
 
 ### Daftar PR spek
@@ -62,6 +63,7 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
 | | | #60 | 8.4 Peminjaman alat ke event |
 | | | #62 | 7.4 Detail order jadi halaman + edit retail |
 | | | #63 | 7.5 Item produk di order studio/event |
+| | | #64 | 5.1, 6.3–6.7 + sistem desain master-outlet |
 
 ### Penyimpangan dari spek (detail di body PR masing-masing)
 
@@ -84,6 +86,14 @@ Kode yang menang bila spek tidak cocok — speknya tidak ditulis ulang, alasanny
 - **#54** (spek 7.1, permintaan tambahan): badge "Profil" di kolom Status dan nama item boleh terlipat, supaya tabel Katalog tetap muat di 1280 px.
 - **#56** (spek 7.3): `PosCart` tetap tidak diekstrak; modul Katalog kini punya `index.ts` sebagai pintu impor lintas modul (`variantLabel`, `priceRange`).
 - **Fase 8** (spek 8.1–8.4): spek 6.1 dilebur ke 8.1, 6.2 dikerjakan di 8.3; tahap 3 dipecah jadi 8.3 dan 8.4. Kolom Kategori di daftar aset pindah ke baris kecil di bawah nama (ruang untuk thumbnail). Peminjaman: asumsi dicatat dari halaman aset, pengembalian per catatan.
+- **#64** (detail di spek masing-masing, bagian penyimpangan):
+  - 5.1: admin tidak boleh mengubah identitas aset (aturan 3 dibaca sebagai daftar lengkap); route yang lahir setelah spek ikut digerbang; owner tidak bisa menghapus akunnya sendiri. Mekanisme: `App\Enums\Ability` + `Finance::except()` + `useCan()` (`docs/development.md` → Peran).
+  - 6.3: komponen = produk (bukan varian); bagian "Komponen paket" di halaman Edit, bukan dialog; HPP komponen disembunyikan dari admin.
+  - 6.4: `{termin}` diisi di klien (pola 2.4); template default tidak diubah; tanggal termin naik ketat.
+  - 6.5: riwayat di halaman Edit (bukan tab dialog); varian tidak punya riwayat sendiri; item lama di-backfill satu baris "Sistem".
+  - 6.6: laporan sumber hanya studio + event; sumber kosong saat buat = ikut customer.
+  - 6.7: unggah hanya di Catat Pembayaran (belum di DP Buat Order & POS); disk privat `local`.
+  - Desain: Inter + angka tabular global (mono hanya ID/kode); header tidak sticky; tanpa pencarian global (tidak ada endpoint).
 
 ### Data uji lokal (bukan seed)
 
@@ -91,15 +101,15 @@ DB lokal berisi data hasil verifikasi manual: ORD-0019 (studio + produk bervaria
 
 ## 4. Langkah berikutnya
 
-Fase 0–4 selesai. Sisa di `docs/specs/README.md`:
+Semua spek di `docs/specs/README.md` selesai per #64 (5.2 dibatalkan). Kandidat lanjutan, kerjakan bila diminta:
 
-- **5.1 Peran & hak akses** — hanya setelah owner memastikan ada staf admin yang akan input.
-- **5.2 Shift kasir tidak dikerjakan** — keputusan 9 Okt 2026: POS tidak memakai shift (tidak ada buka/tutup laci). Pencocokan laci tetap lewat Kas Harian (3.3) kolom Tunai.
-- **7.1 Galeri foto katalog** (#54), **7.2 form katalog jadi halaman** (#55), dan **7.3 varian produk** (#56) selesai. Endpoint company profile (produk terpisah) belum dibuat; aturan field publik ada di spek 7.1, varian di company profile diputuskan saat itu. Endpoint publik untuk company profile belum dibuat — aturan field yang boleh keluar ada di speknya.
-- **Fase 8 — Aset jadi register alat** (keputusan 11 Okt 2026: daftar alat saja, tetap jenis × jumlah, field keuangan terkunci): **selesai seluruhnya** — 8.1 (#57), 8.2 foto alat & nota (#58), 8.3 ringkasan per kategori + proyeksi penggantian (#59), 8.4 peminjaman alat ke event (#60). Kandidat lanjutan bila dipakai rutin: mencatat banyak alat sekaligus dari halaman order; data crew menggantikan teks pemegang (bersama 5.1).
-- **6.x** (serial + garansi, proyeksi penggantian, bundel, termin, riwayat harga, sumber lead, lampiran bukti transfer) — sesuai kebutuhan owner.
+- Endpoint publik company profile (produk terpisah) — aturan field yang boleh keluar ada di spek 7.1; varian di company profile diputuskan saat itu.
+- Unggah bukti transfer di DP Buat Order & pembayaran POS (pola sama dengan 6.7).
+- Komponen paket per varian (`component_variant_id` nullable, catatan di spek 6.3).
+- Aset: mencatat banyak alat sekaligus dari halaman order; data crew menggantikan teks pemegang.
+- Uji manual login admin di layar harian (sudah dicek: dashboard, POS, order, katalog, aset, biaya, komunikasi, settings; laporan & modal 403).
 
-Per item: branch dari `develop` (`feat/<modul>-<item>`), kerjakan sesuai spek (test ditulis bersamaan), checklist spek dipindah ke body PR, PR ke `develop`, setelah merge ubah status di `docs/specs/README.md` → ✅ + nomor PR. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.
+Per item: branch dari `develop` (`feat/<modul>-<item>`), test ditulis bersamaan, PR ke `develop`. Kalau spek tidak cocok dengan kode saat dikerjakan, kode yang menang — catat penyimpangannya di body PR.
 
 Keputusan K1–K5 di `docs/rencana-pengembangan-operasional.md` adalah **rekomendasi dev yang berlaku sampai owner mengubah** — tidak perlu menunggu.
 
@@ -110,8 +120,8 @@ Keputusan K1–K5 di `docs/rencana-pengembangan-operasional.md` adalah **rekomen
 - Hapus folder `web/` (prototype) setelah client setuju.
 - Go-live: hosting, backup, data awal (katalog, aset, **modal awal per owner**), CI (billing GitHub Actions terkunci).
 - `docs/demo-client.md` masih naskah prototype.
-- RBAC (spek 5.1) menunggu kepastian staf admin.
-- Temuan kecil yang belum diubah: order retail berstatus Diserahkan masih menawarkan "Kembalikan ke Selesai Dikerjakan" dan "Batalkan Order"; halaman Aset punya komponen ringkasan lokal sendiri (bukan `SummaryCard`); `DESIGN.stitch.md` belum menyebut pengecualian breakpoint POS/Pembayaran (khusus generator Stitch).
+- Peran staf admin (5.1) aktif: akun admin dibuat owner di Settings → Pengguna atau `php artisan app:buat-pengguna`.
+- Temuan kecil yang belum diubah: order retail berstatus Diserahkan masih menawarkan "Kembalikan ke Selesai Dikerjakan" dan "Batalkan Order"; invoice publik ikut tema gelap saat dicetak bila perangkat memakai dark mode; judul tab `${APP_NAME}` mentah di Vite dev bila `.env` memakai `VITE_APP_NAME="${APP_NAME}"`.
 - `main` masih hanya berisi initial commit (13 Sep 2026); seluruh pekerjaan ada di `develop`. Rilis ke `main` menunggu keputusan go-live.
 
 ## 6. Cara kerja yang disepakati dengan user

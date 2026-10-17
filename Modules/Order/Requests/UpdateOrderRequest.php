@@ -4,13 +4,16 @@ namespace Modules\Order\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 use Modules\Customer\Models\Customer;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
+use Modules\Order\Models\PaymentSchedule;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
 use Modules\Order\Requests\Concerns\ResolvesCustomer;
+use Modules\Order\Requests\Concerns\ResolvesSchedules;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
 
@@ -25,6 +28,7 @@ class UpdateOrderRequest extends FormRequest
 {
     use ResolvesCatalogLines;
     use ResolvesCustomer;
+    use ResolvesSchedules;
 
     /**
      * Order batal ditolak SEBELUM validasi field. Dulu retail juga (item retail
@@ -69,6 +73,9 @@ class UpdateOrderRequest extends FormRequest
             'service_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // Sumber lead (spek 6.6); kosong = tidak dicatat. Retail tidak
+            // mencatat sumber — nilai kiriman diabaikan di normalised().
+            'source' => ['nullable', 'string', Rule::in(Customer::SOURCES)],
             'items' => ['required', 'array', 'min:1', 'max:20'],
             // Ada = baris lama; null = baris baru.
             'items.*.id' => ['nullable', 'integer'],
@@ -83,6 +90,8 @@ class UpdateOrderRequest extends FormRequest
             'items.*.name' => ['required_without:items.*.catalog_item_id', 'nullable', 'string', 'max:255'],
             'items.*.unit_price' => ['required_without:items.*.catalog_item_id', 'nullable', 'integer', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            // Termin (spek 6.4): tidak dikirim = tetap; [] = hapus semua.
+            ...$this->scheduleRules(),
         ];
     }
 
@@ -167,6 +176,14 @@ class UpdateOrderRequest extends FormRequest
             if ($this->newTotal() < $paid) {
                 $validator->errors()->add('items', 'Total baru '.Money::format($this->newTotal()).' lebih kecil dari yang sudah dibayar '
                     .Money::format($paid).' — hapus pembayaran dulu kalau memang mau mengurangi.');
+
+                return;
+            }
+
+            // Termin yang dihapus aturan 5 tidak perlu lolos aturan termin.
+            if (! $this->dropsSchedules()) {
+                $this->validateSchedules($validator, $this->incomingSchedules(), $order->business_line,
+                    $this->normalised()['service_date'], $this->newTotal());
             }
         }];
     }
@@ -177,6 +194,51 @@ class UpdateOrderRequest extends FormRequest
         $order = $this->route('order');
 
         return $order;
+    }
+
+    /**
+     * Termin setelah simpan sebelum aturan 5: kiriman form, atau yang
+     * tersimpan bila `schedules` tidak dikirim.
+     *
+     * @return list<array{due_on: string, amount: int, label: string|null}>
+     */
+    private function incomingSchedules(): array
+    {
+        return $this->submitsSchedules() ? $this->submittedSchedules() : $this->storedSchedules($this->order());
+    }
+
+    /**
+     * Aturan 5 (spek 6.4): total order berubah dan Σ termin tidak lagi sama
+     * dengan total baru → termin DIHAPUS (controller memberi peringatan),
+     * bukan ditolak dan bukan diskalakan diam-diam. Form menampilkan
+     * peringatan yang sama sebelum simpan.
+     */
+    public function dropsSchedules(): bool
+    {
+        $order = $this->order();
+        $incoming = $this->incomingSchedules();
+
+        return $order->schedules->isNotEmpty() && $incoming !== []
+            && $this->newTotal() !== $order->total()
+            && array_sum(array_column($incoming, 'amount')) !== $this->newTotal();
+    }
+
+    /**
+     * Termin yang disimpan Ubah Order — kosong bila dihapus aturan 5.
+     *
+     * @return list<array{due_on: string, amount: int, label: string|null}>
+     */
+    public function schedulesAfterUpdate(): array
+    {
+        return $this->dropsSchedules() ? [] : $this->incomingSchedules();
+    }
+
+    /** @return list<array{due_on: string, amount: int, label: string|null}> */
+    private function storedSchedules(Order $order): array
+    {
+        return array_values($order->schedules->map(fn (PaymentSchedule $s) => [
+            'due_on' => $s->due_on->toDateString(), 'amount' => $s->amount, 'label' => $s->label,
+        ])->all());
     }
 
     /** @return list<array{id: int|null, quantity: int}> */
@@ -217,7 +279,7 @@ class UpdateOrderRequest extends FormRequest
      * `$customerId` = hasil resolveCustomer() bila customer baru dibuat/dicocokkan
      * di transaksi; null = `customer_id` dari input.
      *
-     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null}
+     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null, source: string|null}
      */
     public function normalised(?int $customerId = null): array
     {
@@ -232,6 +294,8 @@ class UpdateOrderRequest extends FormRequest
             // Sama dengan store(): studio tanpa lokasi = di studio.
             'location' => $location !== '' ? $location : ($this->order()->business_line === BusinessLine::Studio ? 'Studio' : null),
             'notes' => trim((string) $this->input('notes', '')) ?: null,
+            // Tidak menyentuh customers.source (spek 6.6 aturan 3).
+            'source' => $this->customerOptional() ? $this->order()->source : ($this->filled('source') ? $this->string('source')->toString() : null),
         ];
     }
 
@@ -247,7 +311,7 @@ class UpdateOrderRequest extends FormRequest
         $current = $this->currentValues($order);
         $changes = [];
 
-        foreach (['service_date', 'service_time', 'location', 'notes'] as $field) {
+        foreach (['service_date', 'service_time', 'location', 'notes', 'source'] as $field) {
             if ($new[$field] !== $current[$field]) {
                 $changes[$field] = ['from' => $current[$field], 'to' => $new[$field]];
             }
@@ -263,6 +327,11 @@ class UpdateOrderRequest extends FormRequest
         }
         if ($this->newTotal() !== $order->total()) {
             $changes['total'] = ['from' => $order->total(), 'to' => $this->newTotal()];
+        }
+        $before = $this->storedSchedules($order);
+        $after = $this->schedulesAfterUpdate();
+        if ($before !== $after) {
+            $changes['schedules'] = ['from' => $before === [] ? null : $before, 'to' => $after === [] ? null : $after];
         }
 
         return $changes;
@@ -303,7 +372,7 @@ class UpdateOrderRequest extends FormRequest
     }
 
     /**
-     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null}
+     * @return array{customer_id: int|null, service_date: string, service_time: string|null, location: string|null, notes: string|null, source: string|null}
      */
     private function currentValues(Order $order): array
     {
@@ -313,6 +382,7 @@ class UpdateOrderRequest extends FormRequest
             'service_time' => $order->service_time === null ? null : substr($order->service_time, 0, 5),
             'location' => $order->location,
             'notes' => $order->notes,
+            'source' => $order->source,
         ];
     }
 
@@ -335,12 +405,14 @@ class UpdateOrderRequest extends FormRequest
             'service_time' => 'jam',
             'location' => 'lokasi',
             'notes' => 'catatan',
+            'source' => 'sumber order',
             'items' => 'item',
             'items.*.id' => 'item',
             'items.*.catalog_item_id' => 'paket',
             'items.*.name' => 'nama item',
             'items.*.unit_price' => 'harga item',
             'items.*.quantity' => 'qty',
+            ...$this->scheduleAttributes(),
         ];
     }
 }

@@ -34,15 +34,10 @@ import {
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
 import { MonthNav } from '@/components/month-nav';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader } from '@/components/page';
 import { LineMark } from '@/components/status-order';
+import { SummaryCard } from '@/components/summary-card';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -72,7 +67,9 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useCan } from '@/hooks/use-can';
 import { formatBulan, formatRp, formatTanggal, hanyaDigit } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { index as expensesIndex } from '@/routes/expenses';
 import type { BusinessLine } from '@/types/domain';
 
@@ -110,13 +107,16 @@ interface Props {
     month: string;
     today: string;
     job_costs: JobCostRow[];
-    operating_expenses: OperatingRow[];
-    totals: { job: number; operating: number };
+    /** Biaya operasional = kas usaha — tidak dikirim untuk admin (spek 5.1). */
+    operating_expenses?: OperatingRow[];
+    totals: { job: number; operating?: number };
     orders: OrderOption[];
 }
 
 export default function ExpensesIndex(props: Props) {
     const { month, job_costs, operating_expenses, totals } = props;
+    const can = useCan();
+    const operatingTotal = totals.operating;
     const [tab, setTab] = useState<Mode>('job');
     /**
      * Dialog dibuka dengan mode yang mengikuti tab aktif. Owner yang sedang
@@ -128,37 +128,53 @@ export default function ExpensesIndex(props: Props) {
     return (
         <>
             <Head title="Biaya" />
-            <h1 className="sr-only">Biaya</h1>
 
-            <PageActions>
-                <Button onClick={() => setOpen(true)}>
-                    <Plus data-icon="inline-start" />
-                    Catat Biaya
-                </Button>
-            </PageActions>
-
-            <div className="flex flex-col gap-6 p-6">
-                <MonthNav
-                    month={month}
-                    href={(m) => expensesIndex({ query: { month: m } })}
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Biaya"
+                    description="Biaya langsung per order dan biaya operasional bulanan."
+                    actions={
+                        <>
+                            <MonthNav
+                                month={month}
+                                href={(m) =>
+                                    expensesIndex({ query: { month: m } })
+                                }
+                            />
+                            <Button onClick={() => setOpen(true)}>
+                                <Plus data-icon="inline-start" />
+                                Catat Biaya
+                            </Button>
+                        </>
+                    }
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Summary
+                {/* Admin hanya melihat satu kartu — melebar penuh, bukan sepertiga dengan lubang di kanan. */}
+                <div
+                    className={cn(
+                        'grid grid-cols-1 gap-4',
+                        operatingTotal !== undefined && 'sm:grid-cols-3',
+                    )}
+                >
+                    <SummaryCard
                         label="Biaya langsung (job)"
                         value={formatRp(totals.job)}
                         note="menempel ke order, mengurangi margin lini"
                     />
-                    <Summary
-                        label="Biaya operasional"
-                        value={formatRp(totals.operating)}
-                        note="bulanan, tidak dialokasikan ke lini"
-                    />
-                    <Summary
-                        label={`Total keluar ${formatBulan(month)}`}
-                        value={formatRp(totals.job + totals.operating)}
-                        note="belum termasuk HPP bahan produk"
-                    />
+                    {operatingTotal !== undefined && (
+                        <>
+                            <SummaryCard
+                                label="Biaya operasional"
+                                value={formatRp(operatingTotal)}
+                                note="bulanan, tidak dialokasikan ke lini"
+                            />
+                            <SummaryCard
+                                label={`Total keluar ${formatBulan(month)}`}
+                                value={formatRp(totals.job + operatingTotal)}
+                                note="belum termasuk HPP bahan produk"
+                            />
+                        </>
+                    )}
                 </div>
 
                 <Tabs
@@ -167,16 +183,22 @@ export default function ExpensesIndex(props: Props) {
                         if (v === 'job' || v === 'operating') setTab(v);
                     }}
                 >
-                    <TabsList>
-                        <TabsTrigger value="job">Biaya Job</TabsTrigger>
-                        <TabsTrigger value="operating">
-                            Biaya Operasional
-                        </TabsTrigger>
-                    </TabsList>
+                    {/* Admin hanya punya Biaya Job — satu tab tidak perlu daftar tab. */}
+                    {operating_expenses && (
+                        <TabsList>
+                            <TabsTrigger value="job">Biaya Job</TabsTrigger>
+                            <TabsTrigger value="operating">
+                                Biaya Operasional
+                            </TabsTrigger>
+                        </TabsList>
+                    )}
 
                     <TabsContent
                         value="job"
-                        className="mt-4 flex flex-col gap-3"
+                        className={cn(
+                            'flex flex-col gap-3',
+                            operating_expenses && 'mt-4',
+                        )}
                     >
                         {job_costs.length === 0 ? (
                             <KosongTabel
@@ -221,16 +243,19 @@ export default function ExpensesIndex(props: Props) {
                                             </TableCell>
                                             <SelUang nominal={j.amount} />
                                             <TableCell className="w-10">
-                                                <ConfirmDelete
-                                                    url={
-                                                        ExpenseController.destroyJobCost(
-                                                            j.id,
-                                                        ).url
-                                                    }
-                                                    label={`biaya ${j.description}`}
-                                                    title={`Hapus biaya job ${formatRp(j.amount)}?`}
-                                                    description={`${j.order_number} · ${j.description}. Margin order dan lini dihitung ulang.`}
-                                                />
+                                                {/* Hapus catatan uang hanya owner (spek 5.1). */}
+                                                {can.delete_money && (
+                                                    <ConfirmDelete
+                                                        url={
+                                                            ExpenseController.destroyJobCost(
+                                                                j.id,
+                                                            ).url
+                                                        }
+                                                        label={`biaya ${j.description}`}
+                                                        title={`Hapus biaya job ${formatRp(j.amount)}?`}
+                                                        description={`${j.order_number} · ${j.description}. Margin order dan lini dihitung ulang.`}
+                                                    />
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -243,7 +268,7 @@ export default function ExpensesIndex(props: Props) {
                                         >
                                             Total biaya job
                                         </TableCell>
-                                        <TableCell className="text-right font-mono font-semibold">
+                                        <TableCell className="text-right font-semibold">
                                             {formatRp(totals.job)}
                                         </TableCell>
                                         <TableCell />
@@ -251,87 +276,91 @@ export default function ExpensesIndex(props: Props) {
                                 </TableFooter>
                             </TabelData>
                         )}
-                        <p className="text-xs text-muted-foreground">
+                        <Notice>
                             Biaya job dicatat setelah acara, bukan saat deal —
                             nilainya baru pasti setelah dikerjakan, dan ini yang
                             menentukan job benar-benar untung atau tidak.
-                        </p>
+                        </Notice>
                     </TabsContent>
 
-                    <TabsContent
-                        value="operating"
-                        className="mt-4 flex flex-col gap-3"
-                    >
-                        {operating_expenses.length === 0 ? (
-                            <KosongTabel
-                                kalimat="Belum ada biaya operasional tercatat bulan ini."
-                                aksi={{
-                                    label: 'Catat Biaya',
-                                    onClick: () => setOpen(true),
-                                }}
-                            />
-                        ) : (
-                            <TabelData>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Tanggal</TableHead>
-                                        <TableHead>Kategori</TableHead>
-                                        <TableHead>Keterangan</TableHead>
-                                        <KepalaUang>Nominal</KepalaUang>
-                                        <TableHead />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {operating_expenses.map((e) => (
-                                        <TableRow key={e.id}>
-                                            <TableCell className="whitespace-nowrap">
-                                                {formatTanggal(e.spent_on)}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {e.category}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {e.description}
-                                            </TableCell>
-                                            <SelUang nominal={e.amount} />
-                                            <TableCell className="w-10">
-                                                <ConfirmDelete
-                                                    url={
-                                                        ExpenseController.destroyOperatingExpense(
-                                                            e.id,
-                                                        ).url
-                                                    }
-                                                    label={`biaya ${e.description}`}
-                                                    title={`Hapus biaya operasional ${formatRp(e.amount)}?`}
-                                                    description={`${e.category} · ${e.description}. Laba bersih bulan ini dihitung ulang.`}
-                                                />
-                                            </TableCell>
+                    {operating_expenses && (
+                        <TabsContent
+                            value="operating"
+                            className="mt-4 flex flex-col gap-3"
+                        >
+                            {operating_expenses.length === 0 ? (
+                                <KosongTabel
+                                    kalimat="Belum ada biaya operasional tercatat bulan ini."
+                                    aksi={{
+                                        label: 'Catat Biaya',
+                                        onClick: () => setOpen(true),
+                                    }}
+                                />
+                            ) : (
+                                <TabelData>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tanggal</TableHead>
+                                            <TableHead>Kategori</TableHead>
+                                            <TableHead>Keterangan</TableHead>
+                                            <KepalaUang>Nominal</KepalaUang>
+                                            <TableHead />
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                                <TableFooter>
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={3}
-                                            className="font-semibold"
-                                        >
-                                            Total biaya operasional
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono font-semibold">
-                                            {formatRp(totals.operating)}
-                                        </TableCell>
-                                        <TableCell />
-                                    </TableRow>
-                                </TableFooter>
-                            </TabelData>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                            Biaya operasional tidak dibagi-bagi ke tiap order.
-                            Di skala ini, alokasi overhead menambah kerumitan
-                            besar dengan manfaat yang tidak terasa — cukup
-                            dikurangkan sekali dari laba kotor.
-                        </p>
-                    </TabsContent>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {operating_expenses.map((e) => (
+                                            <TableRow key={e.id}>
+                                                <TableCell className="whitespace-nowrap">
+                                                    {formatTanggal(e.spent_on)}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {e.category}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {e.description}
+                                                </TableCell>
+                                                <SelUang nominal={e.amount} />
+                                                <TableCell className="w-10">
+                                                    {can.delete_money && (
+                                                        <ConfirmDelete
+                                                            url={
+                                                                ExpenseController.destroyOperatingExpense(
+                                                                    e.id,
+                                                                ).url
+                                                            }
+                                                            label={`biaya ${e.description}`}
+                                                            title={`Hapus biaya operasional ${formatRp(e.amount)}?`}
+                                                            description={`${e.category} · ${e.description}. Laba bersih bulan ini dihitung ulang.`}
+                                                        />
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <TableFooter>
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={3}
+                                                className="font-semibold"
+                                            >
+                                                Total biaya operasional
+                                            </TableCell>
+                                            <TableCell className="text-right font-semibold">
+                                                {formatRp(operatingTotal ?? 0)}
+                                            </TableCell>
+                                            <TableCell />
+                                        </TableRow>
+                                    </TableFooter>
+                                </TabelData>
+                            )}
+                            <Notice>
+                                Biaya operasional tidak dibagi-bagi ke tiap
+                                order. Di skala ini, alokasi overhead menambah
+                                kerumitan besar dengan manfaat yang tidak terasa
+                                — cukup dikurangkan sekali dari laba kotor.
+                            </Notice>
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
 
@@ -341,6 +370,7 @@ export default function ExpensesIndex(props: Props) {
                     initialMode={tab}
                     today={props.today}
                     orders={props.orders}
+                    canOperating={can.record_operating_expense}
                     onClose={() => setOpen(false)}
                 />
             )}
@@ -376,14 +406,17 @@ function ExpenseDialog({
     initialMode,
     today,
     orders,
+    canOperating,
     onClose,
 }: {
     initialMode: Mode;
     today: string;
     orders: OrderOption[];
+    /** Biaya operasional hanya dicatat owner (spek 5.1) — admin: biaya job saja. */
+    canOperating: boolean;
     onClose: () => void;
 }) {
-    const [mode, setMode] = useState<Mode>(initialMode);
+    const [mode, setMode] = useState<Mode>(canOperating ? initialMode : 'job');
     const form = useForm<ExpenseForm>({
         order_id: '',
         category: '',
@@ -439,30 +472,31 @@ function ExpenseDialog({
                 </DialogHeader>
 
                 <FieldGroup>
-                    <Field>
-                        <FieldLabel>Jenis biaya</FieldLabel>
-                        <ToggleGroup
-                            value={[mode]}
-                            onValueChange={(v) => {
-                                if (v[0] !== 'job' && v[0] !== 'operating')
-                                    return;
-                                setMode(v[0]);
-                                setData('category', '');
-                            }}
-                        >
-                            <ToggleGroupItem value="job">
-                                Biaya job
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="operating">
-                                Operasional
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                        <p className="text-xs text-muted-foreground">
-                            {mode === 'job'
-                                ? 'Menempel ke satu order dan mengurangi margin lini order itu.'
-                                : 'Bulanan, tidak dinisbatkan ke order mana pun. Dikurangkan setelah laba kotor.'}
-                        </p>
-                        {/*
+                    {canOperating && (
+                        <Field>
+                            <FieldLabel>Jenis biaya</FieldLabel>
+                            <ToggleGroup
+                                value={[mode]}
+                                onValueChange={(v) => {
+                                    if (v[0] !== 'job' && v[0] !== 'operating')
+                                        return;
+                                    setMode(v[0]);
+                                    setData('category', '');
+                                }}
+                            >
+                                <ToggleGroupItem value="job">
+                                    Biaya job
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="operating">
+                                    Operasional
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                            <p className="text-xs text-muted-foreground">
+                                {mode === 'job'
+                                    ? 'Menempel ke satu order dan mengurangi margin lini order itu.'
+                                    : 'Bulanan, tidak dinisbatkan ke order mana pun. Dikurangkan setelah laba kotor.'}
+                            </p>
+                            {/*
                             Dua salah catat yang memotong laba dua kali
                             (business-flow 8.2 & 8.4): beli alat/renovasi dicatat
                             sebagai biaya, dan servis alat dicatat sebagai biaya
@@ -470,12 +504,14 @@ function ExpenseDialog({
                             Ditaruh di sini karena di sinilah owner memutuskan
                             "ini biaya".
                         */}
-                        <p className="text-xs text-muted-foreground">
-                            Beli alat atau renovasi? Itu investasi, bukan biaya.
-                            Servis alat dibayar dari dana maintenance. Keduanya
-                            dicatat di menu Modal & Bagi Hasil.
-                        </p>
-                    </Field>
+                            <p className="text-xs text-muted-foreground">
+                                Beli alat atau renovasi? Itu investasi, bukan
+                                biaya. Servis alat dibayar dari dana
+                                maintenance. Keduanya dicatat di menu Modal &
+                                Bagi Hasil.
+                            </p>
+                        </Field>
+                    )}
 
                     {mode === 'job' && (
                         <Field>
@@ -596,7 +632,6 @@ function ExpenseDialog({
                             <Input
                                 id="amount"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
@@ -622,27 +657,5 @@ function ExpenseDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-function Summary({
-    label,
-    value,
-    note,
-}: {
-    label: string;
-    value: string;
-    note: string;
-}) {
-    return (
-        <Card className="p-5">
-            <CardHeader className="p-0">
-                <CardDescription className="text-xs">{label}</CardDescription>
-                <CardTitle className="font-mono text-2xl font-semibold">
-                    {value}
-                </CardTitle>
-            </CardHeader>
-            <p className="text-xs text-muted-foreground">{note}</p>
-        </Card>
     );
 }

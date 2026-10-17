@@ -33,6 +33,7 @@ use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Http\CsvResponse;
+use Modules\Shared\Support\Finance;
 use Modules\Shared\Support\Money;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -116,7 +117,8 @@ class AssetController extends Controller
             ->get();
         $owned = $assets->reject(fn (Asset $a) => $a->isDisposed());
 
-        return Inertia::render('asset::index', [
+        // Nilai buku, alokasi & dana maintenance hanya untuk owner (spek 5.1) — dihapus, bukan null.
+        return Inertia::render('asset::index', Finance::except([
             'month' => $month,
             'today' => $today->toDateString(),
             'summary' => [
@@ -149,17 +151,17 @@ class AssetController extends Controller
             'categories' => AssetCategory::orderBy('position')->get()->map(fn (AssetCategory $c) => ['id' => $c->id, 'name' => $c->name])->all(),
             // Ringkasan per kategori (spek 8.3) — aset dimiliki saja; totalnya = kartu di atas.
             'by_category' => $owned->groupBy(fn (Asset $a) => $a->category->name)
-                ->map(fn ($group, string $name) => [
+                ->map(fn ($group, string $name) => Finance::except([
                     'name' => $name,
                     'kinds' => $group->count(),
                     'units' => (int) $group->sum('units'),
                     'purchase_value' => (int) $group->sum(fn (Asset $a) => $a->purchaseTotal()),
                     'book_value' => (int) $group->sum(fn (Asset $a) => $this->maintenance->bookValue($a, $month)),
                     'allocation' => (int) $group->sum(fn (Asset $a) => $this->maintenance->allocationFor($a, $month)),
-                ])
+                ], ['book_value', 'allocation']))
                 ->sortByDesc('purchase_value')->values()->all(),
             'replacements' => $this->replacementProps($funds, $today),
-        ]);
+        ], ['summary.book_value', 'summary.allocation', 'replacements.maintenance_balance', 'replacements.shortfall']));
     }
 
     /**
@@ -200,8 +202,8 @@ class AssetController extends Controller
         $history = $asset->checkouts()->whereNotNull('returned_on')->with('order.customer')->limit(10)->get();
         $owner = $asset->investment?->contribution?->owner;
 
-        return Inertia::render('asset::show', [
-            'asset' => [
+        return Inertia::render('asset::show', Finance::except([
+            'asset' => Finance::except([
                 ...$this->assetProps($asset, $month, $today),
                 'funded_by' => $owner !== null ? "Modal {$owner->name}" : ($asset->investment !== null ? 'Kas usaha' : null),
                 // Foto alat & nota (spek 8.2) — URL ber-auth, bukan publik.
@@ -216,7 +218,7 @@ class AssetController extends Controller
                     'cost' => $m->cost,
                     'created_by_name' => $m->creator?->name,
                 ])->values()->all(),
-            ],
+            ], ['funded_by']),
             'maintenance_balance' => $funds->balance(Fund::Maintenance),
             'today' => $today->toDateString(),
             // Order studio/event yang bisa dikaitkan ke peminjaman (spek 8.4).
@@ -230,7 +232,7 @@ class AssetController extends Controller
                     'id' => $o->id, 'number' => $o->number, 'customer_name' => $o->customer?->name,
                     'service_date' => $o->service_date->toDateString(),
                 ])->all(),
-        ]);
+        ], ['maintenance_balance']));
     }
 
     /** Tambah = halaman penuh (spek 8.1), bukan dialog. */
@@ -357,7 +359,8 @@ class AssetController extends Controller
     }
 
     /**
-     * Bentuk satu aset untuk daftar, detail, dan form — satu sumber.
+     * Bentuk satu aset untuk daftar, detail, dan form — satu sumber. Alokasi,
+     * nilai buku & akumulasi dana hanya untuk owner (spek 5.1).
      *
      * @return array<string, mixed>
      */
@@ -365,7 +368,7 @@ class AssetController extends Controller
     {
         $next = $a->isDisposed() ? null : $this->maintenance->nextMaintenance($a);
 
-        return [
+        return Finance::except([
             'id' => $a->id,
             'code' => $a->code,
             'name' => $a->name,
@@ -393,7 +396,7 @@ class AssetController extends Controller
             'accumulated' => $this->maintenance->accumulated($a),
             'next_maintenance' => $next?->toDateString(),
             'days_until_next' => $next === null ? null : (int) $today->diffInDays($next, false),
-        ];
+        ], ['allocation', 'book_value', 'accumulated']);
     }
 
     /**

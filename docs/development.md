@@ -56,8 +56,8 @@ composer dev        # php serve + queue + log + vite sekaligus
 
 | Lingkungan | Cara |
 |---|---|
-| Lokal / staging | Seeder: `agung@potraittime.test` dan `raka@potraittime.test`, password `password` |
-| Produksi | `php artisan app:buat-pengguna` — registrasi publik dimatikan |
+| Lokal / staging | Seeder: `agung@potraittime.test` dan `raka@potraittime.test` (owner); `DemoSeeder` menambah `admin@potraittime.test` (admin). Password `password` |
+| Produksi | `php artisan app:buat-pengguna` (menanyakan nama, email, **peran**, password) atau Settings → Pengguna (owner) — registrasi publik dimatikan |
 
 ## 3. Perintah
 
@@ -92,10 +92,11 @@ UI dan pesan server berbahasa Indonesia; kode berbahasa Inggris. Pesan validasi,
 `phpunit.xml` dan CI memakai PostgreSQL, bukan SQLite `:memory:` bawaan starter kit. Laporan bulanan bergantung pada fungsi tanggal dan agregasi yang perilakunya beda antar database — bug semacam itu tidak boleh baru ketahuan di produksi.
 
 ### Komponen UI
-- Primitive di `resources/js/components/ui/` adalah **Base UI** (preset base-maia, mist), bukan Radix. Pola: `render={<Link … />}`, bukan `asChild`.
-- Komponen yang sudah ada di prototype (`web/app/components/ui/`) **disalin dari sana**: ganti import `~/` → `@/` dan `"cn"` → `"@/lib/utils"`. Komponen prototype sudah membawa kustomisasi DESIGN.md (varian badge R3, dsb).
+- Primitive di `resources/js/components/ui/` adalah **Base UI** (preset base-maia), bukan Radix. Pola: `render={<Link … />}`, bukan `asChild`.
+- Tampilan mengikuti sistem desain master-outlet (DESIGN.md bagian 2, "Konvensi halaman"): kelas wrapper `ui/*` (button pil `outline` = `bg-card`, input/select `bg-card`, table = panel putih, card `rounded-3xl` tanpa ring) diselaraskan dengan `master-outlet/web/src/components/ui`. Prototype `web/` bukan lagi sumber salinan — tampilannya sistem lama.
+- Tata letak halaman: `PageHeader`, `Panel`, `Notice` dari `@/components/page`.
 - Token desain di `resources/css/app.css` — ubah bersamaan dengan DESIGN.md bagian 2.
-- Font self-hosted lewat `@fontsource-variable` (DM Sans, Outfit, JetBrains Mono), tanpa CDN.
+- Font self-hosted lewat `@fontsource-variable` (Inter, JetBrains Mono untuk ID saja), tanpa CDN. Angka tabular dipasang global di `body` (DESIGN.md R2).
 
 ### Rumus bisnis
 Dihitung di PHP (`Modules/Finance/Services`), dikirim ke halaman sebagai props Inertia — bukan di TypeScript. Skema, konvensi, glosarium istilah Indonesia ↔ kode, dan letak tiap rumus: [database.md](./database.md).
@@ -123,6 +124,29 @@ Aturan yang disepakati:
 - **Nama halaman Inertia `<modul>::<halaman>`** (`Inertia::render('order::index')` → `resources/js/modules/order/pages/index.tsx`). Halaman app tetap tanpa namespace (`dashboard`, `auth/login`, `settings/profile`). Resolver di `resources/js/app.tsx`.
 - **Komponen dipakai 2+ modul** tetap di `resources/js/components/` (mis. `status-order.tsx`, `data-table.tsx`); tipe enum domain bersama di `resources/js/types/domain.ts`.
 
+### Peran (owner / admin)
+Dua peran tetap (`App\Enums\UserRole`, kolom `users.role`, spek 5.1): **owner** = semua; **admin** = transaksi harian (POS, order, pembayaran, retur, biaya job, customer, servis & status aset, peminjaman alat, invoice, kirim pesan) tanpa laporan, modal & bagi hasil, margin/HPP/nilai buku, hapus catatan uang, kelola katalog/aset/template/pengguna, tutup buku.
+
+Satu mekanisme — **Gate per kemampuan, bukan cek peran**. Daftar Gate = `App\Enums\Ability` (didefinisikan di loop `AppServiceProvider::configureGates()`, semuanya "owner saja"); tambah case baru = Gate baru + kunci baru di `auth.can` otomatis (tambahkan juga ke tipe `Ability` di `resources/js/types/auth.ts`).
+
+| Gate | Dipakai untuk |
+|---|---|
+| `view-finance` | Grup route Finance (`reports.*`, `capital.*`), `orders.export`, `assets.export`, semua props finansial |
+| `manage-catalog` | `catalog.create/store/edit/update/toggle-active`, `catalog.photos.*` |
+| `delete-money` | `orders.payments.destroy`, `orders.refunds.destroy`, `expenses.job-costs.destroy`, `expenses.operating.destroy`, `assets.maintenances.destroy`, `capital.withdrawals/contributions.destroy` |
+| `close-period` | `capital.closings.store/reopen` |
+| `manage-users` | `users.*` (Settings → Pengguna) |
+| `manage-assets` | `assets.create/store/edit/update/dispose`, `assets.photos.store/destroy/cover`, `asset-categories.*` |
+| `manage-templates` | `communication.templates.update` |
+| `record-operating-expense` | `expenses.operating.store` |
+
+Cara memasang:
+- **Route** → middleware `can:<gate>`: `->middleware('can:delete-money')` untuk satu route, `Route::middleware('can:manage-assets')->group(...)` untuk sekumpulan. Ditolak = 403. Jangan cek peran di controller.
+- **Prop finansial** → `Modules\Shared\Support\Finance` di controller: `Finance::except($props, ['margin', 'summary.book_value'])` (dot notation boleh; untuk daftar, per baris) atau `...Finance::only(fn () => ['revenue' => …])` untuk prop yang seluruhnya finansial (tidak dihitung untuk admin). Field **dihapus**, bukan `null` — klien membedakan "tidak boleh lihat" dari "nol". Tipe TS field itu dibuat opsional (`margin?: number`) dan kolom/kartu dirender dari `!== undefined`. Test: `assertInertia(fn ($p) => $p->missing('…'))` sebagai admin, `->has('…')` sebagai owner (`User::factory()->admin()`).
+- **Tombol / menu** → `useCan()` (`hooks/use-can.ts`, membaca shared prop `auth.can.<gate_snake>`): `{can.delete_money && <ConfirmDelete … />}`. Jangan menebak dari `auth.user.role`. Menu sidebar: `navGroupsFor(can)` di `app-sidebar.tsx`.
+
+Aturan pengguna: minimal satu owner; owner tidak mengubah perannya sendiri (`UpdateUserRequest`) dan tidak menghapus akunnya (`ProfileDeleteRequest`). Tidak ada hapus/nonaktif pengguna — akun staf yang keluar diganti sandinya.
+
 ### Pola modul (contoh: Katalog)
 Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 
@@ -132,7 +156,7 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Validasi | `Modules/<Modul>/Requests/<Model>Request.php` | Aturan bisnis input (mis. HPP wajib produk, dilarang jasa); `attributes()` berbahasa Indonesia |
 | Controller | `Modules/<Modul>/Controllers/<Model>Controller.php` (extends `App\Http\Controllers\Controller`) | Tipis; `Inertia::flash('toast', [...])` lalu `to_route(...)` |
 | Halaman | `resources/js/modules/<modul>/pages/index.tsx`, dirender sebagai `<modul>::index`; form tambah+edit yang besar = satu halaman `pages/form.tsx` (`<modul>::form`, prop `item` null = tambah), contoh Katalog sejak spek 7.2 | Props bertipe; form `useForm`; URL dari Wayfinder (`@/actions/Modules/...`), bukan string. Simpan item baru → redirect ke halaman Edit-nya bila ada bagian yang butuh id (foto) |
-| Aksi header | `<PageActions>` | Portal ke slot kanan header (R8) — tombol tetap bisa memakai state halaman |
+| Aksi header | `PageHeader actions` (`components/page.tsx`) | Tombol dirender di pohon halaman, jadi langsung memakai state & handler halaman. Bar header aplikasi hanya breadcrumb + chip profil |
 | Status order | `components/status-order.tsx` | Badge status bayar & progres kerja (R3) — status bayar & persen DP dari server, tidak dihitung ulang di layar |
 | Aksi status | `PATCH <modul>/{id}/<aksi>` (mis. `orders.advance`, `orders.cancel`) | Transisi status = route sendiri, bukan field di form edit. Langkah berikutnya ditentukan server (`WorkStatus::next()`), layar hanya mengirim "lanjut". Koreksi salah klik: `orders.revert` / `WorkStatus::previous()` (satu langkah, event `reverted`; Booking & Batal tidak bisa mundur) |
 | Riwayat anak | Route bersarang (`POST orders/{order}/payments`) + controller sendiri | Pembayaran tidak diedit; salah catat dihapus lalu dicatat ulang (`ConfirmDelete`, hanya bulan yang belum tutup buku). Dialog `PaymentDialog` (`@/modules/order`) dipakai Detail Order dan layar Pembayaran; controller-nya `back()` supaya owner kembali ke layar asal |
@@ -142,6 +166,7 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Template pesan | Teks ke customer dari `MessageTemplate` (`bodyFor($key)` di server); placeholder diisi `MessageTemplate::fillPlaceholders()` (server) / `personalise()` + `namaDepan()` (`lib/format.ts`, klien) | Jangan hard-code teks pesan customer di komponen — owner harus bisa mengubahnya di Komunikasi. Pengecualian yang disengaja: struk retail & bukti bayar (teks tetap, K5 hanya untuk tagihan). Placeholder tak dikenal dibiarkan, tidak error . Kunci placeholder (PHP & TS harus sama): semua `{nama}`; `thank_you` `{link}`; `billing` `{nomor}` `{sisa}` `{jatuh_tempo}` `{link}`; `reminder` `{tanggal}` `{jam}` `{lokasi}`. Tombol WA bersama: `components/whatsapp-button.tsx` (nonaktif + tooltip tanpa HP) |
 | Nomor HP | `Modules\Customer\Support\Phone::normalise()` sebelum disimpan/dibandingkan; klien memakai `keNomorWa()` (`lib/format.ts`) yang setara | Jangan menormalkan di klien lalu mengirim hasilnya — server satu-satunya sumber kebenaran. Data lama `08…` dibiarkan; bandingkan hasil normalisasi kedua sisi (`PosController::customerFor`) |
 | Riwayat perubahan order | `Modules\Order\Actions\RecordOrderEvent::execute($order, OrderEventType, $changes)` (field baru di `changes` → tambah labelnya di `ORDER_FIELD_LABEL`) | Wajib dipanggil **di dalam transaksi yang sama** oleh setiap jalur tulis order baru (buat, status, batal, link hasil, pembayaran); `changes` hanya field yang berubah; kalimatnya dirangkai `describeEvent()` di `modules/order/types.ts` |
+| Riwayat perubahan via observer model | `CatalogItem::booted()`: `created` + `updated` dengan `wasChanged(['price','unit_cost'])` → baris `CatalogPriceChange` (`changed_by` = user login, relasi `creator`) | Di model, bukan controller, supaya seeder/impor/`syncPriceFromVariants()` ikut tercatat. Append-only (`UPDATED_AT = null`). Masa berlaku dihitung klien dari baris berikutnya (`periodeBerlaku()`, `modules/catalog/lib/price-history.ts`), tidak disimpan |
 | Aksi tulis lintas tabel | `Modules/<Modul>/Actions/<Aksi>.php` dengan `execute()` (mis. `Finance\Actions\RecordInvestment`) | Satu tempat untuk pencatatan yang dipakai beberapa layar (Catat Investasi + Tambah Aset), dibungkus transaksi oleh pemanggil . Contoh lintas modul: `Modules\Customer\Actions\FindOrCreateCustomer` (dedup HP → nama → buat) dipakai POS dan form order — Order memanggil action Customer, bukan menulis `Customer::create` sendiri |
 | Halaman untuk customer (tanpa login) | Route di luar grup `auth`, middleware `signed`, link dari `URL::signedRoute()` (mis. `Order::invoiceUrl()`); halaman tanpa layout admin (kasus di `layout` `app.tsx`) | Id di URL tidak bisa diganti untuk mengintip data lain; jangan pernah membuka data customer lewat route publik tanpa `signed`. Order retail tampil sebagai **struk** (judul Struk, cetak 80 mm); varian cetak otomatis = `Order::invoiceUrl(print: true)` (`print_url`). Satu link = invoice = struk = bukti bayar — jangan membuat dokumen baru untuk kwitansi |
 | Flash sekali tampil | `Inertia::flash('<key>', [...])` di controller + `useFlash<T>('<key>')` (`hooks/use-flash.ts`) di halaman | Untuk ringkasan setelah simpan (mis. `receipt` → `ReceiptSheet` di POS, Order, Pembayaran — mode bukti bayar bila payload membawa `paid_amount`). Flash Inertia 3 datang lewat event `router.on('flash')`, bukan `usePage().props` — refresh tidak memunculkannya lagi |
@@ -152,7 +177,9 @@ Setiap layar yang dipindah dari `web/` mengikuti pola modul Katalog:
 | Layar sempit | Hanya POS & Pembayaran (spek 4.6). Kelas Tailwind (`md:hidden` / `hidden md:block`), bukan deteksi perangkat; kartu & baris tabel dipetakan dari array yang sama (`ReceivableCard`). Pengecualian: elemen berisi input ber-`id` yang harus dirender **sekali** (keranjang POS) memakai `useMinWidth()` (`hooks/use-mobile.tsx`) — render ganda dengan kelas CSS menggandakan id sehingga `<label for>` menunjuk input yang tersembunyi | Tombol di kartu tinggi 44 px (`size="lg"` + `h-11`); `WhatsAppButton wide`. Cek `document.documentElement.scrollWidth` ≤ 390 di Playwright. Elemen `sticky`/`absolute` yang diubah per breakpoint: ganti ke `lg:relative`, bukan `lg:static`, kalau anaknya berposisi absolut |
 | Unggah foto | Browser mengecilkan dulu (`resizeForUpload()`, `lib/photo-resize.ts`; PDF dikirim apa adanya); galeri generik `components/photo-gallery.tsx` (URL lewat props). Server menyandikan ulang dengan `Shared\Support\ImageEncoder`. **Publik vs privat:** foto katalog di disk `public` (untuk company profile), foto & nota aset di disk `local` lewat route ber-auth (spek 8.2) — pilih disk menurut siapa yang boleh melihat, kirim `router.post(..., { forceFormData: true, preserveState: true })` | File asli tidak pernah disimpan — EXIF (lokasi GPS) terbuang dan isi file tidak dipercaya. `preserveState` wajib supaya isian form yang belum disimpan tidak hilang. Route anak memakai `scopeBindings()`. Test: `Storage::fake(CatalogItemPhoto::DISK)` + `UploadedFile::fake()->image()` |
 | Edit sebagian (identitas vs keuangan) | Request edit hanya memuat field yang boleh berubah; field keuangan tidak ada di aturan sehingga diabaikan walau dikirim (`UpdateAssetRequest` + trait `AssetIdentity`, spek 8.1). Form menampilkan field terkunci sebagai ringkasan baca-saja | Jangan memvalidasi lalu membuang diam-diam di controller — aturan request adalah daftar putih. Contoh lain: Ubah Order (K1) |
-| Menu | `app-sidebar.tsx`, grup R8 yang sesuai | |
+| Snapshot json untuk sub-struktur transaksi | Kolom json di baris transaksi + cast `array` (mis. `order_items.components`, spek 6.3), diisi dari katalog saat transaksi (`CatalogItem::componentsSnapshot()` lewat `ResolvesCatalogLines::lines()`) | Jangan membaca ulang relasi katalog untuk menampilkan riwayat — katalog boleh berubah, order tidak. Baris lama saat Ubah Order tidak disalin ulang. Halaman customer (invoice) hanya menerima field yang boleh dilihat customer (tanpa `unit_cost`) |
+| Menu | `app-sidebar.tsx`, grup R8 yang sesuai | Menu owner-saja disertakan lewat `navGroupsFor(can)` |
+| Aksi hanya owner | Route `can:<gate>` (`App\Enums\Ability`) + `useCan()` di klien; props finansial lewat `Finance::except()` | Lihat [Peran](#peran-owner--admin) |
 | Test | `Modules/<Modul>/Tests/Feature/<Model>Test.php` (namespace `Modules\<Modul>\Tests\Feature`) | Auth, render Inertia + props, validasi, aturan bisnis |
 
 ### Menu sidebar
@@ -181,6 +208,7 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 17. **`Order::balance()` sengaja bruto.** Sisa tagihan & status bayar memakai `totalPaid()`, bukan `netPaid()` — refund tidak membuat customer berutang lagi; memakai `netPaid()` membuat order yang direfund penuh muncul lagi di piutang. Yang memakai refund: `margin()`, `ProfitAndLoss::revenue()`, `CashReceipts`. Relasi `refunds` di-eager-load bersama `payments` di layar yang memanggil `margin()`.
 18. **Keranjang tertahan POS hanya di `localStorage` browser kasir** (`pos.held`, `lib/held-carts.ts`) — bukan data, tidak di-backup, tidak terlihat dari perangkat lain, hilang bila cache browser dibersihkan. Bentuknya divalidasi saat dimuat (versi 1); entri rusak dilewati, bukan error. ID tidak memakai `crypto.randomUUID()` karena fungsi itu hanya ada di secure context — POS lewat IP LAN `http://` akan error.
 19. **Foto katalog bergantung pada batas upload PHP dan folder persisten.** `upload_max_filesize` bawaan PHP 2 MB, `post_max_size` 8 MB — foto HP 3–8 MB gagal sebelum sampai ke Laravel bila tidak dikecilkan di browser dulu (itu tugas `resizeForUpload()`; jangan dilewati). File ada di `storage/app/public/catalog/{item}/` dan diakses lewat symlink `public/storage` (`php artisan storage:link`). Di hosting folder itu **harus persisten** (volume/backup), kalau tidak setiap deploy menghapus semua foto. URL foto dibentuk dari `APP_URL` — isi dengan domain sebenarnya.
+20. **Bukti transfer pembayaran (spek 6.7) & nota aset (8.2) ada di disk privat `local` (`storage/app/private`).** Folder ini **harus persisten** di hosting (volume/backup) — kalau deploy container tanpa volume, arahkan disk ke S3-compatible (ubah `FILESYSTEM_DISK`/konfigurasi disk `local`). Bukti hanya dibuka lewat `Payment::proofUrl()` (temporary signed, 10 menit, tetap butuh login); jangan pernah dimuat di invoice publik.
 
 ---
 
@@ -190,4 +218,4 @@ Grup Harian / Data / Keluaran (DESIGN.md R8) di `resources/js/components/app-sid
 - Blast email butuh konfigurasi SMTP di `.env` (`MAIL_MAILER`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`) — default `log` hanya menulis email ke log.
 - Profil studio di invoice (`config/studio.php`) masih data contoh prototype — isi `STUDIO_NAME`, `STUDIO_ADDRESS`, `STUDIO_PHONE`, `STUDIO_BANK_ACCOUNT` di `.env` sebelum invoice dikirim ke customer. `STUDIO_LOW_MARGIN_RATIO` (default `0.2`) = ambang penanda merah kolom Margin % produk di Katalog. `STUDIO_EXPORT_LIMIT` (default `10000`) = batas baris ekspor CSV order.
 - Logo aplikasi masih SEMENTARA (ikon kamera di `app-logo-icon.tsx`) — ganti isi komponen itu saat file logo Potrait Time tersedia. Nama di sidebar & judul tab = `APP_NAME` di `.env`.
-- Gap modul operasional (POS, Order, Pembayaran, Katalog, Aset) dari sudut pandang admin & owner dan perbandingan dengan POS lain: `docs/research/analisis-modul-operasional.md`; rencana per fase + spesifikasi tiap item (route, tabel, request, UI, test minimal, keputusan owner yang dibutuhkan) di `docs/rencana-pengembangan-operasional.md`; spek siap kerja per item (satu file = satu PR) di `docs/specs/` dengan status di `docs/specs/README.md` — belum ada yang diimplementasikan.
+- Gap modul operasional (POS, Order, Pembayaran, Katalog, Aset) dari sudut pandang admin & owner dan perbandingan dengan POS lain: `docs/research/analisis-modul-operasional.md`; rencana per fase di `docs/rencana-pengembangan-operasional.md`; spek per item di `docs/specs/` dengan status di `docs/specs/README.md` — semua sudah dikerjakan per #64 kecuali 5.2 (dibatalkan). Kandidat lanjutan: endpoint publik company profile (aturan field di spek 7.1), unggah bukti transfer di DP Buat Order & POS (6.7 hanya di Catat Pembayaran), komponen paket per varian (6.3 memakai HPP item).

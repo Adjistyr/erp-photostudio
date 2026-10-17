@@ -37,7 +37,8 @@ export function ServiceDialog({
 }: {
     asset: AssetRow;
     today: string;
-    balance: number;
+    /** Saldo dana maintenance — tidak ada untuk admin (spek 5.1); server tetap menolak bila kurang. */
+    balance?: number;
     onClose: () => void;
 }) {
     const form = useForm<ServiceForm>({
@@ -136,7 +137,6 @@ export function ServiceDialog({
                             <Input
                                 id="service-cost"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="0"
                                 value={data.cost}
                                 aria-invalid={Boolean(errors.cost)}
@@ -148,9 +148,11 @@ export function ServiceDialog({
                         </Field>
                     </div>
 
-                    <p className="font-mono text-xs text-muted-foreground">
-                        Saldo dana maintenance {formatRp(balance)}
-                    </p>
+                    {balance !== undefined && (
+                        <p className="text-xs text-muted-foreground">
+                            Saldo dana maintenance {formatRp(balance)}
+                        </p>
+                    )}
                 </FieldGroup>
 
                 <DialogFooter>

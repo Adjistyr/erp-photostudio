@@ -45,20 +45,20 @@ export default function ManageTwoFactor(props: Props) {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <Heading
                 variant="small"
                 title="Autentikasi dua langkah"
                 description="Kelola pengaturan autentikasi dua langkah"
             />
             {twoFactorEnabled ? (
-                <div className="flex flex-col items-start justify-start space-y-4">
+                <div className="flex flex-col items-start gap-4">
                     <p className="text-sm text-muted-foreground">
                         Setiap kali masuk, akan diminta PIN acak yang aman dari
                         aplikasi pendukung TOTP di ponsel.
                     </p>
 
-                    <div className="relative inline">
+                    <div>
                         <Form {...disable.form()}>
                             {({ processing }) => (
                                 <Button
@@ -79,7 +79,7 @@ export default function ManageTwoFactor(props: Props) {
                     />
                 </div>
             ) : (
-                <div className="flex flex-col items-start justify-start space-y-4">
+                <div className="flex flex-col items-start gap-4">
                     <p className="text-sm text-muted-foreground">
                         Jika autentikasi dua langkah aktif, PIN aman akan
                         diminta setiap kali masuk. PIN ini bisa diambil dari

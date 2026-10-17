@@ -136,9 +136,13 @@ class ReportController extends Controller
                 'category' => $s->item->category,
                 'quantity' => $s->quantity,
                 'value' => $s->value,
+                // HPP bahan paket berkomponen (spek 6.3); null = "—".
+                'cost' => $s->cost,
             ], $sales->topServices()),
             // Item di luar katalog (harga nego) — satu baris agregat di bawah jasa.
             'custom_items' => $sales->customItems(),
+            // Sumber order per bulan (spek 6.6) — basis kas, studio & event.
+            'by_source' => $sales->bySource($month),
             // Lead tanpa order tidak dirangking — tabel ini untuk menentukan
             // siapa yang layak di-follow up.
             'customers' => array_values(array_map(fn (CustomerSummary $c) => [
@@ -249,7 +253,9 @@ class ReportController extends Controller
                 'customer_name' => $o->customer?->name,
                 'business_line' => $o->business_line->value,
                 'balance' => $o->balance(),
+                // Umur dari jatuh tempo efektif (termin berikutnya, spek 6.4).
                 'days_until_due' => $o->daysUntilDue($today),
+                'next_installment' => $o->nextInstallment(),
                 'payment_status' => $o->paymentStatus()->value,
                 'paid_percent' => (int) round($o->paidRatio() * 100),
             ])->values()->all(),

@@ -60,7 +60,10 @@ export function TabelData({
         // halaman melebar — kolom terakhir dan tombol di header halaman ikut
         // terpotong. Gejalanya terlihat seperti tabel kelebaran, padahal yang
         // rusak adalah lebar halamannya.
-        <div className="relative max-h-[calc(100svh-13rem)] min-w-0 overflow-auto rounded-lg border">
+        //
+        // Tanpa border: Table sendiri sudah panel putih membulat di atas
+        // kanvas (DESIGN.md "Konvensi halaman").
+        <div className="relative max-h-[calc(100svh-13rem)] min-w-0 overflow-auto rounded-3xl">
             <Table
                 className={cn(
                     KELAS_DENSITY,
@@ -75,12 +78,11 @@ export function TabelData({
 }
 
 /**
- * Sel nominal: rata kanan, mono, dan warna mengikuti R5 (negatif
- * `--destructive`, nol `--muted-foreground`).
+ * Sel nominal: rata kanan, dan warna mengikuti R5 (negatif `--destructive`,
+ * nol `--muted-foreground`).
  *
- * Mono dipakai alih-alih `tabular-nums` karena `tabular-nums` diam-diam no-op
- * kalau font tidak punya fitur `tnum` — dan kolom Rp balik zigzag tanpa error.
- * Lihat catatan di app.css.
+ * Tanpa mono: `body` memasang `tabular-nums` global dan subset Inter yang
+ * di-self-host terbukti membawa fitur `tnum` (DESIGN.md R2).
  */
 export function SelUang({
     nominal,
@@ -90,9 +92,7 @@ export function SelUang({
     className?: string;
 }) {
     return (
-        <TableCell
-            className={cn('text-right font-mono', kelasRp(nominal), className)}
-        >
+        <TableCell className={cn('text-right', kelasRp(nominal), className)}>
             {formatRp(nominal)}
         </TableCell>
     );
@@ -147,7 +147,7 @@ export function KosongTabel({
     const Ikon = nada === 'baik' ? CircleCheck : Inbox;
 
     return (
-        <Empty className="rounded-lg border">
+        <Empty className="rounded-3xl bg-card">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <Ikon

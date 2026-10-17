@@ -19,7 +19,7 @@ import {
 } from '@/components/data-table';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import InputError from '@/components/input-error';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { RecordedBy } from '@/components/recorded-by';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -35,12 +35,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -69,8 +63,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { SummaryCard } from '@/components/summary-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useCan } from '@/hooks/use-can';
 import {
     formatBulan,
     formatPersen,
@@ -210,32 +206,35 @@ export default function Capital(props: Props) {
     return (
         <>
             <Head title="Modal & Bagi Hasil" />
-            <h1 className="sr-only">Modal & Bagi Hasil</h1>
 
-            {action && (
-                <PageActions>
-                    <Button onClick={() => setDialog(tab)}>
-                        <Plus data-icon="inline-start" />
-                        {action}
-                    </Button>
-                </PageActions>
-            )}
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Modal & Bagi Hasil"
+                    description="Hak bagi hasil per bulan, setoran owner, pos dana, investasi, dan rasio."
+                    actions={
+                        action && (
+                            <Button onClick={() => setDialog(tab)}>
+                                <Plus data-icon="inline-start" />
+                                {action}
+                            </Button>
+                        )
+                    }
+                />
 
-            <div className="flex flex-col gap-6 p-6">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Summary
+                    <SummaryCard
                         label={FUND_LABEL.maintenance}
-                        value={props.funds.maintenance}
+                        value={formatRp(props.funds.maintenance)}
                         note="untuk servis dan ganti alat"
                     />
-                    <Summary
+                    <SummaryCard
                         label={FUND_LABEL.reserve}
-                        value={props.funds.reserve}
+                        value={formatRp(props.funds.reserve)}
                         note="untuk pembelian mendesak"
                     />
-                    <Summary
+                    <SummaryCard
                         label="Pinjaman owner belum kembali"
-                        value={props.outstanding_loans}
+                        value={formatRp(props.outstanding_loans)}
                         note="dilunasi sebelum laba dibagi"
                     />
                 </div>
@@ -247,7 +246,7 @@ export default function Capital(props: Props) {
                         if (t) setTab(t);
                     }}
                 >
-                    <TabsList>
+                    <TabsList className="max-w-full justify-start overflow-x-auto">
                         <TabsTrigger value="history">Bagi Hasil</TabsTrigger>
                         <TabsTrigger value="contributions">
                             Setoran Owner
@@ -328,14 +327,14 @@ export default function Capital(props: Props) {
                                 entries={props.ledgers[f]}
                             />
                         ))}
-                        <p className="text-xs text-muted-foreground">
+                        <Notice>
                             Pemakaian dana tidak masuk Laba Rugi — uangnya sudah
                             dikurangi saat disisihkan. Servis alat dicatat di
                             sini (atau di Aset & Maintenance), bukan di Biaya,
                             supaya laba tidak terpotong dua kali. Alokasi{' '}
                             {formatBulan(props.month)} masuk setelah bulan
                             tutup.
-                        </p>
+                        </Notice>
                     </TabsContent>
 
                     <TabsContent
@@ -454,16 +453,20 @@ function HistoryTab({
                                 return (
                                     <TableCell
                                         key={o.id}
-                                        className="text-right"
+                                        className="text-right whitespace-nowrap"
                                     >
                                         <span
-                                            className={`font-mono ${share?.amount ? '' : 'text-muted-foreground'}`}
+                                            className={
+                                                share?.amount
+                                                    ? undefined
+                                                    : 'text-muted-foreground'
+                                            }
                                         >
                                             {formatRp(share?.amount ?? 0)}
                                         </span>
                                         {/* Persen di tiap baris, bukan di header: rasio
                                             bisa berbeda antar bulan (8.6). */}
-                                        <span className="ml-1.5 font-mono text-xs text-muted-foreground">
+                                        <span className="ml-1.5 text-xs text-muted-foreground">
                                             {share ? `${share.percent}%` : '—'}
                                         </span>
                                     </TableCell>
@@ -483,13 +486,13 @@ function HistoryTab({
                     ))}
                 </TableBody>
             </TabelData>
-            <p className="text-xs text-muted-foreground">
+            <Notice>
                 Angka bulan yang belum tutup buku masih berubah setiap ada
                 transaksi. Tutup buku setelah semua transaksi bulan itu tercatat
                 — setelahnya bagi hasil final dan transaksi bertanggal bulan itu
                 ditolak. Yang dihitung di sini adalah hak tiap owner —
                 pencairannya terjadi di luar app.
-            </p>
+            </Notice>
         </div>
     );
 }
@@ -514,6 +517,8 @@ function ClosingStatus({
     lastClosed: string | null;
     closing: { closed_at: string; closed_by: string | null } | undefined;
 }) {
+    // Tombol tutup/buka buku mengikuti Gate `close-period` (spek 5.1).
+    const canClose = useCan().close_period;
     if (final) {
         return (
             <div className="flex items-center gap-2">
@@ -527,7 +532,7 @@ function ClosingStatus({
                 >
                     Tutup buku
                 </Badge>
-                {month === lastClosed && (
+                {canClose && month === lastClosed && (
                     <ConfirmClosing
                         month={month}
                         action="reopen"
@@ -539,7 +544,7 @@ function ClosingStatus({
             </div>
         );
     }
-    if (month === nextToClose) {
+    if (canClose && month === nextToClose) {
         return (
             <ConfirmClosing
                 month={month}
@@ -629,42 +634,41 @@ function CapitalRecoverySection({ rows }: { rows: Props['capital_recovery'] }) {
     // "belum balik modal sama sekali", padahal "modalnya belum dicatat".
     if (rows.length === 0) {
         return (
-            <p className="text-xs text-muted-foreground">
+            <Notice>
                 Progres balik modal muncul setelah modal owner dicatat di tab
                 Setoran Owner.
-            </p>
+            </Notice>
         );
     }
 
     return (
-        <section className="flex flex-col gap-3 rounded-lg border p-5">
-            <h2 className="font-heading text-base font-semibold">
-                Progres balik modal
-            </h2>
-            {rows.map((r) => (
-                <div key={r.owner_name} className="flex flex-col gap-1.5">
-                    <div className="flex items-baseline justify-between gap-3 text-sm">
-                        <span className="font-medium">{r.owner_name}</span>
-                        <span className="font-mono text-xs text-muted-foreground">
-                            {formatRp(r.entitled)} dari {formatRp(r.equity)} ·{' '}
-                            {formatPersen(r.ratio)}
-                        </span>
+        <Panel title="Progres balik modal">
+            <div className="flex flex-col gap-4">
+                {rows.map((r) => (
+                    <div key={r.owner_name} className="flex flex-col gap-1.5">
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                            <span className="font-medium">{r.owner_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                                {formatRp(r.entitled)} dari {formatRp(r.equity)}{' '}
+                                · {formatPersen(r.ratio)}
+                            </span>
+                        </div>
+                        <Progress
+                            value={Math.max(
+                                0,
+                                Math.min(100, Math.round(r.ratio * 100)),
+                            )}
+                            aria-label={`Progres balik modal ${r.owner_name}`}
+                        />
                     </div>
-                    <Progress
-                        value={Math.max(
-                            0,
-                            Math.min(100, Math.round(r.ratio * 100)),
-                        )}
-                        aria-label={`Progres balik modal ${r.owner_name}`}
-                    />
-                </div>
-            ))}
-            <p className="text-xs text-muted-foreground">
-                Dari hak bagi hasil bulan yang sudah tutup. Kalau owner sepakat
-                mengubah rasio setelah balik modal, tambahkan aturan baru di tab
-                Rasio.
-            </p>
-        </section>
+                ))}
+                <Notice>
+                    Dari hak bagi hasil bulan yang sudah tutup. Kalau owner
+                    sepakat mengubah rasio setelah balik modal, tambahkan aturan
+                    baru di tab Rasio.
+                </Notice>
+            </div>
+        </Panel>
     );
 }
 
@@ -675,6 +679,7 @@ function ContributionsTab({
     rows: Props['contributions'];
     onAdd: () => void;
 }) {
+    const can = useCan();
     return (
         <>
             {rows.length === 0 ? (
@@ -735,27 +740,29 @@ function ContributionsTab({
                                     <SelUang nominal={c.remaining} />
                                 )}
                                 <TableCell className="w-10">
-                                    <ConfirmDelete
-                                        url={
-                                            CapitalController.destroyContribution(
-                                                c.id,
-                                            ).url
-                                        }
-                                        label={`setoran ${c.note}`}
-                                        title={`Hapus setoran ${c.owner_name} ${formatRp(c.amount)}?`}
-                                        description="Hanya bisa kalau belum terpakai: pinjaman belum mulai dilunasi, dan modal tidak membiayai investasi/aset."
-                                    />
+                                    {can.delete_money && (
+                                        <ConfirmDelete
+                                            url={
+                                                CapitalController.destroyContribution(
+                                                    c.id,
+                                                ).url
+                                            }
+                                            label={`setoran ${c.note}`}
+                                            title={`Hapus setoran ${c.owner_name} ${formatRp(c.amount)}?`}
+                                            description="Hanya bisa kalau belum terpakai: pinjaman belum mulai dilunasi, dan modal tidak membiayai investasi/aset."
+                                        />
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </TabelData>
             )}
-            <p className="text-xs text-muted-foreground">
+            <Notice>
                 Setoran bukan omzet dan tidak muncul di Laba Rugi. Pinjaman
                 dikembalikan sebelum laba dibagi; modal kembali lewat bagi
                 hasil.
-            </p>
+            </Notice>
         </>
     );
 }
@@ -769,16 +776,17 @@ function LedgerSection({
     balance: number;
     entries: LedgerEntry[];
 }) {
+    const can = useCan();
     return (
-        <section className="flex min-w-0 flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-                <h2 className="font-heading text-base font-semibold">
-                    {FUND_LABEL[fund]}
-                </h2>
-                <span className="font-mono text-sm">
+        <Panel
+            title={FUND_LABEL[fund]}
+            aside={
+                <span className="text-sm font-medium text-foreground">
                     Saldo {formatRp(balance)}
                 </span>
-            </div>
+            }
+            flush
+        >
             {entries.length === 0 ? (
                 <KosongTabel kalimat="Belum ada mutasi. Alokasi masuk otomatis setiap akhir bulan." />
             ) : (
@@ -813,25 +821,26 @@ function LedgerSection({
                                 <TableCell className="w-10">
                                     {/* Hanya pemakaian manual; alokasi, pinjaman, dan
                                         servis aset dihapus dari sumbernya masing-masing. */}
-                                    {e.withdrawal_id !== null && (
-                                        <ConfirmDelete
-                                            url={
-                                                CapitalController.destroyWithdrawal(
-                                                    e.withdrawal_id,
-                                                ).url
-                                            }
-                                            label={`pemakaian ${e.description}`}
-                                            title={`Hapus pemakaian ${formatRp(e.out)}?`}
-                                            description={`${e.description}. Saldo ${FUND_LABEL[fund].toLowerCase()} kembali.`}
-                                        />
-                                    )}
+                                    {can.delete_money &&
+                                        e.withdrawal_id !== null && (
+                                            <ConfirmDelete
+                                                url={
+                                                    CapitalController.destroyWithdrawal(
+                                                        e.withdrawal_id,
+                                                    ).url
+                                                }
+                                                label={`pemakaian ${e.description}`}
+                                                title={`Hapus pemakaian ${formatRp(e.out)}?`}
+                                                description={`${e.description}. Saldo ${FUND_LABEL[fund].toLowerCase()} kembali.`}
+                                            />
+                                        )}
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </TabelData>
             )}
-        </section>
+        </Panel>
     );
 }
 
@@ -881,14 +890,14 @@ function InvestmentsTab({
                             <TableCell colSpan={3} className="font-semibold">
                                 Total investasi
                             </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
+                            <TableCell className="text-right font-semibold">
                                 {formatRp(total)}
                             </TableCell>
                         </TableRow>
                     </TableFooter>
                 </TabelData>
             )}
-            <p className="text-xs text-muted-foreground">
+            <Notice>
                 Investasi tidak masuk Laba Rugi. Kalau renovasi dicatat sebagai
                 biaya, bulan itu rugi besar dan bagi hasil kedua owner tertahan
                 berbulan-bulan. Pembelian alat otomatis masuk ke sini saat
@@ -900,7 +909,7 @@ function InvestmentsTab({
                     Aset & Maintenance
                 </Link>
                 .
-            </p>
+            </Notice>
         </>
     );
 }
@@ -932,13 +941,13 @@ function RulesTab({ rules, owners }: { rules: Rule[]; owners: Owner[] }) {
                                 return (
                                     <TableCell
                                         key={o.id}
-                                        className="text-right font-mono"
+                                        className="text-right"
                                     >
                                         {s ? `${s.percent}%` : '—'}
                                     </TableCell>
                                 );
                             })}
-                            <TableCell className="text-right font-mono">
+                            <TableCell className="text-right">
                                 {r.reserve_percent}%
                             </TableCell>
                             <TableCell>
@@ -956,7 +965,7 @@ function RulesTab({ rules, owners }: { rules: Rule[]; owners: Owner[] }) {
                     ))}
                 </TableBody>
             </TabelData>
-            <p className="text-xs text-muted-foreground">
+            <Notice>
                 Aturan lama tidak bisa diedit. Mengubah rasio menambah baris
                 baru yang berlaku mulai bulan tertentu, supaya bagi hasil bulan
                 lalu tidak ikut berubah. Alokasi dana maintenance tidak diatur
@@ -968,7 +977,7 @@ function RulesTab({ rules, owners }: { rules: Rule[]; owners: Owner[] }) {
                     Aset & Maintenance
                 </Link>
                 .
-            </p>
+            </Notice>
         </>
     );
 }
@@ -1139,7 +1148,6 @@ function ContributionDialog({
                             <Input
                                 id="contribution-amount"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
@@ -1228,7 +1236,7 @@ function WithdrawalDialog({
                                 </ToggleGroupItem>
                             ))}
                         </ToggleGroup>
-                        <p className="font-mono text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                             Saldo {formatRp(funds[data.fund])}
                         </p>
                         {data.fund === 'maintenance' && (
@@ -1284,7 +1292,6 @@ function WithdrawalDialog({
                             <Input
                                 id="withdrawal-amount"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
@@ -1455,7 +1462,6 @@ function InvestmentDialog({
                             <Input
                                 id="investment-amount"
                                 inputMode="numeric"
-                                className="font-mono"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
@@ -1564,7 +1570,6 @@ function RuleDialog({
                                 <Input
                                     id={`share-${o.id}`}
                                     inputMode="numeric"
-                                    className="font-mono"
                                     value={data.shares[String(o.id)] ?? ''}
                                     onChange={(e) =>
                                         setData('shares', {
@@ -1588,7 +1593,6 @@ function RuleDialog({
                             <Input
                                 id="reserve-percent"
                                 inputMode="numeric"
-                                className="font-mono"
                                 value={data.reserve_percent}
                                 aria-invalid={Boolean(errors.reserve_percent)}
                                 onChange={(e) =>
@@ -1629,27 +1633,5 @@ function RuleDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-function Summary({
-    label,
-    value,
-    note,
-}: {
-    label: string;
-    value: number;
-    note: string;
-}) {
-    return (
-        <Card className="p-5">
-            <CardHeader className="p-0">
-                <CardDescription className="text-xs">{label}</CardDescription>
-                <CardTitle className="font-mono text-2xl font-semibold">
-                    {formatRp(value)}
-                </CardTitle>
-            </CardHeader>
-            <p className="text-xs text-muted-foreground">{note}</p>
-        </Card>
     );
 }

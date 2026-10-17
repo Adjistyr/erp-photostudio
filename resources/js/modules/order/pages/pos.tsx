@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import PosController from '@/actions/Modules/Order/Controllers/PosController';
 import { KosongTabel } from '@/components/data-table';
+import { PageHeader, Panel } from '@/components/page';
 import { ProductPhoto } from '@/components/product-photo';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,8 @@ interface Product {
     id: number;
     name: string;
     price: number;
-    unit_cost: number | null;
+    /** HPP — tidak dikirim untuk admin (spek 5.1). */
+    unit_cost?: number | null;
     /** Thumbnail sampul (spek 7.1); null tanpa foto. */
     photo_url: string | null;
     /** Varian aktif (spek 7.3); kosong = dijual dengan harga item. */
@@ -323,36 +325,29 @@ export default function Pos({
     // belum bisa dijalankan (R7).
     if (products.length === 0) {
         return (
-            <>
+            <div className="flex flex-col gap-6 p-4 md:p-6">
                 <Head title="POS" />
-                <div className="p-6">
-                    <KosongTabel
-                        kalimat="Belum ada produk aktif di katalog. Isi dulu supaya bisa jualan."
-                        aksi={{ label: 'Isi Katalog', ke: catalogIndex() }}
-                    />
-                </div>
-            </>
+                <PageHeader title="POS" />
+                <KosongTabel
+                    kalimat="Belum ada produk aktif di katalog. Isi dulu supaya bisa jualan."
+                    aksi={{ label: 'Isi Katalog', ke: catalogIndex() }}
+                />
+            </div>
         );
     }
 
     // Keranjang dirender SEKALI: kolom kanan di lg+, Sheet bawah di bawahnya
     // (spek 4.6) — lihat useMinWidth.
-    const cart = (
-        <aside
-            className={`flex min-w-0 flex-col gap-4 ${isDesktop ? 'rounded-lg border p-5' : 'p-4 pt-12'}`}
-        >
-            <div className="flex items-center justify-between gap-2">
-                <h2 className="font-heading text-base font-semibold">
-                    Keranjang
-                </h2>
-                <HoldCartButton
-                    empty={lines.length === 0}
-                    full={held.length >= MAX_HELD}
-                    defaultLabel={defaultLabel(data.customer_name)}
-                    onHold={hold}
-                />
-            </div>
-
+    const holdButton = (
+        <HoldCartButton
+            empty={lines.length === 0}
+            full={held.length >= MAX_HELD}
+            defaultLabel={defaultLabel(data.customer_name)}
+            onHold={hold}
+        />
+    );
+    const cartBody = (
+        <div className="flex min-w-0 flex-col gap-4">
             {lines.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                     Klik item di kiri untuk menambahkan.
@@ -368,7 +363,7 @@ export default function Pos({
                                 >
                                     {l.label}
                                 </p>
-                                <p className="font-mono text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     {formatRp(l.price)} × {l.quantity}
                                 </p>
                             </div>
@@ -387,7 +382,7 @@ export default function Pos({
                                 >
                                     {l.quantity === 1 ? <Trash2 /> : <Minus />}
                                 </Button>
-                                <span className="w-6 text-center font-mono text-sm">
+                                <span className="w-6 text-center text-sm">
                                     {l.quantity}
                                 </span>
                                 <Button
@@ -405,7 +400,7 @@ export default function Pos({
                                     <Plus />
                                 </Button>
                             </div>
-                            <span className="w-24 shrink-0 text-right font-mono text-sm">
+                            <span className="w-24 shrink-0 text-right text-sm">
                                 {formatRp(l.quantity * l.price)}
                             </span>
                         </div>
@@ -419,7 +414,7 @@ export default function Pos({
             <div className="flex flex-col gap-2 text-sm">
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-mono">{formatRp(subtotal)}</span>
+                    <span>{formatRp(subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                     <label htmlFor="discount" className="text-muted-foreground">
@@ -445,7 +440,7 @@ export default function Pos({
                                 discountMode === 'pct' ? 'decimal' : 'numeric'
                             }
                             placeholder="0"
-                            className="h-8 w-24 text-right font-mono"
+                            className="h-8 w-24 text-right"
                             value={data.discount}
                             aria-invalid={Boolean(errors.discount ?? pctError)}
                             onChange={(e) =>
@@ -470,7 +465,7 @@ export default function Pos({
                 <Separator />
                 <div className="flex items-baseline justify-between">
                     <span className="font-medium">Total</span>
-                    <span className="font-mono text-2xl font-semibold">
+                    <span className="text-2xl font-semibold tracking-[-0.02em]">
                         {formatRp(total)}
                     </span>
                 </div>
@@ -478,14 +473,16 @@ export default function Pos({
                             HPP tercatat otomatis dari katalog (5.1) — yang paling
                             sering bocor: produk terlihat untung karena harga
                             bahannya tidak pernah dihitung. Metadata, bukan angka
-                            yang diisi owner.
+                            yang diisi owner. Admin tidak menerima HPP (spek
+                            5.1 peran) — barisnya tidak tampil.
                         */}
-                {lines.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                        HPP bahan {formatRp(materialCost)} · margin{' '}
-                        {formatRp(total - materialCost)}
-                    </p>
-                )}
+                {lines.length > 0 &&
+                    lines[0].product.unit_cost !== undefined && (
+                        <p className="text-xs text-muted-foreground">
+                            HPP bahan {formatRp(materialCost)} · margin{' '}
+                            {formatRp(total - materialCost)}
+                        </p>
+                    )}
             </div>
 
             <Separator />
@@ -557,14 +554,12 @@ export default function Pos({
                     ))}
                 </ToggleGroup>
                 {second ? (
-                    <div className="flex flex-col gap-2 rounded-lg border p-3">
+                    <div className="flex flex-col gap-2 rounded-2xl border p-3">
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
                                 {PAYMENT_METHOD_LABEL[first.method]} (sisa)
                             </span>
-                            <span className="font-mono">
-                                {split ? formatRp(split[0]) : '—'}
-                            </span>
+                            <span>{split ? formatRp(split[0]) : '—'}</span>
                         </div>
                         <div className="flex flex-col gap-2">
                             <ToggleGroup
@@ -588,7 +583,7 @@ export default function Pos({
                                     aria-label="Nominal pembayaran kedua"
                                     inputMode="numeric"
                                     placeholder="0"
-                                    className="h-8 min-w-0 flex-1 text-right font-mono"
+                                    className="h-8 min-w-0 flex-1 text-right"
                                     value={second.amount}
                                     aria-invalid={Boolean(splitError)}
                                     onChange={(e) =>
@@ -662,21 +657,39 @@ export default function Pos({
             >
                 Simpan & Bayar {total > 0 ? formatRp(total) : ''}
             </Button>
-        </aside>
+        </div>
+    );
+    const cart = isDesktop ? (
+        <Panel title="Keranjang" aside={holdButton}>
+            {cartBody}
+        </Panel>
+    ) : (
+        <div className="flex flex-col gap-4 p-4 pt-12">
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg leading-tight font-medium tracking-[-0.01em]">
+                    Keranjang
+                </h2>
+                {holdButton}
+            </div>
+            {cartBody}
+        </div>
     );
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 pb-24 md:p-6 lg:pb-6">
             <Head title="POS" />
-            <h1 className="sr-only">POS</h1>
+            <PageHeader title="POS" />
 
             {/*
                 Dua kolom sejajar, bukan wizard: 30 detik tidak cukup untuk
                 berpindah langkah. Item, keranjang, dan tombol bayar harus
                 terlihat serentak.
             */}
-            <div className="grid min-w-0 flex-1 grid-cols-1 gap-6 p-6 pb-24 lg:grid-cols-[1fr_22rem] lg:pb-6">
-                <section className="flex min-w-0 flex-col gap-4">
+            <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
+                <section
+                    aria-label="Katalog"
+                    className="flex min-w-0 flex-col gap-4"
+                >
                     {/* Tetap terlihat saat menggulir grid di layar sempit. */}
                     <div className="sticky top-0 z-10 bg-background lg:relative lg:z-auto">
                         <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -695,18 +708,18 @@ export default function Pos({
                                 key={p.id}
                                 type="button"
                                 onClick={() => tap(p)}
-                                className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                                className="flex flex-col items-start gap-1 rounded-2xl bg-card p-3 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             >
                                 {withPhotos && (
                                     <ProductPhoto
                                         url={p.photo_url}
-                                        className="mb-1 aspect-[4/3] w-full rounded-md"
+                                        className="mb-1 aspect-[4/3] w-full rounded-xl"
                                     />
                                 )}
                                 <span className="line-clamp-2 text-sm font-medium">
                                     {p.name}
                                 </span>
-                                <span className="font-mono text-sm text-muted-foreground">
+                                <span className="text-sm text-muted-foreground">
                                     {p.variants.length > 0
                                         ? `mulai ${formatRp(priceRange(p.variants.map((v) => v.price))?.min ?? p.price)}`
                                         : formatRp(p.price)}
@@ -727,7 +740,7 @@ export default function Pos({
                     )}
                 </section>
 
-                <div className="flex min-w-0 flex-col gap-4 self-start">
+                <div className="flex min-w-0 flex-col gap-6 self-start">
                     <HeldCarts
                         carts={held}
                         products={products}
@@ -785,7 +798,7 @@ export default function Pos({
                 studio={studio}
                 onClose={closeReceipt}
             />
-        </>
+        </div>
     );
 }
 

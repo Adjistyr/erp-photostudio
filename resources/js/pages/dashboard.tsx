@@ -13,14 +13,11 @@ import {
     ArrowRight,
     BookCheck,
     CalendarClock,
-    CalendarDays,
-    Clock,
     Target,
     TriangleAlert,
-    Wallet,
     Wrench,
 } from 'lucide-react';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
     KepalaUang,
     KosongTabel,
@@ -34,17 +31,11 @@ import {
     WorkProgress,
     WorkProgressLegend,
 } from '@/components/status-order';
+import { Notice, PageHeader, Panel } from '@/components/page';
+import { SummaryCard } from '@/components/summary-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { WhatsAppButton } from '@/components/whatsapp-button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 import {
     TableBody,
     TableCell,
@@ -59,6 +50,9 @@ import {
     formatTanggal,
     formatUmurPiutang,
 } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import { installmentShort } from '@/modules/order';
+import type { NextInstallment } from '@/modules/order';
 import { reminderMessage } from '@/modules/order/lib/reminder';
 import { dashboard } from '@/routes';
 import { index as assetsIndex } from '@/routes/assets';
@@ -92,15 +86,21 @@ interface ReceivableRow {
     customer_name: string | null;
     business_line: BusinessLine;
     balance: number;
+    /** Umur dari jatuh tempo efektif — termin berikutnya bila ada (spek 6.4). */
     days_until_due: number;
+    next_installment: NextInstallment | null;
     payment_status: PaymentStatus;
     paid_percent: number;
 }
 
+/**
+ * Field finansial opsional: tidak dikirim untuk admin (spek 5.1) — kartu &
+ * peringatannya dirender dari ada-tidaknya field.
+ */
 interface Props {
     has_catalog: boolean;
-    /** Bulan lalu yang belum tutup buku → bagi hasilnya belum final. */
-    unclosed_month: string | null;
+    /** Bulan lalu yang belum tutup buku → bagi hasilnya belum final. Hanya owner. */
+    unclosed_month?: string | null;
     today: string;
     month: string;
     bookings_today: BookingRow[];
@@ -108,7 +108,8 @@ interface Props {
     bookings_tomorrow: BookingRow[];
     /** Template `reminder` (editan owner di Komunikasi), belum dipersonalisasi. */
     reminder_template: string;
-    revenue: number;
+    /** Hanya owner. */
+    revenue?: number;
     receivables: {
         total: number;
         count: number;
@@ -116,7 +117,8 @@ interface Props {
         overdue_count: number;
         orders: ReceivableRow[];
     };
-    break_even: {
+    /** Hanya owner. */
+    break_even?: {
         fixed_costs: number;
         gross_profit: number;
         shortfall: number;
@@ -125,7 +127,8 @@ interface Props {
     due_maintenance: { asset_name: string; days_until: number }[];
     /** Proyeksi penggantian 6 bulan (spek 6.2 / 8.3). */
     replacements_due_count: number;
-    replacements_shortfall: number;
+    /** Kekurangan dana maintenance — hanya owner. */
+    replacements_shortfall?: number;
     /** Peminjaman alat lewat rencana kembali (spek 8.4). */
     overdue_checkouts_count: number;
 }
@@ -142,7 +145,8 @@ export default function Dashboard(props: Props) {
         return (
             <>
                 <Head title="Dashboard" />
-                <div className="p-6">
+                <div className="flex flex-col gap-6 p-4 md:p-6">
+                    <PageHeader title="Dashboard" />
                     <KosongTabel
                         kalimat="Belum ada data. Mulai dengan mengisi katalog produk dan jasa."
                         aksi={{ label: 'Isi Katalog', ke: catalogIndex() }}
@@ -155,160 +159,180 @@ export default function Dashboard(props: Props) {
     return (
         <>
             <Head title="Dashboard" />
-            <h1 className="sr-only">Dashboard</h1>
 
-            <div className="flex flex-col gap-6 p-6">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <Kpi
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Dashboard"
+                    description={`Yang menunggu hari ini, ${formatTanggal(today)}.`}
+                />
+
+                {/* Admin tidak menerima omzet: tiga kartu, tanpa slot kosong. */}
+                <div
+                    className={cn(
+                        'grid grid-cols-1 gap-4',
+                        revenue !== undefined
+                            ? 'sm:grid-cols-2 xl:grid-cols-4'
+                            : 'lg:grid-cols-3',
+                    )}
+                >
+                    <SummaryCard
                         label="Booking hari ini"
                         value={String(bookings_today.length)}
                         note={formatTanggal(today)}
-                        icon={CalendarDays}
                     />
-                    <Kpi
-                        label={`Omzet ${formatBulan(month)}`}
-                        value={formatRp(revenue)}
-                        note="uang diterima, basis kas"
-                        icon={Wallet}
-                    />
-                    <Kpi
+                    {revenue !== undefined && (
+                        <SummaryCard
+                            label={`Omzet ${formatBulan(month)}`}
+                            value={formatRp(revenue)}
+                            note="uang diterima, basis kas"
+                        />
+                    )}
+                    <SummaryCard
                         label="Piutang berjalan"
                         value={formatRp(receivables.total)}
                         note={`${receivables.count} order belum lunas`}
-                        icon={Clock}
                     />
-                    <Kpi
+                    <SummaryCard
                         label="Lewat jatuh tempo"
                         value={formatRp(receivables.overdue)}
                         note={`${receivables.overdue_count} order perlu ditagih`}
-                        icon={
-                            receivables.overdue_count > 0
-                                ? TriangleAlert
-                                : undefined
-                        }
                         urgent={receivables.overdue_count > 0}
                     />
                 </div>
 
-                <BreakEvenCard month={month} {...props.break_even} />
-
-                {/*
-                    Pengingat tutup buku: tanpa ini bagi hasil bulan lalu tidak
-                    pernah final, dan transaksi bulan itu masih bisa berubah.
-                */}
-                {props.unclosed_month && (
-                    <Alert>
-                        <BookCheck />
-                        <AlertTitle>
-                            {formatBulan(props.unclosed_month)} belum tutup buku
-                        </AlertTitle>
-                        <AlertDescription>
-                            Pastikan semua transaksi bulan itu sudah tercatat,
-                            lalu tutup buku supaya bagi hasilnya final.{' '}
-                            <Link
-                                href={capitalIndex()}
-                                className="font-medium text-foreground underline underline-offset-2"
-                            >
-                                Buka Modal & Bagi Hasil
-                            </Link>
-                        </AlertDescription>
-                    </Alert>
+                {props.break_even && (
+                    <BreakEvenPanel month={month} {...props.break_even} />
                 )}
 
                 {/*
+                    Peringatan dikumpulkan rapat (gap-3) supaya terbaca satu
+                    kelompok; `empty:hidden` membuang jaraknya bila tidak ada
+                    satu pun yang aktif.
+                */}
+                <div className="flex flex-col gap-3 empty:hidden">
+                    {/*
+                    Pengingat tutup buku: tanpa ini bagi hasil bulan lalu tidak
+                    pernah final, dan transaksi bulan itu masih bisa berubah.
+                */}
+                    {props.unclosed_month && (
+                        <Alert>
+                            <BookCheck />
+                            <AlertTitle>
+                                {formatBulan(props.unclosed_month)} belum tutup
+                                buku
+                            </AlertTitle>
+                            <AlertDescription>
+                                Pastikan semua transaksi bulan itu sudah
+                                tercatat, lalu tutup buku supaya bagi hasilnya
+                                final.{' '}
+                                <Link
+                                    href={capitalIndex()}
+                                    className="font-medium text-foreground underline underline-offset-2"
+                                >
+                                    Buka Modal & Bagi Hasil
+                                </Link>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {/*
                     Perbandingan yang tidak muncul di kartu mana pun kalau tidak
                     ditulis eksplisit: piutang lebih besar daripada omzet
                     sebulan. Di layar Pembayaran tagihan tampil sebagai baris
                     setara, jadi besarannya relatif terhadap omzet tak terlihat.
                 */}
-                {receivables.total > revenue && (
-                    <Alert>
-                        <TriangleAlert />
-                        <AlertTitle>
-                            {/* Omzet 0 (awal bulan): persen tak terdefinisi,
+                    {revenue !== undefined && receivables.total > revenue && (
+                        <Alert>
+                            <TriangleAlert />
+                            <AlertTitle>
+                                {/* Omzet 0 (awal bulan): persen tak terdefinisi,
                                 tapi peringatannya justru paling relevan. */}
-                            {revenue > 0
-                                ? `Piutang ${formatPersen(receivables.total / revenue)} dari omzet bulan ini`
-                                : 'Belum ada uang masuk bulan ini, tapi piutang menggantung'}
-                        </AlertTitle>
-                        <AlertDescription>
-                            {formatRp(receivables.total)} menggantung, sementara
-                            yang benar-benar masuk sepanjang{' '}
-                            {formatBulan(month)} {formatRp(revenue)}. Lebih
-                            banyak uang di tagihan daripada di rekening.
-                        </AlertDescription>
-                    </Alert>
-                )}
+                                {revenue > 0
+                                    ? `Piutang ${formatPersen(receivables.total / revenue)} dari omzet bulan ini`
+                                    : 'Belum ada uang masuk bulan ini, tapi piutang menggantung'}
+                            </AlertTitle>
+                            <AlertDescription>
+                                {formatRp(receivables.total)} menggantung,
+                                sementara yang benar-benar masuk sepanjang{' '}
+                                {formatBulan(month)} {formatRp(revenue)}. Lebih
+                                banyak uang di tagihan daripada di rekening.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
-                {/*
+                    {/*
                     Perawatan alat ikut di Dashboard karena Dashboard adalah "apa
                     yang menunggu owner hari ini". Kalau hanya di layar Aset,
                     jadwalnya baru terlihat saat owner kebetulan membuka layar
                     itu — biasanya setelah alatnya bermasalah.
                 */}
-                {props.due_maintenance.length > 0 && (
-                    <Alert>
-                        <Wrench />
-                        <AlertTitle>
-                            {props.due_maintenance.length} aset perlu dirawat
-                        </AlertTitle>
-                        <AlertDescription>
-                            {props.due_maintenance
-                                .map(
-                                    (d) =>
-                                        `${d.asset_name} — ${formatUmurPiutang(d.days_until)}`,
-                                )
-                                .join(' · ')}
-                            .{' '}
-                            <Link
-                                href={assetsIndex()}
-                                className="font-medium text-foreground underline underline-offset-2"
-                            >
-                                Buka Aset & Maintenance
-                            </Link>
-                        </AlertDescription>
-                    </Alert>
-                )}
+                    {props.due_maintenance.length > 0 && (
+                        <Alert>
+                            <Wrench />
+                            <AlertTitle>
+                                {props.due_maintenance.length} aset perlu
+                                dirawat
+                            </AlertTitle>
+                            <AlertDescription>
+                                {props.due_maintenance
+                                    .map(
+                                        (d) =>
+                                            `${d.asset_name} — ${formatUmurPiutang(d.days_until)}`,
+                                    )
+                                    .join(' · ')}
+                                .{' '}
+                                <Link
+                                    href={assetsIndex()}
+                                    className="font-medium text-foreground underline underline-offset-2"
+                                >
+                                    Buka Aset & Maintenance
+                                </Link>
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
-                {props.overdue_checkouts_count > 0 && (
-                    <Alert variant="destructive">
-                        <TriangleAlert />
-                        <AlertTitle>
-                            {props.overdue_checkouts_count} peminjaman alat
-                            belum kembali
-                        </AlertTitle>
-                        <AlertDescription>
-                            Sudah lewat rencana kembali.{' '}
-                            <Link
-                                href={assetsIndex()}
-                                className="font-medium underline underline-offset-2"
-                            >
-                                Lihat di Aset
-                            </Link>
-                        </AlertDescription>
-                    </Alert>
-                )}
+                    {props.overdue_checkouts_count > 0 && (
+                        <Alert variant="destructive">
+                            <TriangleAlert />
+                            <AlertTitle>
+                                {props.overdue_checkouts_count} peminjaman alat
+                                belum kembali
+                            </AlertTitle>
+                            <AlertDescription>
+                                Sudah lewat rencana kembali.{' '}
+                                <Link
+                                    href={assetsIndex()}
+                                    className="font-medium underline underline-offset-2"
+                                >
+                                    Lihat di Aset
+                                </Link>
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
-                {props.replacements_due_count > 0 && (
-                    <Alert>
-                        <CalendarClock />
-                        <AlertTitle>
-                            {props.replacements_due_count} alat habis umur
-                            ekonomis dalam 6 bulan
-                        </AlertTitle>
-                        <AlertDescription>
-                            {props.replacements_shortfall > 0
-                                ? `Dana maintenance kurang ${formatRp(props.replacements_shortfall)} untuk menggantinya (perkiraan dari harga beli).`
-                                : 'Dana maintenance cukup untuk menggantinya.'}{' '}
-                            <Link
-                                href={assetsIndex()}
-                                className="font-medium text-foreground underline underline-offset-2"
-                            >
-                                Lihat di Aset
-                            </Link>
-                        </AlertDescription>
-                    </Alert>
-                )}
+                    {props.replacements_due_count > 0 && (
+                        <Alert>
+                            <CalendarClock />
+                            <AlertTitle>
+                                {props.replacements_due_count} alat habis umur
+                                ekonomis dalam 6 bulan
+                            </AlertTitle>
+                            <AlertDescription>
+                                {props.replacements_shortfall === undefined
+                                    ? ''
+                                    : props.replacements_shortfall > 0
+                                      ? `Dana maintenance kurang ${formatRp(props.replacements_shortfall)} untuk menggantinya (perkiraan dari harga beli).`
+                                      : 'Dana maintenance cukup untuk menggantinya.'}{' '}
+                                <Link
+                                    href={assetsIndex()}
+                                    className="font-medium text-foreground underline underline-offset-2"
+                                >
+                                    Lihat di Aset
+                                </Link>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
 
                 <Section
                     title="Jadwal hari ini"
@@ -374,10 +398,21 @@ export default function Dashboard(props: Props) {
                                         </TableCell>
                                         <SelUang nominal={o.balance} />
                                         <TableCell
-                                            className={`whitespace-nowrap ${o.days_until_due < 0 ? 'text-destructive' : ''}`}
+                                            className={cn(
+                                                'whitespace-nowrap',
+                                                o.days_until_due < 0 &&
+                                                    'text-destructive',
+                                            )}
                                         >
                                             {formatUmurPiutang(
                                                 o.days_until_due,
+                                            )}
+                                            {o.next_installment && (
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {installmentShort(
+                                                        o.next_installment,
+                                                    )}
+                                                </span>
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -409,91 +444,51 @@ Dashboard.layout = {
 /**
  * Titik impas bulan berjalan — pengganti "HPP per hari" di sheet client.
  *
- * Kartu lebar sendiri, bukan KPI kelima: angkanya butuh pembanding (laba
+ * Panel lebar sendiri, bukan KPI kelima: angkanya butuh pembanding (laba
  * kotor vs biaya tetap), dan bar progres membuat "sudah seberapa dekat"
  * terbaca tanpa menghitung.
  */
-function BreakEvenCard({
+function BreakEvenPanel({
     month,
     fixed_costs,
     gross_profit,
     shortfall,
     ratio,
-}: Props['break_even'] & { month: string }) {
+}: NonNullable<Props['break_even']> & { month: string }) {
     return (
-        <Card className="p-5">
-            <CardHeader className="p-0">
-                <CardDescription className="flex items-center gap-1.5 text-xs">
-                    <Target className="size-3.5" />
+        <Panel
+            title={
+                <>
+                    <Target
+                        className="size-4 text-muted-foreground"
+                        aria-hidden
+                    />
                     Titik impas {formatBulan(month)}
-                </CardDescription>
-                <CardTitle className="font-heading text-base font-semibold">
+                </>
+            }
+            aside={formatPersen(ratio)}
+        >
+            <div className="flex flex-col gap-3">
+                <p className="text-[15px] font-medium">
                     {shortfall === 0
                         ? 'Biaya tetap bulan ini sudah tertutup'
                         : `Kurang ${formatRp(shortfall)} lagi untuk impas`}
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 p-0">
+                </p>
                 <Progress
                     value={Math.min(100, Math.max(0, Math.round(ratio * 100)))}
                     aria-label="Laba kotor terhadap biaya tetap"
                 />
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                     Laba kotor {formatRp(gross_profit)} dari biaya tetap{' '}
                     {formatRp(fixed_costs)} · {formatPersen(ratio)}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <Notice>
                     Biaya tetap = biaya operasional + dana maintenance.
                     Dibandingkan dengan laba kotor, bukan omzet — omzet event
                     yang habis untuk fee crew tidak ikut menutup sewa.
-                </p>
-            </CardContent>
-        </Card>
-    );
-}
-
-function Kpi({
-    label,
-    value,
-    note,
-    icon: Icon,
-    urgent,
-}: {
-    label: string;
-    value: string;
-    note: string;
-    icon?: ComponentType<{ className?: string }>;
-    urgent?: boolean;
-}) {
-    return (
-        <Card className="p-5">
-            <CardHeader className="p-0">
-                <CardDescription className="flex items-center gap-1.5 text-xs">
-                    {Icon && (
-                        <Icon
-                            className={
-                                urgent
-                                    ? 'size-3.5 text-destructive'
-                                    : 'size-3.5'
-                            }
-                        />
-                    )}
-                    {label}
-                </CardDescription>
-                {/*
-                    Angka KPI 30px/600 mono (R2): empat kartu berderet punya
-                    lebar digit sama, jadi angka besar dan kecil tetap sejajar.
-                */}
-                <CardTitle
-                    className={`font-mono text-3xl font-semibold ${urgent ? 'text-destructive' : ''}`}
-                >
-                    {value}
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-                <p className="text-xs text-muted-foreground">{note}</p>
-            </CardContent>
-        </Card>
+                </Notice>
+            </div>
+        </Panel>
     );
 }
 
@@ -507,23 +502,21 @@ function Section({
     children: ReactNode;
 }) {
     return (
-        <section className="flex min-w-0 flex-col gap-3">
-            <div className="flex items-center justify-between">
-                <h2 className="font-heading text-base font-semibold">
-                    {title}
-                </h2>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    nativeButton={false}
-                    render={<Link href={action.href} />}
+        <Panel
+            title={title}
+            aside={
+                <Link
+                    href={action.href}
+                    className="inline-flex items-center gap-1 text-[13px] font-medium whitespace-nowrap text-brand hover:underline"
                 >
                     {action.label}
-                    <ArrowRight data-icon="inline-end" />
-                </Button>
-            </div>
+                    <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+            }
+            flush
+        >
             {children}
-        </section>
+        </Panel>
     );
 }
 
@@ -567,7 +560,7 @@ function BookingTable({
                         <TableCell className="text-muted-foreground">
                             {o.items_summary}
                         </TableCell>
-                        <TableCell className="font-mono whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap">
                             {o.service_time ?? '—'}
                         </TableCell>
                         <TableCell>

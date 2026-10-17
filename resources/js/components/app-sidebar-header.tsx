@@ -1,26 +1,33 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { NavUser } from '@/components/nav-user';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 /**
- * Header halaman — DESIGN.md R8: 56px, breadcrumb kiri + aksi utama kanan.
- * Slot aksi diisi halaman lewat <PageActions> (portal) — tiap halaman hanya
- * menentukan tombolnya, bukan ikut mendefinisikan tinggi dan posisinya.
+ * Header halaman — DESIGN.md R8: bar 64px di atas kanvas (tanpa garis bawah),
+ * breadcrumb kiri, chip profil kanan. Aksi utama halaman ada di
+ * `PageHeader actions` (components/page.tsx), bukan di bar ini.
+ *
+ * Tidak sticky: POS (mobile) dan form katalog/aset punya elemen `sticky top-*`
+ * sendiri yang akan tergelincir ke bawah header.
+ *
+ * Tombol buka menu hanya di mobile: di desktop rail punya tombol
+ * ringkas/lebarkan sendiri (NavRailToggle).
  */
 export function AppSidebarHeader({
     breadcrumbs = [],
-    actionsRef,
 }: {
     breadcrumbs?: BreadcrumbItemType[];
-    actionsRef?: (el: HTMLElement | null) => void;
 }) {
     return (
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
-            <div className="flex items-center gap-2">
-                <SidebarTrigger className="-ml-1" />
+        <header className="flex h-16 shrink-0 items-center gap-3 px-4 md:px-6">
+            <div className="flex min-w-0 items-center gap-2">
+                <SidebarTrigger className="-ml-1 bg-card md:hidden" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
-            <div ref={actionsRef} className="ml-auto flex items-center gap-2" />
+            <div className="ml-auto flex items-center gap-3">
+                <NavUser />
+            </div>
         </header>
     );
 }

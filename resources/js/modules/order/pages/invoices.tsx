@@ -25,10 +25,10 @@ import {
     hasActiveFilter,
 } from '@/components/list-toolbar';
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { Pagination } from '@/components/pagination';
 import type { Paginated } from '@/components/pagination';
 import { LineMark, PaymentBadge } from '@/components/status-order';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -105,112 +105,112 @@ export default function Invoices({
         );
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title="Invoice" />
-            <h1 className="sr-only">Invoice</h1>
 
-            <div className="flex flex-col gap-6 p-6">
-                <Alert>
-                    <AlertTitle>Invoice digenerate dari order</AlertTitle>
-                    <AlertDescription>
-                        Tidak ada yang perlu dibuat manual. Satu invoice dikirim
-                        berkali-kali seiring pembayaran bertambah — isinya
-                        selalu mengikuti kondisi terkini, jadi tidak ada dokumen
-                        terpisah untuk DP dan pelunasan. Order batal tidak punya
-                        invoice.
-                    </AlertDescription>
-                </Alert>
+            <PageHeader title="Invoice" />
 
+            <Notice>
+                <span className="font-medium text-foreground">
+                    Invoice digenerate dari order.
+                </span>{' '}
+                Tidak ada yang perlu dibuat manual. Satu invoice dikirim
+                berkali-kali seiring pembayaran bertambah — isinya selalu
+                mengikuti kondisi terkini, jadi tidak ada dokumen terpisah untuk
+                DP dan pelunasan. Order batal tidak punya invoice.
+            </Notice>
+
+            <Panel label="Filter invoice">
                 <ListToolbar
                     value={filters}
                     filters={INVOICE_FILTERS}
                     onChange={go}
                     total={{ count: page.total, noun: 'invoice' }}
                 />
+            </Panel>
 
-                {invoices.length === 0 ? (
-                    hasActiveFilter(filters) ? (
-                        <KosongTabel
-                            kalimat="Tidak ada invoice yang cocok."
-                            aksi={{
-                                label: 'Hapus filter',
-                                onClick: () => go({ q: '' }),
-                            }}
-                        />
-                    ) : (
-                        <KosongTabel kalimat="Invoice muncul otomatis begitu ada order." />
-                    )
+            {invoices.length === 0 ? (
+                hasActiveFilter(filters) ? (
+                    <KosongTabel
+                        kalimat="Tidak ada invoice yang cocok."
+                        aksi={{
+                            label: 'Hapus filter',
+                            onClick: () => go({ q: '' }),
+                        }}
+                    />
                 ) : (
-                    <TabelData>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>No</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Lini</TableHead>
-                                <TableHead>Item</TableHead>
-                                <TableHead>Tanggal</TableHead>
-                                <KepalaUang>Total</KepalaUang>
-                                <KepalaUang>Sisa</KepalaUang>
-                                <TableHead>Status Bayar</TableHead>
-                                <TableHead />
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {invoices.map((i) => (
-                                <TableRow key={i.id}>
-                                    <SelKode>{i.number}</SelKode>
-                                    <TableCell className="font-medium whitespace-nowrap">
-                                        {i.customer_name ?? (
-                                            <span className="text-muted-foreground">
-                                                Walk-in
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <LineMark line={i.business_line} />
-                                    </TableCell>
-                                    <TableCell
-                                        className="max-w-48 truncate text-muted-foreground"
-                                        title={i.items_summary}
+                    <KosongTabel kalimat="Invoice muncul otomatis begitu ada order." />
+                )
+            ) : (
+                <TabelData>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>No</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Lini</TableHead>
+                            <TableHead>Item</TableHead>
+                            <TableHead>Tanggal</TableHead>
+                            <KepalaUang>Total</KepalaUang>
+                            <KepalaUang>Sisa</KepalaUang>
+                            <TableHead>Status Bayar</TableHead>
+                            <TableHead />
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {invoices.map((i) => (
+                            <TableRow key={i.id}>
+                                <SelKode>{i.number}</SelKode>
+                                <TableCell className="font-medium whitespace-nowrap">
+                                    {i.customer_name ?? (
+                                        <span className="text-muted-foreground">
+                                            Walk-in
+                                        </span>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <LineMark line={i.business_line} />
+                                </TableCell>
+                                <TableCell
+                                    className="max-w-48 truncate text-muted-foreground"
+                                    title={i.items_summary}
+                                >
+                                    {i.items_summary}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                    {formatTanggal(i.service_date)}
+                                </TableCell>
+                                <SelUang nominal={i.total} />
+                                <SelUang nominal={i.balance} />
+                                <TableCell>
+                                    <PaymentBadge
+                                        status={i.payment_status}
+                                        paidPercent={i.paid_percent}
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setPreviewId(i.id)}
                                     >
-                                        {i.items_summary}
-                                    </TableCell>
-                                    <TableCell className="whitespace-nowrap">
-                                        {formatTanggal(i.service_date)}
-                                    </TableCell>
-                                    <SelUang nominal={i.total} />
-                                    <SelUang nominal={i.balance} />
-                                    <TableCell>
-                                        <PaymentBadge
-                                            status={i.payment_status}
-                                            paidPercent={i.paid_percent}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => setPreviewId(i.id)}
-                                        >
-                                            Lihat
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </TabelData>
-                )}
+                                        Lihat
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </TabelData>
+            )}
 
-                <Pagination
-                    page={page}
-                    noun="invoice"
-                    href={(n) =>
-                        invoicesIndex({
-                            query: { ...cleanQuery(filters), page: String(n) },
-                        }).url
-                    }
-                />
-            </div>
+            <Pagination
+                page={page}
+                noun="invoice"
+                href={(n) =>
+                    invoicesIndex({
+                        query: { ...cleanQuery(filters), page: String(n) },
+                    }).url
+                }
+            />
 
             <Sheet
                 open={preview !== null}
@@ -226,7 +226,7 @@ export default function Invoices({
                     )}
                 </SheetContent>
             </Sheet>
-        </>
+        </div>
     );
 }
 
@@ -300,13 +300,13 @@ function InvoicePreview({
                             Buka / Cetak
                         </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <Notice>
                         App menyiapkan pesannya; pengiriman tetap lewat WhatsApp
                         kamu. Link bisa dibuka customer tanpa login dan selalu
                         menampilkan kondisi terkini.
                         {!invoice.customer_phone &&
                             ' Customer ini belum punya nomor HP — salin link dan kirim manual.'}
-                    </p>
+                    </Notice>
                 </div>
             </div>
         </>

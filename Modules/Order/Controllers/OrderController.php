@@ -18,6 +18,7 @@ use Modules\Customer\Models\Customer;
 use Modules\Expense\Models\JobCost;
 use Modules\Finance\Services\Periods;
 use Modules\Order\Actions\RecordOrderEvent;
+use Modules\Order\Actions\ReplacePaymentSchedules;
 use Modules\Order\Enums\OrderEventType;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Enums\WorkStatus;
@@ -33,6 +34,7 @@ use Modules\Order\Requests\UpdateOrderRequest;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Http\CsvResponse;
 use Modules\Shared\Http\ListQuery;
+use Modules\Shared\Support\Finance;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -53,7 +55,7 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $list = $this->listQuery($request);
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset', 'schedules'])
             ->search($list)
             ->orderByDesc('id')
             ->paginate(ListQuery::PER_PAGE)
@@ -116,6 +118,7 @@ class OrderController extends Controller
                     $o->margin(),
                     $o->location,
                     $o->notes,
+                    $o->source,
                     $o->creator?->name,
                     $o->created_at?->toDateTimeString(),
                 ];
@@ -126,7 +129,7 @@ class OrderController extends Controller
             'nomor', 'tanggal_layanan', 'jam', 'lini', 'lini_label', 'customer', 'hp', 'item',
             'total', 'dibayar', 'dikembalikan', 'sisa', 'status_bayar', 'status_bayar_label',
             'status_kerja', 'status_kerja_label', 'hpp_bahan', 'biaya_job', 'margin',
-            'lokasi', 'catatan', 'dicatat_oleh', 'dibuat_pada',
+            'lokasi', 'catatan', 'sumber', 'dicatat_oleh', 'dibuat_pada',
         ]);
     }
 
@@ -152,7 +155,7 @@ class OrderController extends Controller
         $month = Periods::orCurrent($request->query('month'));
         $start = Periods::start($month);
 
-        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset'])
+        $orders = Order::with(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset', 'schedules'])
             ->whereIn('business_line', [BusinessLine::Studio, BusinessLine::Event])
             ->whereBetween('service_date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ->orderBy('service_date')
@@ -173,16 +176,18 @@ class OrderController extends Controller
     public function create(): Response
     {
         return Inertia::render('order::create', [
-            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
+            // `source` = default sumber order saat customer dipilih (spek 6.6).
+            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone', 'source']),
+            'sources' => Customer::SOURCES,
             'catalog' => $this->catalogOptions(),
         ]);
     }
 
     /**
-     * Order + item + DP dalam satu transaksi: order tanpa item, atau DP tanpa
-     * order, merusak laporan tanpa terlihat di layar.
+     * Order + item + termin + DP dalam satu transaksi: order tanpa item, atau
+     * DP tanpa order, merusak laporan tanpa terlihat di layar.
      */
-    public function store(StoreOrderRequest $request, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
+    public function store(StoreOrderRequest $request, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate, ReplacePaymentSchedules $schedules): RedirectResponse
     {
         $data = $request->validated();
         $line = BusinessLine::from($data['business_line']);
@@ -191,7 +196,7 @@ class OrderController extends Controller
         $location = trim((string) ($data['location'] ?? ''));
 
         $customer = null;
-        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events, $findOrCreate, &$customer) {
+        $order = DB::transaction(function () use ($request, $data, $line, $deposit, $total, $location, $events, $findOrCreate, $schedules, &$customer) {
             // Customer baru dibuat di transaksi yang sama — gagal simpan order
             // tidak boleh meninggalkan customer yatim (spek 3.4).
             $customer = $request->resolveCustomer($findOrCreate);
@@ -205,6 +210,8 @@ class OrderController extends Controller
                 'work_status' => $deposit > 0 ? WorkStatus::Scheduled : WorkStatus::Booking,
                 'location' => $location !== '' ? $location : ($line === BusinessLine::Studio ? 'Studio' : null),
                 'notes' => trim((string) ($data['notes'] ?? '')) ?: null,
+                // Default dari customer (spek 6.6) — customer lama bisa datang lewat kanal lain.
+                'source' => $data['source'] ?? $customer->source,
             ]);
 
             foreach ($request->lines() as $line) {
@@ -216,7 +223,13 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    // Paket berkomponen (spek 6.3): snapshot, bukan rujukan katalog.
+                    'components' => $line['components'],
                 ]);
+            }
+            // Termin pembayaran (spek 6.4) — sudah dicek event-only di request.
+            if ($request->submittedSchedules() !== []) {
+                $schedules->execute($order, $request->submittedSchedules());
             }
 
             $events->execute($order, OrderEventType::Created, [
@@ -252,7 +265,7 @@ class OrderController extends Controller
      */
     public function show(Order $order): Response
     {
-        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset']);
+        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'assetCheckouts.asset', 'schedules']);
 
         return Inertia::render('order::show', [
             'order' => $this->orderProps($order),
@@ -269,13 +282,15 @@ class OrderController extends Controller
     public function edit(Order $order): Response
     {
         abort_unless($order->isEditable(), 404);
-        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user']);
+        $order->load(['customer', 'items', 'payments.creator', 'refunds.creator', 'jobCosts.creator', 'creator', 'events.user', 'schedules']);
         /** @var list<int> $kept */
         $kept = $order->items->pluck('catalog_item_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
 
         return Inertia::render('order::edit', [
             'order' => $this->orderProps($order),
-            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
+            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone', 'source']),
+            // Retail tidak mencatat sumber (spek 6.6) — null = Select disembunyikan.
+            'sources' => $order->business_line === BusinessLine::Retail ? null : Customer::SOURCES,
             // Paket aktif berkategori dikenal (sama dengan create) + paket yang
             // dirujuk baris lama walau sudah nonaktif — supaya namanya tampil.
             // + item yang dirujuk baris lama walau nonaktif (produk di order retail, spek 7.4).
@@ -292,13 +307,20 @@ class OrderController extends Controller
      * deal tetap). Satu event `updated` berisi diff; tanpa perubahan → tanpa
      * event. `work_status` tidak berubah walau jadwal digeser, dan tanggal
      * baru tidak dicek tutup buku — jadwal bukan uang.
+     *
+     * Termin (spek 6.4) diganti utuh bila berubah; total berubah yang membuat
+     * Σ termin ≠ total menghapus termin dengan peringatan (aturan 5).
      */
-    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate): RedirectResponse
+    public function update(UpdateOrderRequest $request, Order $order, RecordOrderEvent $events, FindOrCreateCustomer $findOrCreate, ReplacePaymentSchedules $schedules): RedirectResponse
     {
+        // Dihitung sebelum item diubah — keduanya membandingkan dengan total lama.
+        $dropped = $request->dropsSchedules();
+        $newSchedules = $request->schedulesAfterUpdate();
+
         // Customer dicocokkan/dibuat lebih dulu (di transaksi) supaya diff
         // membandingkan customer yang sebenarnya — "customer baru" yang ternyata
         // cocok dengan customer order ini bukan perubahan.
-        $changes = DB::transaction(function () use ($request, $order, $events, $findOrCreate) {
+        $changes = DB::transaction(function () use ($request, $order, $events, $findOrCreate, $schedules, $newSchedules) {
             // Retail walk-in boleh tanpa customer (spek 7.4) — aturan request menjamin studio/event terisi.
             $customerId = $request->resolveCustomerOrNull($findOrCreate)?->id;
             $changes = $request->changes($order, $customerId);
@@ -307,6 +329,9 @@ class OrderController extends Controller
             }
 
             $order->update($request->normalised($customerId));
+            if (array_key_exists('schedules', $changes)) {
+                $schedules->execute($order, $newSchedules);
+            }
 
             $rows = $request->rows();
             $keep = array_values(array_filter(array_column($rows, 'id')));
@@ -330,6 +355,7 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    'components' => $line['components'],
                 ]);
             }
 
@@ -338,9 +364,12 @@ class OrderController extends Controller
             return $changes;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $changes === []
-            ? 'Tidak ada yang berubah.'
-            : "{$order->number} diperbarui."]);
+        Inertia::flash('toast', match (true) {
+            $changes === [] => ['type' => 'success', 'message' => 'Tidak ada yang berubah.'],
+            // Aturan 5 (spek 6.4) — kalimat sama dengan peringatan di form.
+            $dropped => ['type' => 'warning', 'message' => "{$order->number} diperbarui. Termin dihapus karena total berubah — atur ulang."],
+            default => ['type' => 'success', 'message' => "{$order->number} diperbarui."],
+        });
 
         // Kembali ke halaman detail (spek 7.4), bukan daftar.
         return to_route('orders.show', $order);
@@ -453,7 +482,7 @@ class OrderController extends Controller
     private function catalogOptions(array $kept = []): array
     {
         return CatalogItem::query()
-            ->with(['variants' => fn ($q) => $q->where('is_active', true)])
+            ->with(['variants' => fn ($q) => $q->where('is_active', true), 'components'])
             ->where(fn ($q) => $q
                 ->where(fn ($q) => $q->where('type', CatalogItemType::Service)->where('is_active', true)->whereIn('category', ServiceCategory::values()))
                 ->orWhere(fn ($q) => $q->where('type', CatalogItemType::Product)->where('is_active', true))
@@ -467,16 +496,23 @@ class OrderController extends Controller
                 'id' => $c->id, 'name' => $c->name, 'price' => $c->price, 'category' => $c->category,
                 'type' => $c->type->value, 'is_active' => $c->is_active,
                 'variants' => $c->variants->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => $v->price])->values()->all(),
+                // Isi paket (spek 6.3) — keterangan "termasuk …" di baris form; HPP tidak dikirim.
+                'components' => $c->components->map(fn (CatalogItem $p) => ['name' => $p->name, 'quantity' => $p->pivotQuantity()])->values()->all(),
             ])->values()->all();
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Tanpa `view-finance` (admin, spek 5.1): `direct_cost`, `margin`,
+     * `job_costs` (komponen margin), dan `items[].unit_cost` (HPP) dihapus.
+     *
+     * @return array<string, mixed>
+     */
     private function orderProps(Order $o): array
     {
         $total = $o->total();
         $direct = $o->directCost();
 
-        return [
+        return Finance::except([
             'id' => $o->id,
             'number' => $o->number,
             // null = walk-in tanpa data customer.
@@ -492,6 +528,8 @@ class OrderController extends Controller
             'service_time' => $o->service_time === null ? null : substr($o->service_time, 0, 5),
             'location' => $o->location,
             'notes' => $o->notes,
+            // Sumber lead (spek 6.6); null = tidak dicatat.
+            'source' => $o->source,
             'result_link' => $o->result_link,
             // Order batal tidak punya invoice — tidak ditagih lagi.
             'invoice_url' => $o->isCancelled() ? null : $o->invoiceUrl(),
@@ -506,15 +544,31 @@ class OrderController extends Controller
             'previous_status' => $o->work_status->previous()?->value,
             'payment_status' => $o->paymentStatus()->value,
             'paid_percent' => (int) round($o->paidRatio() * 100),
-            'items' => $o->items->map(fn (OrderItem $i) => [
+            // Termin pembayaran (spek 6.4): status FIFO dari pembayaran, tidak disimpan.
+            'schedules' => array_map(fn (array $r) => [
+                'sequence' => $r['schedule']->sequence, 'label' => $r['schedule']->label,
+                'due_on' => $r['schedule']->due_on->toDateString(), 'amount' => $r['schedule']->amount,
+                'status' => $r['status']->value,
+            ], $o->scheduleStatuses()),
+            'next_installment' => $o->nextInstallment(),
+            // Jatuh tempo efektif: termin berikutnya, atau tanggal layanan.
+            'due_on' => $o->dueOn()->toDateString(),
+            'items' => $o->items->map(fn (OrderItem $i) => Finance::except([
                 'id' => $i->id, 'name' => $i->name, 'quantity' => $i->quantity, 'unit_price' => $i->unit_price,
                 'catalog_item_id' => $i->catalog_item_id, 'unit_cost' => $i->unit_cost,
                 // Item custom (spek 1.3) — harga nego di luar katalog.
                 'is_custom' => $i->catalog_item_id === null,
-            ])->values()->all(),
+                // Snapshot komponen paket (spek 6.3), termasuk HPP per komponen saat transaksi
+                // — HPP komponen hanya untuk owner (spek 5.1).
+                'components' => $i->components === null ? null : array_map(
+                    fn (array $c) => Finance::except($c, ['unit_cost']),
+                    $i->components,
+                ),
+            ], ['unit_cost']))->values()->all(),
             'payments' => $o->payments->sortBy('paid_on')->map(fn (Payment $p) => [
                 'id' => $p->id, 'paid_on' => $p->paid_on->toDateString(), 'amount' => $p->amount,
                 'method' => $p->method->value, 'note' => $p->note, 'created_by_name' => $p->creator?->name,
+                'proof_url' => $p->proofUrl(),
             ])->values()->all(),
             // Pengembalian uang (spek 4.2) — sisa tagihan & status bayar tetap bruto.
             'refunds' => $o->refunds->sortBy('refunded_on')->map(fn (Refund $r) => [
@@ -537,6 +591,6 @@ class OrderController extends Controller
                 'id' => $j->id, 'incurred_on' => $j->incurred_on->toDateString(), 'category' => $j->category,
                 'description' => $j->description, 'amount' => $j->amount, 'created_by_name' => $j->creator?->name,
             ])->values()->all(),
-        ];
+        ], ['direct_cost', 'margin', 'job_costs']);
     }
 }

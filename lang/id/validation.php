@@ -176,5 +176,6 @@ return [
         'password_confirmation' => 'konfirmasi kata sandi',
         'code' => 'kode',
         'recovery_code' => 'kode pemulihan',
+        'role' => 'peran',
     ],
 ];

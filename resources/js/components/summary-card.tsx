@@ -5,6 +5,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 /**
  * Kartu angka ringkas di atas tabel (Pembayaran, Kas Harian). Dipindah dari
@@ -26,7 +27,10 @@ export function SummaryCard({
             <CardHeader className="p-0">
                 <CardDescription className="text-xs">{label}</CardDescription>
                 <CardTitle
-                    className={`font-mono text-3xl font-semibold ${urgent ? 'text-destructive' : ''}`}
+                    className={cn(
+                        'text-[30px] leading-tight font-medium tracking-[-0.02em]',
+                        urgent && 'text-destructive',
+                    )}
                 >
                     {value}
                 </CardTitle>

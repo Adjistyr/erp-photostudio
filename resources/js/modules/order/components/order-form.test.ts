@@ -9,6 +9,7 @@ import {
     lineTotal,
     orderTotal,
     rowsComplete,
+    sourceAfterCustomer,
     toPayload,
 } from '@/modules/order/components/order-form';
 import type {
@@ -251,4 +252,15 @@ test('spek 7.5: produk bervarian wajib varian; produk tanpa varian tidak', () =>
     assert.equal(toPayload([plain])[0].catalog_item_variant_id, null);
     // Baris lama tidak dicek ulang (varian tidak berganti).
     assert.equal(rowsComplete([{ ...missing, id: 9 }], withProducts), true);
+});
+
+test('sourceAfterCustomer: ikut customer dipilih, customer baru mempertahankan pilihan', () => {
+    const customers = [
+        { id: 1, name: 'Dewi', phone: null, source: 'Instagram' },
+        { id: 2, name: 'Budi', phone: null, source: null },
+    ];
+    assert.equal(sourceAfterCustomer(customers, '1', 'Teman'), 'Instagram');
+    // Customer tanpa sumber → kosong, bukan sisa pilihan customer sebelumnya.
+    assert.equal(sourceAfterCustomer(customers, '2', 'Instagram'), '');
+    assert.equal(sourceAfterCustomer(customers, '', 'Teman'), 'Teman');
 });

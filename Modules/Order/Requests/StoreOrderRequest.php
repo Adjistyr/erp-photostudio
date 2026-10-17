@@ -6,9 +6,11 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
 use Modules\Order\Requests\Concerns\ResolvesCustomer;
+use Modules\Order\Requests\Concerns\ResolvesSchedules;
 use Modules\Shared\Enums\BusinessLine;
 use Modules\Shared\Support\Money;
 
@@ -24,6 +26,7 @@ class StoreOrderRequest extends FormRequest
 {
     use ResolvesCatalogLines;
     use ResolvesCustomer;
+    use ResolvesSchedules;
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -39,6 +42,8 @@ class StoreOrderRequest extends FormRequest
             'service_time' => ['nullable', 'date_format:H:i'],
             'location' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // Sumber lead (spek 6.6); kosong = ikut customer.source.
+            'source' => ['nullable', 'string', Rule::in(Customer::SOURCES)],
             'items' => ['required', 'array', 'min:1', 'max:20'],
             // Baris katalog (catalog_item_id) ATAU item custom (nama + harga,
             // spek 1.3). Baris katalog mengabaikan name/unit_price kiriman klien.
@@ -53,6 +58,8 @@ class StoreOrderRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'dp' => ['nullable', 'integer', 'min:0'],
             'dp_method' => ['nullable', Rule::enum(PaymentMethod::class)],
+            // Termin pembayaran (spek 6.4) — event saja, dicek di after().
+            ...$this->scheduleRules(),
         ];
     }
 
@@ -72,7 +79,11 @@ class StoreOrderRequest extends FormRequest
             $total = $this->total();
             if ($this->deposit() > $total) {
                 $validator->errors()->add('dp', 'Melebihi total order '.Money::format($total).'.');
+
+                return;
             }
+            $this->validateSchedules($validator, $this->submittedSchedules(),
+                BusinessLine::from((string) $this->input('business_line')), (string) $this->input('service_date'), $total);
         }];
     }
 
@@ -107,6 +118,7 @@ class StoreOrderRequest extends FormRequest
             'service_time' => 'jam',
             'location' => 'lokasi',
             'notes' => 'catatan',
+            'source' => 'sumber order',
             'items' => 'item',
             'items.*.catalog_item_id' => 'paket',
             'items.*.name' => 'nama item',
@@ -114,6 +126,7 @@ class StoreOrderRequest extends FormRequest
             'items.*.quantity' => 'qty',
             'dp' => 'DP',
             'dp_method' => 'metode DP',
+            ...$this->scheduleAttributes(),
         ];
     }
 }

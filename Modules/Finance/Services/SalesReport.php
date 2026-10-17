@@ -10,6 +10,7 @@ use Modules\Customer\Models\Customer;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Order\Models\OrderItem;
+use Modules\Order\Models\Payment;
 use Modules\Shared\Enums\BusinessLine;
 
 class SalesReport
@@ -65,9 +66,49 @@ class SalesReport
     }
 
     /**
+     * Sumber order (spek 6.6): uang DITERIMA bulan itu (basis kas, sama dengan
+     * produk terlaris) per `orders.source`; jumlah order = order yang menerima
+     * pembayaran di bulan itu. Hanya studio & event — retail tidak mencatat
+     * sumber, dan memasukkannya membanjiri "Tidak dicatat" dengan omzet POS.
+     * Urut omzet terbesar; "Tidak dicatat" (source null) selalu paling bawah.
+     *
+     * @return list<array{source: string|null, orders: int, revenue: int, share: float}>
+     */
+    public function bySource(string $month): array
+    {
+        $rows = Payment::query()
+            ->join('orders', 'orders.id', '=', 'payments.order_id')
+            ->whereIn('orders.business_line', [BusinessLine::Studio->value, BusinessLine::Event->value])
+            ->whereBetween('payments.paid_on', [Periods::start($month), Periods::end($month)])
+            ->groupBy('orders.source')
+            ->selectRaw('orders.source AS source, COUNT(DISTINCT orders.id) AS orders, SUM(payments.amount) AS revenue')
+            ->toBase()
+            ->get();
+        $total = (int) $rows->sum('revenue');
+
+        return array_values($rows
+            ->map(fn (object $r) => [
+                'source' => $r->source === null ? null : (string) $r->source,
+                'orders' => (int) $r->orders,
+                'revenue' => (int) $r->revenue,
+                'share' => $total === 0 ? 0.0 : (float) ((int) $r->revenue / $total),
+            ])
+            ->sortBy([
+                fn (array $a, array $b) => ($a['source'] === null) <=> ($b['source'] === null),
+                fn (array $a, array $b) => $b['revenue'] <=> $a['revenue'],
+            ])
+            ->values()
+            ->all());
+    }
+
+    /**
      * Jasa terlaris berdasarkan NILAI ORDER, bukan uang diterima — wedding
      * yang baru DP tetap dihitung penuh. Menjawab "paket mana yang laku".
      * Order Batal tidak dihitung.
+     *
+     * HPP bahan dari `order_items.unit_cost` (snapshot) — terisi untuk paket
+     * berkomponen (spek 6.3), null bila tidak ada satu pun baris ber-HPP.
+     * Baris lama tanpa HPP dihitung 0 di jumlahnya.
      *
      * @return list<ServiceSales>
      */
@@ -88,6 +129,9 @@ class SalesReport
                     $first->catalogItem ?? throw new \LogicException('Item jasa tanpa katalog'),
                     (int) $group->sum('quantity'),
                     (int) $group->sum(fn (OrderItem $i) => $i->quantity * $i->unit_price),
+                    $group->contains(fn (OrderItem $i) => $i->unit_cost !== null)
+                        ? (int) $group->sum(fn (OrderItem $i) => $i->quantity * ($i->unit_cost ?? 0))
+                        : null,
                 );
             })
             ->sortByDesc(fn (ServiceSales $s) => $s->value)

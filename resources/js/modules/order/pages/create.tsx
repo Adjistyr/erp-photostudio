@@ -11,10 +11,9 @@
  */
 
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Info } from 'lucide-react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import InputError from '@/components/input-error';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -30,12 +29,14 @@ import {
     rowsComplete,
     toPayload,
 } from '@/modules/order/components/order-form';
+import { ScheduleSummary } from '@/modules/order/components/schedule-editor';
 import type {
     CatalogOption,
     CustomerOption,
     OrderFields,
 } from '@/modules/order/components/order-form';
 import type { OrderType } from '@/modules/order/lib/category';
+import { schedulesPayload } from '@/modules/order/lib/schedules';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod } from '@/modules/order/types';
 import { create as ordersCreate, index as ordersIndex } from '@/routes/orders';
@@ -52,9 +53,11 @@ interface OrderForm extends OrderFields {
 export default function OrdersCreate({
     customers,
     catalog,
+    sources,
 }: {
     customers: CustomerOption[];
     catalog: CatalogOption[];
+    sources: string[];
 }) {
     const form = useForm<OrderForm>({
         business_line: 'studio',
@@ -64,7 +67,9 @@ export default function OrdersCreate({
         service_time: '',
         location: '',
         notes: '',
+        source: '',
         items: [{ key: 1, catalog_item_id: '', quantity: 1 }],
+        schedules: [],
         dp: '',
         dp_method: 'transfer',
     });
@@ -79,11 +84,15 @@ export default function OrdersCreate({
         rowsComplete(data.items, catalog);
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title="Buat Order" />
-            <h1 className="sr-only">Buat Order</h1>
 
-            <div className="grid min-w-0 grid-cols-1 gap-6 p-6 xl:grid-cols-[1fr_20rem]">
+            <PageHeader
+                title="Buat Order"
+                description="Order sesi studio atau event, dengan DP bila sudah diterima."
+            />
+
+            <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[1fr_20rem]">
                 <div className="flex min-w-0 flex-col gap-6">
                     <OrderFormFields
                         line={data.business_line}
@@ -96,6 +105,7 @@ export default function OrdersCreate({
                         errors={errors}
                         customers={customers}
                         catalog={catalog}
+                        sources={sources}
                         header={
                             <Field>
                                 <FieldLabel>Jenis order</FieldLabel>
@@ -127,6 +137,8 @@ export default function OrdersCreate({
                                                 },
                                             ],
                                             location: '',
+                                            // Termin hanya untuk event (spek 6.4).
+                                            schedules: [],
                                         }));
                                     }}
                                 >
@@ -143,131 +155,139 @@ export default function OrdersCreate({
                     />
                 </div>
 
-                <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5">
-                    <h2 className="font-heading text-base font-semibold">
-                        Ringkasan
-                    </h2>
+                <Panel title="Ringkasan" className="self-start">
+                    <div className="flex flex-col gap-4">
+                        <SummaryLines items={data.items} catalog={catalog} />
 
-                    <SummaryLines items={data.items} catalog={catalog} />
+                        <Separator />
 
-                    <Separator />
-
-                    <div className="flex items-baseline justify-between">
-                        <span className="font-medium">Total</span>
-                        <span className="font-mono text-2xl font-semibold">
-                            {formatRp(total)}
-                        </span>
-                    </div>
-
-                    <Field>
-                        <FieldLabel htmlFor="dp">
-                            DP diterima{' '}
-                            <span className="text-muted-foreground">
-                                — opsional
+                        <div className="flex items-baseline justify-between">
+                            <span className="font-medium">Total</span>
+                            <span className="text-2xl font-medium tracking-[-0.02em]">
+                                {formatRp(total)}
                             </span>
-                        </FieldLabel>
-                        {/*
+                        </div>
+
+                        {data.business_line === 'event' && (
+                            <ScheduleSummary
+                                rows={data.schedules}
+                                total={total}
+                            />
+                        )}
+
+                        <Field>
+                            <FieldLabel htmlFor="dp">
+                                DP diterima{' '}
+                                <span className="text-muted-foreground">
+                                    — opsional
+                                </span>
+                            </FieldLabel>
+                            {/*
                             DP nominal bebas, bukan persentase tetap — asumsi
                             business-flow bagian 2 pertanyaan 3: nego per deal.
                         */}
-                        <Input
-                            id="dp"
-                            inputMode="numeric"
-                            placeholder="0"
-                            className="font-mono"
-                            value={data.dp}
-                            aria-invalid={Boolean(errors.dp)}
-                            onChange={(e) =>
-                                setData('dp', hanyaDigit(e.target.value))
-                            }
-                        />
-                        <InputError message={errors.dp} />
-                    </Field>
-
-                    {deposit > 0 && (
-                        // Metode hanya relevan kalau ada uang masuk.
-                        <Field>
-                            <FieldLabel>Metode DP</FieldLabel>
-                            <ToggleGroup
-                                value={[data.dp_method]}
-                                onValueChange={(v) => {
-                                    const m = METHODS.find((x) => x === v[0]);
-                                    if (m) setData('dp_method', m);
-                                }}
-                            >
-                                {METHODS.map((m) => (
-                                    <ToggleGroupItem key={m} value={m}>
-                                        {PAYMENT_METHOD_LABEL[m]}
-                                    </ToggleGroupItem>
-                                ))}
-                            </ToggleGroup>
-                            <InputError message={errors.dp_method} />
+                            <Input
+                                id="dp"
+                                inputMode="numeric"
+                                placeholder="0"
+                                value={data.dp}
+                                aria-invalid={Boolean(errors.dp)}
+                                onChange={(e) =>
+                                    setData('dp', hanyaDigit(e.target.value))
+                                }
+                            />
+                            <InputError message={errors.dp} />
                         </Field>
-                    )}
 
-                    {total > 0 && deposit <= total && (
-                        <p className="text-xs text-muted-foreground">
-                            Status bayar akan jadi{' '}
-                            <span className="font-medium text-foreground">
-                                {deposit <= 0
-                                    ? 'Belum Bayar'
-                                    : deposit >= total
-                                      ? 'Lunas'
-                                      : `DP ${formatPersen(deposit / total)}`}
-                            </span>
-                            , dan status kerja{' '}
-                            <span className="font-medium text-foreground">
-                                {deposit > 0 ? 'Dijadwalkan' : 'Booking'}
-                            </span>
-                            .
-                        </p>
-                    )}
+                        {deposit > 0 && (
+                            // Metode hanya relevan kalau ada uang masuk.
+                            <Field>
+                                <FieldLabel>Metode DP</FieldLabel>
+                                <ToggleGroup
+                                    value={[data.dp_method]}
+                                    onValueChange={(v) => {
+                                        const m = METHODS.find(
+                                            (x) => x === v[0],
+                                        );
+                                        if (m) setData('dp_method', m);
+                                    }}
+                                >
+                                    {METHODS.map((m) => (
+                                        <ToggleGroupItem key={m} value={m}>
+                                            {PAYMENT_METHOD_LABEL[m]}
+                                        </ToggleGroupItem>
+                                    ))}
+                                </ToggleGroup>
+                                <InputError message={errors.dp_method} />
+                            </Field>
+                        )}
 
-                    <Alert>
-                        <Info />
-                        <AlertTitle>Biaya job dicatat nanti</AlertTitle>
-                        <AlertDescription>
+                        {total > 0 && deposit <= total && (
+                            <p className="text-xs text-muted-foreground">
+                                Status bayar akan jadi{' '}
+                                <span className="font-medium text-foreground">
+                                    {deposit <= 0
+                                        ? 'Belum Bayar'
+                                        : deposit >= total
+                                          ? 'Lunas'
+                                          : `DP ${formatPersen(deposit / total)}`}
+                                </span>
+                                , dan status kerja{' '}
+                                <span className="font-medium text-foreground">
+                                    {deposit > 0 ? 'Dijadwalkan' : 'Booking'}
+                                </span>
+                                .
+                            </p>
+                        )}
+
+                        <Notice>
+                            <span className="font-medium text-foreground">
+                                Biaya job dicatat nanti.
+                            </span>{' '}
                             Fee crew, transport, dan sewa dicatat setelah acara
                             lewat menu Biaya — nilainya baru pasti setelah
                             dikerjakan, dan itu yang menentukan job ini
                             benar-benar untung atau tidak.
-                        </AlertDescription>
-                    </Alert>
+                        </Notice>
 
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            nativeButton={false}
-                            render={<Link href={ordersIndex()} />}
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            className="flex-1"
-                            disabled={!complete || processing}
-                            onClick={() => {
-                                // transform() mendaftarkan pengubah, tidak mengembalikan form.
-                                form.transform((d) => ({
-                                    ...d,
-                                    ...customerPayload(d),
-                                    items: toPayload(d.items),
-                                }));
-                                form.post(OrderController.store().url);
-                            }}
-                        >
-                            Simpan
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                nativeButton={false}
+                                render={<Link href={ordersIndex()} />}
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                disabled={!complete || processing}
+                                onClick={() => {
+                                    // transform() mendaftarkan pengubah, tidak mengembalikan form.
+                                    form.transform((d) => ({
+                                        ...d,
+                                        ...customerPayload(d),
+                                        items: toPayload(d.items),
+                                        schedules: schedulesPayload(
+                                            d.schedules,
+                                        ),
+                                    }));
+                                    form.post(OrderController.store().url);
+                                }}
+                            >
+                                Simpan
+                            </Button>
+                        </div>
+                        {!complete && (
+                            <p className="text-xs text-muted-foreground">
+                                Customer, tanggal, dan minimal satu item harus
+                                diisi.
+                            </p>
+                        )}
                     </div>
-                    {!complete && (
-                        <p className="text-xs text-muted-foreground">
-                            Customer, tanggal, dan minimal satu item harus
-                            diisi.
-                        </p>
-                    )}
-                </aside>
+                </Panel>
             </div>
-        </>
+        </div>
     );
 }
 

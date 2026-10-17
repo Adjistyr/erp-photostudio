@@ -41,9 +41,10 @@ export interface AssetRow {
     disposed_on: string | null;
     disposal_reason: string | null;
     sale_price: number | null;
-    allocation: number;
-    book_value: number;
-    accumulated: number;
+    /** Alokasi, nilai buku, akumulasi dana — tidak dikirim untuk admin (spek 5.1). */
+    allocation?: number;
+    book_value?: number;
+    accumulated?: number;
     next_maintenance: string | null;
     days_until_next: number | null;
 }
@@ -87,7 +88,8 @@ export interface OrderOption {
 
 /** Detail aset — baris + sumber dana + riwayat servis + foto + peminjaman. */
 export interface AssetDetail extends AssetRow {
-    funded_by: string | null;
+    /** Sumber dana (modal owner / kas usaha) — hanya owner (spek 5.1). */
+    funded_by?: string | null;
     maintenances: MaintenanceRow[];
     photos: AssetPhoto[];
     /** Belum kembali dulu, lalu 10 riwayat terakhir. */

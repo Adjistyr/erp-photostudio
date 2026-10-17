@@ -18,7 +18,7 @@ import { Head, Link } from '@inertiajs/react';
 import { List } from 'lucide-react';
 import { useState } from 'react';
 import { MonthNav } from '@/components/month-nav';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { PaymentBadge, WorkProgress } from '@/components/status-order';
 import { Button } from '@/components/ui/button';
 import {
@@ -71,30 +71,33 @@ export default function OrdersCalendar({
         : null;
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title="Kalender" />
-            <h1 className="sr-only">Kalender Booking</h1>
 
-            <PageActions>
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={ordersIndex()} />}
-                >
-                    <List data-icon="inline-start" />
-                    Tampilan Daftar
-                </Button>
-            </PageActions>
+            <PageHeader
+                title="Kalender Booking"
+                description="Cek tanggal yang masih kosong sebelum menerima booking."
+                actions={
+                    <Button
+                        variant="outline"
+                        nativeButton={false}
+                        render={<Link href={ordersIndex()} />}
+                    >
+                        <List data-icon="inline-start" />
+                        Tampilan Daftar
+                    </Button>
+                }
+            />
 
-            <div className="flex flex-col gap-4 p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+            <Panel flush label="Kalender bulan ini">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b px-[18px] py-3">
                     <MonthNav
                         month={month}
                         href={(m) => ordersCalendar({ query: { month: m } })}
                     />
 
                     {/* Legenda warna lini — sama dengan chart di Laporan (R6). */}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         {(['studio', 'event'] as const).map((l) => (
                             <span key={l} className="flex items-center gap-1.5">
                                 <span
@@ -110,7 +113,7 @@ export default function OrdersCalendar({
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border">
+                <div>
                     <div className="grid grid-cols-7 border-b bg-muted/40">
                         {DAYS.map((d) => (
                             <div
@@ -122,7 +125,7 @@ export default function OrdersCalendar({
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-7">
+                    <div className="grid grid-cols-7 [&>*:nth-child(7n)]:border-r-0">
                         {Array.from({ length: offset }, (_, i) => (
                             <div
                                 key={`empty-${i}`}
@@ -136,13 +139,13 @@ export default function OrdersCalendar({
                             return (
                                 <div
                                     key={day}
-                                    className="flex min-h-28 min-w-0 flex-col gap-1 border-r border-b p-2"
+                                    className="flex min-h-28 min-w-0 flex-col gap-1 border-r border-b p-1.5 sm:p-2"
                                 >
                                     <span
                                         className={
                                             day === todayDay
-                                                ? 'flex size-6 items-center justify-center rounded-full bg-primary font-mono text-xs text-primary-foreground'
-                                                : 'px-1 font-mono text-xs text-muted-foreground'
+                                                ? 'flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground'
+                                                : 'px-1 text-xs text-muted-foreground'
                                         }
                                     >
                                         {day}
@@ -152,7 +155,7 @@ export default function OrdersCalendar({
                                             key={o.id}
                                             type="button"
                                             onClick={() => setDetailId(o.id)}
-                                            className={`flex min-w-0 flex-col items-start gap-0.5 rounded-md px-2 py-1 text-left transition-opacity hover:opacity-80 ${
+                                            className={`flex min-w-0 flex-col items-start gap-0.5 rounded-lg px-1.5 py-1 text-left transition-opacity hover:opacity-80 sm:px-2 ${
                                                 o.work_status === 'cancelled'
                                                     ? 'line-through opacity-60'
                                                     : ''
@@ -171,7 +174,7 @@ export default function OrdersCalendar({
                                                 hanya derau.
                                             */}
                                             {o.service_time && (
-                                                <span className="font-mono text-[11px] text-muted-foreground">
+                                                <span className="text-[11px] text-muted-foreground">
                                                     {o.service_time}
                                                 </span>
                                             )}
@@ -182,13 +185,11 @@ export default function OrdersCalendar({
                         })}
                     </div>
                 </div>
+            </Panel>
 
-                {orders.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Belum ada jadwal bulan ini.
-                    </p>
-                )}
-            </div>
+            {orders.length === 0 && (
+                <Notice>Belum ada jadwal bulan ini.</Notice>
+            )}
 
             <Sheet
                 open={detail !== null}
@@ -216,21 +217,24 @@ export default function OrdersCalendar({
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex flex-col gap-1 rounded-lg border p-3 text-sm">
+                                <div className="flex flex-col gap-1 rounded-2xl bg-muted px-4 py-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
                                             Total
                                         </span>
-                                        <span className="font-mono">
-                                            {formatRp(detail.total)}
-                                        </span>
+                                        <span>{formatRp(detail.total)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">
                                             Sisa
                                         </span>
                                         <span
-                                            className={`font-mono ${detail.work_status === 'cancelled' ? 'text-muted-foreground line-through' : ''}`}
+                                            className={
+                                                detail.work_status ===
+                                                'cancelled'
+                                                    ? 'text-muted-foreground line-through'
+                                                    : undefined
+                                            }
                                         >
                                             {formatRp(detail.balance)}
                                         </span>
@@ -255,7 +259,7 @@ export default function OrdersCalendar({
                     )}
                 </SheetContent>
             </Sheet>
-        </>
+        </div>
     );
 }
 

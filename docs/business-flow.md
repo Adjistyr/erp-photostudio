@@ -213,6 +213,8 @@ Setelah pembayaran dicatat, app menawarkan **bukti bayar** untuk customer: kirim
 
 Dari sini muncul satu layar yang paling sering dibuka owner: **daftar piutang** — semua order yang status bayarnya belum Lunas, diurutkan berdasarkan tanggal acara atau umur tagihan. Tanpa layar ini, tagihan yang belum ditagih akan terlupakan, dan ini kebocoran paling umum di bisnis jasa. Tiap baris punya tombol **Tagih via WA**: pesannya dari template *Tagihan* di Komunikasi (bisa diubah owner; dipakai juga tombol WhatsApp di Invoice), pengiriman tetap manual.
 
+**Jatuh tempo & termin (spek 6.4).** Tanpa termin, jatuh tempo tagihan = tanggal layanan dan yang ditagih = seluruh sisa. Order **event** boleh punya 2–6 **termin pembayaran** (mis. DP saat booking – 50% H-7 – pelunasan H-1; tombol "Bagi 3" di form): jumlahnya harus sama dengan total order, tanggalnya naik, dan termin terakhir paling lambat di tanggal acara. Status termin tidak diinput — pembayaran menutup termin dari yang paling awal (FIFO): lunas bila total bayar ≥ kumulatif sampai termin itu, sebagian bila melewati kumulatif sebelumnya. **Jatuh tempo efektif** = tanggal termin pertama yang belum lunas; inilah yang dipakai umur tagihan di Pembayaran, Laporan Piutang, Dashboard, bukti bayar, dan `{jatuh_tempo}` pesan tagihan (ditambah `{termin}`: "termin 2 dari 3 — Rp 5.000.000 jatuh tempo 12 Nov 2026"). Ubah order yang mengubah total sehingga termin tidak lagi pas → termin dihapus dengan peringatan dan harus diatur ulang, bukan diskalakan diam-diam.
+
 ### 5.5 Invoice & Thank You Mail
 
 **Invoice** digenerate dari Order, tidak diketik ulang. Isinya: identitas studio, data customer, rincian item, total, riwayat pembayaran, sisa tagihan, dan instruksi transfer. Dibagikan sebagai link atau PDF.
@@ -248,7 +250,11 @@ Yang dibutuhkan di sini bukan CRM dalam arti sales pipeline — client sudah men
 
 ## 6. Daftar Module
 
-Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena penggunanya dua owner dengan akses penuh dan volumenya kecil, setiap module bisa dibuat versi tipis — tidak perlu POS berkecepatan tinggi. Manajemen peran & hak akses tetap ada di kontrak (quotation deliverable 16), tapi ditunda sampai staf ikut input.
+Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Volumenya kecil, jadi setiap module bisa dibuat versi tipis — tidak perlu POS berkecepatan tinggi. Peran & hak akses (quotation deliverable 16) **sudah ada** sejak spek 5.1 (K4): dua peran tetap.
+
+- **Owner** — semua, termasuk mengelola pengguna (Settings → Pengguna).
+- **Admin boleh**: Dashboard (jadwal, piutang, perawatan jatuh tempo), POS, Order & Booking (buat, ubah, lanjut/mundur status, batal, link hasil, catat bayar & retur), Pembayaran, Customer (tambah/ubah), Katalog (lihat, tanpa HPP), Biaya (lihat + catat **biaya job**), Aset (lihat, catat servis, tandai rusak/aktif, peminjaman alat), Invoice, Komunikasi (lihat template, kirim).
+- **Admin tidak boleh**: Laporan (semua), Modal & Bagi Hasil, ekspor CSV order/aset/kas; melihat margin, HPP, omzet/BEP Dashboard, biaya operasional, nilai buku/alokasi/dana maintenance; menghapus pembayaran, retur, biaya, servis, setoran/penarikan; tambah/ubah/nonaktifkan katalog; tambah/ubah/lepas aset dan kategori/foto aset; ubah template; tutup/buka buku.
 
 | # | Module | Isi | Melayani flow |
 |---|---|---|---|
@@ -262,7 +268,7 @@ Sepuluh module, mencakup seluruh kebutuhan di dokumen kebutuhan awal. Karena pen
 | — | **Aset & Maintenance** (bonus, di luar quotation) | Daftar alat, alokasi maintenance otomatis, nilai buku, jadwal perawatan, riwayat servis, lepas/jual aset | 8.9 |
 | 8 | **Invoice** | Generate dari order, bagikan link/PDF, riwayat pengiriman | 5.5 |
 | 9 | **Komunikasi** | Thank You mail, blast email, penyiapan blast WA, editor template | 5.5, 5.6 |
-| 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas, bagi hasil owner, progress balik modal, **kas harian** (penerimaan per hari × metode — untuk mencocokkan laci kas dan mutasi rekening tiap tutup hari; penerimaan saja) | 5.7, 8 |
+| 10 | **Laporan** | Laba rugi, omzet per lini, margin per lini, piutang, produk terlaris, customer teratas, **sumber order** (Laporan Penjualan: jumlah order & uang diterima bulan itu per sumber order studio/event, share, "Tidak dicatat" untuk order tanpa sumber — spek 6.6), bagi hasil owner, progress balik modal, **kas harian** (penerimaan per hari × metode — untuk mencocokkan laci kas dan mutasi rekening tiap tutup hari; penerimaan saja) | 5.7, 8 |
 
 ### Urutan pengerjaan yang disarankan
 
@@ -337,6 +343,8 @@ Dokumen kebutuhan menanyakan "perlu menghitung HPP? riset dulu". Jawabannya: per
 **HPP produk fisik** — biaya bahan per unit. Keychain sekian rupiah, cetak 4R sekian, bingkai sekian. Diisi manual sekali di katalog, lalu ikut terhitung otomatis setiap penjualan. Ini yang paling sering bocor: produk terlihat untung karena harga bahannya tidak pernah dihitung.
 
 **HPP jasa** — bukan biaya bahan, tapi **biaya langsung per job**: fee fotografer, videografer, MUA, transport, sewa lokasi, sewa alat, editor. Berbeda-beda tiap job, jadi tidak bisa ditaruh di katalog — harus dicatat per order lewat BiayaJob.
+
+**Paket jasa berisi produk (bundel, spek 6.3)** — mis. "Paket Studio 1 Jam termasuk 5 cetak 4R". Komponen produk dipasang di Katalog (Edit paket → Komponen paket); harga paket tetap diketik owner. Saat paket masuk order, HPP bahannya = Σ HPP komponen × qty **dihitung saat transaksi** dan disalin ke baris order (snapshot, sama dengan produk), sehingga margin paket ikut berkurang tanpa menambah baris cetak yang membuat customer tertagih dua kali. Biaya job tetap dicatat per order seperti biasa. Stok komponen tidak dikurangi (tidak dilacak).
 
 **Yang sengaja tidak dilakukan:** metode costing persediaan (FIFO / rata-rata) dan alokasi biaya overhead ke tiap job. Keduanya menambah kerumitan besar dengan manfaat yang tidak terasa di skala bisnis ini. Overhead cukup dicatat sebagai biaya operasional bulanan, tidak perlu dibagi-bagi ke tiap order.
 
@@ -546,7 +554,7 @@ Bukan karena tidak berguna, tapi karena biayanya melebihi manfaatnya pada skala 
 | Penyimpanan & galeri foto di app | Biaya penyimpanan foto wedding besar, dan client sudah punya Google Drive. Cukup tempel link di Order | Kalau client minta customer bisa login lihat hasil sendiri |
 | Portal login customer | Satu link Drive menyelesaikan masalah yang sama | Sama seperti di atas |
 | Payment gateway | Pembayaran masih transfer manual, dan pencocokan manual masih ringan di volume ini | Kalau transaksi > 30/hari |
-| Hak akses & peran pengguna | Penggunanya dua owner dengan akses penuh. Tetap ada di kontrak (quotation deliverable 16) — ditunda, bukan dibuang | Saat ada staff yang ikut input |
+| Hak akses & peran pengguna | ~~Ditunda~~ — dikerjakan di spek 5.1: owner / admin, aturan tetap di kode (bagian 6). Peran dinamis / tabel permission tetap ditunda | Saat peran ketiga muncul |
 | Kunci periode / tutup buku | Tanpa kunci, biaya yang telat diinput ke bulan lalu ikut mengubah bagi hasil bulan itu. Diterima dulu: rasio sudah versi per periode (8.6), jadi satu-satunya sumber perubahan historis adalah input telat | Saat owner mulai mencairkan bagi hasil berdasarkan angka app, lalu angka bulan yang sudah dicairkan berubah |
 | Pencatatan pencairan bagi hasil & pengambilan owner | App menghitung **hak** tiap owner, bukan uang yang benar-benar dicairkan. Pencairan terjadi di luar app | Bersamaan dengan kunci periode |
 | Barcode, lokasi aset, dan notifikasi pengingat servis | Enam alat di satu studio. Jadwal perawatan cukup tampil di Dashboard dan layar Aset (8.9) | Kalau alat > 50 atau lebih dari satu lokasi |

@@ -10,6 +10,7 @@
 
 import { Head } from '@inertiajs/react';
 import { KepalaUang, TabelData } from '@/components/data-table';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
     TableBody,
@@ -62,9 +63,12 @@ export default function Margin({ month, lines, totals }: Props) {
     return (
         <>
             <Head title="Margin per Lini" />
-            <h1 className="sr-only">Margin per Lini</h1>
 
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-6 p-4 md:p-6">
+                <PageHeader
+                    title="Margin per Lini"
+                    description="Lini mana yang sebenarnya menghasilkan uang setelah biaya langsung."
+                />
                 <ReportNav current="margin" month={month} />
 
                 {biggest &&
@@ -90,20 +94,16 @@ export default function Margin({ month, lines, totals }: Props) {
                         </Alert>
                     )}
 
-                <section className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-                    <div className="flex items-baseline justify-between">
-                        <h2 className="font-heading text-base font-semibold">
-                            Omzet vs margin
-                        </h2>
-                        <span className="text-xs text-muted-foreground">
-                            batang penuh = omzet · batang pekat = margin
-                        </span>
-                    </div>
-
+                <Panel title="Omzet vs margin">
                     <div className="flex flex-col gap-4">
+                        {/* Legenda di atas bar, bukan di `aside` kepala panel:
+                            di layar sempit kalimatnya menjepit judul. */}
+                        <p className="text-xs text-muted-foreground">
+                            batang penuh = omzet · batang pekat = margin
+                        </p>
                         {lines.map((l) => (
                             <div key={l.line} className="flex flex-col gap-1.5">
-                                <div className="flex items-baseline justify-between text-sm">
+                                <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
                                     <span className="flex items-center gap-2 font-medium">
                                         <span
                                             className="size-2 rounded-full"
@@ -113,7 +113,7 @@ export default function Margin({ month, lines, totals }: Props) {
                                         />
                                         {LINE_LABEL[l.line]}
                                     </span>
-                                    <span className="font-mono text-muted-foreground">
+                                    <span className="text-muted-foreground">
                                         {formatRp(l.revenue)} · margin{' '}
                                         {formatPersen(l.margin_ratio)}
                                     </span>
@@ -124,7 +124,7 @@ export default function Margin({ month, lines, totals }: Props) {
                                     color-mix, bukan opacity — opacity ikut memudarkan
                                     bar margin di dalamnya.
                                 */}
-                                <div className="h-6 w-full overflow-hidden rounded-md bg-muted">
+                                <div className="h-6 w-full overflow-hidden rounded-full bg-muted">
                                     <div
                                         className="flex h-full items-center"
                                         style={{
@@ -144,7 +144,7 @@ export default function Margin({ month, lines, totals }: Props) {
                             </div>
                         ))}
                     </div>
-                </section>
+                </Panel>
 
                 <TabelData>
                     <TableHeader>
@@ -171,19 +171,19 @@ export default function Margin({ month, lines, totals }: Props) {
                                         {LINE_LABEL[l.line]}
                                     </span>
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell className="text-right">
                                     {formatRp(l.revenue)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-muted-foreground">
+                                <TableCell className="text-right text-muted-foreground">
                                     {formatPersen(l.share)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell className="text-right">
                                     {formatRp(l.direct_cost)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono">
+                                <TableCell className="text-right">
                                     {formatRp(l.margin)}
                                 </TableCell>
-                                <TableCell className="text-right font-mono font-medium">
+                                <TableCell className="text-right font-medium">
                                     {l.revenue === 0 ? (
                                         <span className="text-muted-foreground">
                                             —
@@ -200,32 +200,32 @@ export default function Margin({ month, lines, totals }: Props) {
                             <TableCell className="font-semibold">
                                 Total
                             </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
+                            <TableCell className="text-right font-semibold">
                                 {formatRp(totals.revenue)}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-muted-foreground">
+                            <TableCell className="text-right text-muted-foreground">
                                 100%
                             </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
+                            <TableCell className="text-right font-semibold">
                                 {formatRp(totals.direct_cost)}
                             </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
+                            <TableCell className="text-right font-semibold">
                                 {formatRp(totals.gross_profit)}
                             </TableCell>
-                            <TableCell className="text-right font-mono font-semibold">
+                            <TableCell className="text-right font-semibold">
                                 {formatPersen(totals.gross_margin)}
                             </TableCell>
                         </TableRow>
                     </TableFooter>
                 </TabelData>
 
-                <p className="text-xs text-muted-foreground">
+                <Notice>
                     Biaya langsung Retail = HPP bahan dari katalog. Biaya
                     langsung Studio dan Event = biaya job yang dicatat per order
                     (fee crew, transport, sewa lokasi/alat). Biaya operasional
                     bulanan tidak dialokasikan ke lini mana pun — lihat Laba
                     Rugi.
-                </p>
+                </Notice>
             </div>
         </>
     );

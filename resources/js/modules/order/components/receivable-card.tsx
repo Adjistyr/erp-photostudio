@@ -14,6 +14,8 @@ import {
     personalise,
 } from '@/lib/format';
 import { billingValues } from '@/modules/order/components/invoice-document';
+import { PaymentProofLink } from '@/modules/order/components/payment-proof-link';
+import { installmentShort } from '@/modules/order/lib/schedules';
 import type { ReceivableRow } from '@/modules/order/types';
 
 export function ReceivableCard({
@@ -29,7 +31,7 @@ export function ReceivableCard({
     const overdue = row.days_until_due < 0;
 
     return (
-        <li className="flex flex-col gap-2 rounded-lg border p-4">
+        <li className="flex flex-col gap-2 rounded-3xl bg-card px-[18px] py-4 text-card-foreground">
             <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-sm">{row.number}</span>
                 <PaymentBadge
@@ -46,7 +48,7 @@ export function ReceivableCard({
                 <LineMark line={row.business_line} />
             </div>
             <div className="flex items-baseline justify-between gap-2">
-                <span className="font-mono font-semibold">
+                <span className="text-lg font-medium tracking-[-0.01em]">
                     Sisa {formatRp(row.balance)}
                 </span>
                 <span
@@ -57,9 +59,26 @@ export function ReceivableCard({
                 </span>
             </div>
             <p className="text-xs text-muted-foreground">
-                dari <span className="font-mono">{formatRp(row.total)}</span> ·
-                jatuh tempo {formatTanggal(row.service_date)}
+                dari {formatRp(row.total)} · jatuh tempo{' '}
+                {formatTanggal(row.due_on)}
             </p>
+            {row.proofs.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    Bukti bayar
+                    {row.proofs.map((pr) => (
+                        <PaymentProofLink
+                            key={pr.id}
+                            url={pr.url}
+                            label={`Bukti ${pr.note} ${row.number}`}
+                        />
+                    ))}
+                </div>
+            )}
+            {row.next_installment && (
+                <p className="text-xs text-muted-foreground">
+                    {installmentShort(row.next_installment)}
+                </p>
+            )}
             <div className="flex gap-2 pt-1">
                 <Button
                     size="lg"
@@ -98,7 +117,8 @@ export function BillButton({
             customer_name: row.customer_name,
             order_number: row.number,
             balance: row.balance,
-            service_date: row.service_date,
+            due_on: row.due_on,
+            next_installment: row.next_installment,
             public_url: row.invoice_url,
         }),
     );

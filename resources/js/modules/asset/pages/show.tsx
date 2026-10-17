@@ -12,7 +12,7 @@ import AssetController from '@/actions/Modules/Asset/Controllers/AssetController
 import AssetPhotoController from '@/actions/Modules/Asset/Controllers/AssetPhotoController';
 import { ConfirmDelete } from '@/components/confirm-delete';
 import { KELAS_DENSITY, KepalaUang, SelUang } from '@/components/data-table';
-import { PageActions } from '@/components/page-actions';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { RecordedBy } from '@/components/recorded-by';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useCan } from '@/hooks/use-can';
 import { formatRp, formatTanggal } from '@/lib/format';
 import {
     StatusBadge,
@@ -48,176 +49,192 @@ export default function AssetShow({
     order_options,
 }: {
     asset: AssetDetail;
-    maintenance_balance: number;
+    /** Saldo dana maintenance — tidak dikirim untuk admin (spek 5.1). */
+    maintenance_balance?: number;
     today: string;
     /** Order studio/event untuk dikaitkan ke peminjaman (spek 8.4). */
     order_options: OrderOption[];
 }) {
+    const can = useCan();
     const [dialog, setDialog] = useState<'service' | 'dispose' | null>(null);
     const totalService = a.maintenances.reduce((s, m) => s + m.cost, 0);
     const bm = brandModel(a);
     const items = a.photos.filter((p) => p.kind === 'item');
     const receipts = a.photos.filter((p) => p.kind === 'receipt');
     const urls = (id: number) => ({ asset: a.id, photo: id });
+    const { accumulated } = a;
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title={`${a.code} ${a.name}`} />
-            <PageActions>
-                {/* Identitas tetap bisa dikoreksi walau aset sudah dilepas. */}
-                <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={AssetController.edit(a.id)} />}
-                >
-                    <Pencil data-icon="inline-start" />
-                    Edit
-                </Button>
-            </PageActions>
-
-            <div className="flex flex-col gap-6 p-6">
-                <div className="flex flex-col gap-1">
-                    <h1 className="flex flex-wrap items-center gap-3 font-heading text-xl font-semibold">
-                        {a.name}
+            <PageHeader
+                title={a.name}
+                meta={
+                    <>
                         <StatusBadge asset={a} />
                         <WarrantyBadge until={a.warranty_until} today={today} />
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
+                    </>
+                }
+                description={
+                    <>
                         <span className="font-mono">{a.code}</span> ·{' '}
                         {a.category}
                         {bm ? ` · ${bm}` : ''}
-                    </p>
-                </div>
+                    </>
+                }
+                actions={
+                    <>
+                        {!a.disposed_on && (
+                            <>
+                                <Button onClick={() => setDialog('service')}>
+                                    <Wrench data-icon="inline-start" />
+                                    Catat Servis
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                        router.patch(
+                                            AssetController.updateStatus(a.id)
+                                                .url,
+                                            {
+                                                status:
+                                                    a.status === 'broken'
+                                                        ? 'active'
+                                                        : 'broken',
+                                            },
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    {a.status === 'broken'
+                                        ? 'Tandai Aktif'
+                                        : 'Tandai Rusak'}
+                                </Button>
+                            </>
+                        )}
+                        {/* Ubah identitas & lepas aset hanya owner (spek 5.1).
+                            Identitas tetap bisa dikoreksi walau aset sudah dilepas. */}
+                        {can.manage_assets && (
+                            <Button
+                                variant="outline"
+                                nativeButton={false}
+                                render={
+                                    <Link href={AssetController.edit(a.id)} />
+                                }
+                            >
+                                <Pencil data-icon="inline-start" />
+                                Edit
+                            </Button>
+                        )}
+                        {!a.disposed_on && can.manage_assets && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => setDialog('dispose')}
+                            >
+                                Lepas Aset
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
-                {!a.disposed_on && (
-                    <div className="flex flex-wrap gap-2">
-                        <Button size="sm" onClick={() => setDialog('service')}>
-                            <Wrench data-icon="inline-start" />
-                            Catat Servis
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                                router.patch(
-                                    AssetController.updateStatus(a.id).url,
-                                    {
-                                        status:
-                                            a.status === 'broken'
-                                                ? 'active'
-                                                : 'broken',
-                                    },
-                                    { preserveScroll: true },
-                                )
-                            }
-                        >
-                            {a.status === 'broken'
-                                ? 'Tandai Aktif'
-                                : 'Tandai Rusak'}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDialog('dispose')}
-                        >
-                            Lepas Aset
-                        </Button>
-                    </div>
-                )}
+            {a.disposed_on && (
+                <Notice className="text-sm">
+                    Dilepas {formatTanggal(a.disposed_on)} — {a.disposal_reason}
+                    .
+                    {(a.sale_price ?? 0) > 0
+                        ? ` Hasil jual ${formatRp(a.sale_price ?? 0)} masuk dana maintenance.`
+                        : ' Tidak ada hasil jual.'}{' '}
+                    Alokasi maintenance berhenti sejak bulan itu.
+                </Notice>
+            )}
 
-                {a.disposed_on && (
-                    <div className="rounded-md bg-muted p-3 text-sm">
-                        Dilepas {formatTanggal(a.disposed_on)} —{' '}
-                        {a.disposal_reason}.
-                        {(a.sale_price ?? 0) > 0
-                            ? ` Hasil jual ${formatRp(a.sale_price ?? 0)} masuk dana maintenance.`
-                            : ' Tidak ada hasil jual.'}{' '}
-                        Alokasi maintenance berhenti sejak bulan itu.
-                    </div>
-                )}
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <Panel title="Identitas" flush>
+                    <Table className={KELAS_DENSITY}>
+                        <TableBody>
+                            <DetailRow label="Kode">
+                                <span className="font-mono">{a.code}</span>
+                            </DetailRow>
+                            <DetailRow label="Kategori">{a.category}</DetailRow>
+                            <DetailRow label="Merek">
+                                {a.brand ?? '—'}
+                            </DetailRow>
+                            <DetailRow label="Model">
+                                {a.model ?? '—'}
+                            </DetailRow>
+                            <DetailRow label="Nomor seri">
+                                <span className="font-mono break-all">
+                                    {a.serial_number ?? '—'}
+                                </span>
+                            </DetailRow>
+                            <DetailRow label="Garansi">
+                                {a.warranty_until
+                                    ? `s/d ${formatTanggal(a.warranty_until)}`
+                                    : '—'}
+                            </DetailRow>
+                            <DetailRow label="Lokasi">
+                                {a.location ?? '—'}
+                            </DetailRow>
+                            <DetailRow label="Catatan">
+                                <span className="whitespace-pre-line">
+                                    {a.notes ?? '—'}
+                                </span>
+                            </DetailRow>
+                        </TableBody>
+                    </Table>
+                </Panel>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    <Section title="Identitas">
-                        <Table className={KELAS_DENSITY}>
-                            <TableBody>
-                                <DetailRow label="Kode">
-                                    <span className="font-mono">{a.code}</span>
-                                </DetailRow>
-                                <DetailRow label="Kategori">
-                                    {a.category}
-                                </DetailRow>
-                                <DetailRow label="Merek">
-                                    {a.brand ?? '—'}
-                                </DetailRow>
-                                <DetailRow label="Model">
-                                    {a.model ?? '—'}
-                                </DetailRow>
-                                <DetailRow label="Nomor seri">
-                                    <span className="font-mono break-all">
-                                        {a.serial_number ?? '—'}
-                                    </span>
-                                </DetailRow>
-                                <DetailRow label="Garansi">
-                                    {a.warranty_until
-                                        ? `s/d ${formatTanggal(a.warranty_until)}`
-                                        : '—'}
-                                </DetailRow>
-                                <DetailRow label="Lokasi">
-                                    {a.location ?? '—'}
-                                </DetailRow>
-                                <DetailRow label="Catatan">
-                                    <span className="whitespace-pre-line">
-                                        {a.notes ?? '—'}
-                                    </span>
-                                </DetailRow>
-                            </TableBody>
-                        </Table>
-                    </Section>
-
-                    <Section title="Keuangan">
-                        <Table className={KELAS_DENSITY}>
-                            <TableBody>
-                                <DetailRow label="Harga beli">
-                                    {a.units} × {formatRp(a.unit_price)} ={' '}
-                                    {formatRp(a.purchase_total)}
-                                </DetailRow>
-                                <DetailRow label="Tanggal beli">
-                                    {formatTanggal(a.purchased_on)}
-                                </DetailRow>
+                <Panel title="Keuangan" flush>
+                    <Table className={KELAS_DENSITY}>
+                        <TableBody>
+                            <DetailRow label="Harga beli">
+                                {a.units} × {formatRp(a.unit_price)} ={' '}
+                                {formatRp(a.purchase_total)}
+                            </DetailRow>
+                            <DetailRow label="Tanggal beli">
+                                {formatTanggal(a.purchased_on)}
+                            </DetailRow>
+                            {a.funded_by !== undefined && (
                                 <DetailRow label="Dibiayai">
                                     {a.funded_by ?? '—'}
                                 </DetailRow>
-                                <DetailRow label="Maintenance">
-                                    {a.maintenance_percent}% ·{' '}
-                                    {formatRp(a.allocation)} / bulan
-                                </DetailRow>
-                                <DetailRow label="Nilai buku">
-                                    {formatRp(a.book_value)} · umur ekonomis{' '}
-                                    {a.useful_life_months} bulan
-                                </DetailRow>
-                                <DetailRow label="Perawatan">
-                                    {a.maintenance_interval_months === null
-                                        ? 'Tanpa jadwal berkala'
-                                        : `Tiap ${a.maintenance_interval_months} bulan${
-                                              a.next_maintenance &&
-                                              !a.disposed_on
-                                                  ? ` · berikutnya ${formatTanggal(a.next_maintenance)}`
-                                                  : ''
-                                          }`}
-                                </DetailRow>
-                            </TableBody>
-                        </Table>
-                    </Section>
-                </div>
+                            )}
+                            <DetailRow label="Maintenance">
+                                {a.maintenance_percent}%
+                                {a.allocation !== undefined &&
+                                    ` · ${formatRp(a.allocation)} / bulan`}
+                            </DetailRow>
+                            <DetailRow
+                                label={
+                                    a.book_value !== undefined
+                                        ? 'Nilai buku'
+                                        : 'Umur ekonomis'
+                                }
+                            >
+                                {a.book_value !== undefined
+                                    ? `${formatRp(a.book_value)} · umur ekonomis ${a.useful_life_months} bulan`
+                                    : `${a.useful_life_months} bulan`}
+                            </DetailRow>
+                            <DetailRow label="Perawatan">
+                                {a.maintenance_interval_months === null
+                                    ? 'Tanpa jadwal berkala'
+                                    : `Tiap ${a.maintenance_interval_months} bulan${
+                                          a.next_maintenance && !a.disposed_on
+                                              ? ` · berikutnya ${formatTanggal(a.next_maintenance)}`
+                                              : ''
+                                      }`}
+                            </DetailRow>
+                        </TableBody>
+                    </Table>
+                </Panel>
+            </div>
 
-                <CheckoutSection
-                    asset={a}
-                    orders={order_options}
-                    today={today}
-                />
+            <CheckoutSection asset={a} orders={order_options} today={today} />
 
-                {/* Foto alat & nota (spek 8.2) — privat, dibuka lewat route ber-auth. */}
-                <div className="grid grid-cols-1 gap-6 rounded-lg border p-4 xl:grid-cols-2">
+            {/* Foto alat & nota (spek 8.2) — privat, dibuka lewat route ber-auth. */}
+            <Panel label="Foto alat dan nota">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <PhotoGallery
                         title="Foto alat"
                         itemName={a.name}
@@ -231,6 +248,7 @@ export default function AssetShow({
                         coverUrl={(id) =>
                             AssetPhotoController.cover(urls(id)).url
                         }
+                        readOnly={!can.manage_assets}
                         hint="Kondisi alat saat beli, rusak, atau sebelum dijual. Foto pertama jadi sampul di daftar."
                     />
                     <PhotoGallery
@@ -244,92 +262,102 @@ export default function AssetShow({
                             AssetPhotoController.destroy(urls(id)).url
                         }
                         allowPdf
+                        readOnly={!can.manage_assets}
                         hint="Foto nota, kartu garansi, atau PDF nota marketplace — untuk klaim garansi & asuransi."
                     />
                 </div>
+            </Panel>
 
-                <Section title="Riwayat servis">
-                    {a.maintenances.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">
-                            Belum ada riwayat servis.
-                        </p>
-                    ) : (
-                        <Table className={KELAS_DENSITY}>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Tanggal</TableHead>
-                                    <TableHead>Jenis</TableHead>
-                                    <TableHead>Keterangan</TableHead>
-                                    <KepalaUang>Biaya</KepalaUang>
-                                    {!a.disposed_on && <TableHead />}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {a.maintenances.map((m) => (
-                                    <TableRow key={m.id}>
-                                        <TableCell className="whitespace-nowrap">
-                                            {formatTanggal(m.performed_on)}
-                                        </TableCell>
-                                        <TableCell className="whitespace-nowrap">
-                                            {MAINTENANCE_LABEL[m.type]}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {m.description}
-                                            <RecordedBy
-                                                name={m.created_by_name}
+            <Panel
+                title="Riwayat servis"
+                aside={
+                    a.maintenances.length > 0
+                        ? `${a.maintenances.length} catatan · ${formatRp(totalService)}`
+                        : undefined
+                }
+                flush
+            >
+                {a.maintenances.length === 0 ? (
+                    <p className="px-[18px] py-4 text-sm text-muted-foreground">
+                        Belum ada riwayat servis.
+                    </p>
+                ) : (
+                    <Table className={KELAS_DENSITY}>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Tanggal</TableHead>
+                                <TableHead>Jenis</TableHead>
+                                <TableHead>Keterangan</TableHead>
+                                <KepalaUang>Biaya</KepalaUang>
+                                {!a.disposed_on && can.delete_money && (
+                                    <TableHead />
+                                )}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {a.maintenances.map((m) => (
+                                <TableRow key={m.id}>
+                                    <TableCell className="whitespace-nowrap">
+                                        {formatTanggal(m.performed_on)}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                        {MAINTENANCE_LABEL[m.type]}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {m.description}
+                                        <RecordedBy name={m.created_by_name} />
+                                    </TableCell>
+                                    <SelUang nominal={m.cost} />
+                                    {!a.disposed_on && can.delete_money && (
+                                        <TableCell className="w-10">
+                                            <ConfirmDelete
+                                                url={
+                                                    AssetController.destroyMaintenance(
+                                                        {
+                                                            asset: a.id,
+                                                            maintenance: m.id,
+                                                        },
+                                                    ).url
+                                                }
+                                                label={`servis ${m.description}`}
+                                                title={`Hapus servis ${m.description}?`}
+                                                description={
+                                                    m.cost > 0
+                                                        ? `Biaya ${formatRp(m.cost)} kembali ke dana maintenance dan jadwal perawatan dihitung ulang.`
+                                                        : 'Jadwal perawatan dihitung ulang.'
+                                                }
                                             />
                                         </TableCell>
-                                        <SelUang nominal={m.cost} />
-                                        {!a.disposed_on && (
-                                            <TableCell className="w-10">
-                                                <ConfirmDelete
-                                                    url={
-                                                        AssetController.destroyMaintenance(
-                                                            {
-                                                                asset: a.id,
-                                                                maintenance:
-                                                                    m.id,
-                                                            },
-                                                        ).url
-                                                    }
-                                                    label={`servis ${m.description}`}
-                                                    title={`Hapus servis ${m.description}?`}
-                                                    description={
-                                                        m.cost > 0
-                                                            ? `Biaya ${formatRp(m.cost)} kembali ke dana maintenance dan jadwal perawatan dihitung ulang.`
-                                                            : 'Jadwal perawatan dihitung ulang.'
-                                                    }
-                                                />
-                                            </TableCell>
-                                        )}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </Section>
+                                    )}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </Panel>
 
-                {/*
+            {/*
                     Perbandingan yang membuat daftar aset berguna melampaui
                     sheet: alat mana yang biaya servisnya melebihi dana yang
                     disisihkan — kandidat diganti, atau persen maintenance
-                    terlalu kecil.
+                    terlalu kecil. Dana yang disisihkan hanya owner (spek 5.1).
                 */}
-                <p className="text-sm text-muted-foreground">
+            {accumulated !== undefined && (
+                <Notice>
                     Total servis{' '}
-                    <span className="font-mono text-foreground">
+                    <span className="text-foreground">
                         {formatRp(totalService)}
                     </span>{' '}
                     dari{' '}
-                    <span className="font-mono text-foreground">
-                        {formatRp(a.accumulated)}
+                    <span className="text-foreground">
+                        {formatRp(accumulated)}
                     </span>{' '}
                     yang sudah disisihkan untuk aset ini (bulan yang sudah
                     tutup).
-                    {totalService > a.accumulated &&
+                    {totalService > accumulated &&
                         ' Biaya servisnya melebihi dana yang disisihkan — pertimbangkan menaikkan persen maintenance atau mengganti alat.'}
-                </p>
-            </div>
+                </Notice>
+            )}
 
             {dialog === 'service' && (
                 <ServiceDialog
@@ -346,7 +374,7 @@ export default function AssetShow({
                     onClose={() => setDialog(null)}
                 />
             )}
-        </>
+        </div>
     );
 }
 
@@ -356,17 +384,6 @@ AssetShow.layout = {
         { title: 'Detail aset', href: assetsIndex() },
     ],
 };
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-    return (
-        <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold">{title}</h3>
-            <div className="overflow-hidden rounded-lg border py-1">
-                {children}
-            </div>
-        </section>
-    );
-}
 
 function DetailRow({
     label,

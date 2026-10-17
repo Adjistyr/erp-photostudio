@@ -20,6 +20,7 @@ use Modules\Finance\Services\ReplacementDue;
 use Modules\Order\Enums\WorkStatus;
 use Modules\Order\Models\Order;
 use Modules\Shared\Enums\BusinessLine;
+use Modules\Shared\Support\Finance;
 
 /**
  * Dashboard (prompt 4.13) — "apa yang menunggu owner hari ini, dan uang mana
@@ -39,7 +40,8 @@ class DashboardController extends Controller
         $overdue = $open->filter(fn (Order $o) => $o->daysUntilDue($today) < 0);
         $breakEven = $pnl->breakEven($month);
 
-        return Inertia::render('dashboard', [
+        // Omzet, BEP, tutup buku, dan kekurangan dana hanya untuk owner (spek 5.1) — dihapus, bukan null.
+        return Inertia::render('dashboard', Finance::except([
             'has_catalog' => CatalogItem::query()->exists(),
             // Bulan lalu yang belum tutup buku → bagi hasilnya belum final.
             'unclosed_month' => $periods->nextToClose(),
@@ -61,7 +63,9 @@ class DashboardController extends Controller
                     'customer_name' => $o->customer?->name,
                     'business_line' => $o->business_line->value,
                     'balance' => $o->balance(),
+                    // Umur dari jatuh tempo efektif (termin berikutnya, spek 6.4).
                     'days_until_due' => $o->daysUntilDue($today),
+                    'next_installment' => $o->nextInstallment(),
                     'payment_status' => $o->paymentStatus()->value,
                     'paid_percent' => (int) round($o->paidRatio() * 100),
                 ])->values()->all(),
@@ -83,7 +87,7 @@ class DashboardController extends Controller
                 ->whereNotNull('due_back_on')
                 ->whereDate('due_back_on', '<', $today)
                 ->count(),
-        ]);
+        ], ['revenue', 'break_even', 'unclosed_month', 'replacements_shortfall']));
     }
 
     /** @return array{replacements_due_count: int, replacements_shortfall: int} */

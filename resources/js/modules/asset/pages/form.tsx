@@ -11,6 +11,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
 import InputError from '@/components/input-error';
+import { PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -171,9 +172,16 @@ export default function AssetForm({
     const title = editing ? `Edit ${asset.name}` : 'Tambah Aset';
 
     return (
-        <>
+        <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title={title} />
-            <h1 className="sr-only">{title}</h1>
+            <PageHeader
+                title={title}
+                description={
+                    editing
+                        ? 'Identitas, umur, dan jadwal perawatan bisa dikoreksi; data pembelian terkunci.'
+                        : 'Satu baris per alat; investasi dan alokasi maintenance tercatat otomatis.'
+                }
+            />
 
             {/* Saran native — tanpa komponen combobox untuk dua daftar pendek. */}
             <datalist id="asset-brands">
@@ -187,12 +195,9 @@ export default function AssetForm({
                 ))}
             </datalist>
 
-            <div className="grid min-w-0 grid-cols-1 gap-6 p-6 xl:grid-cols-[1fr_20rem]">
+            <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[1fr_20rem]">
                 <div className="flex min-w-0 flex-col gap-6">
-                    <section className="flex flex-col gap-4 rounded-lg border p-5">
-                        <h2 className="font-heading text-base font-semibold">
-                            Identitas
-                        </h2>
+                    <Panel title="Identitas">
                         <FieldGroup>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <Field>
@@ -410,266 +415,296 @@ export default function AssetForm({
                                 <InputError message={errors.notes} />
                             </Field>
                         </FieldGroup>
-                    </section>
+                    </Panel>
 
-                    <section className="flex flex-col gap-4 rounded-lg border p-5">
-                        <div className="flex flex-col gap-0.5">
-                            <h2 className="font-heading text-base font-semibold">
-                                Pembelian
-                            </h2>
+                    <Panel title="Pembelian">
+                        <div className="flex flex-col gap-4">
                             <p className="text-xs text-muted-foreground">
                                 {editing
                                     ? 'Terkunci setelah disimpan — mengubahnya akan menggeser alokasi maintenance bulan lalu dan investasi yang sudah tercatat.'
                                     : 'Otomatis tercatat sebagai investasi — tidak masuk Biaya maupun Laba Rugi. Terkunci setelah disimpan.'}
                             </p>
-                        </div>
-                        {editing ? (
-                            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-                                <ReadOnly label="Unit">{asset.units}</ReadOnly>
-                                <ReadOnly label="Harga / unit">
-                                    {formatRp(asset.unit_price)}
-                                </ReadOnly>
-                                <ReadOnly label="Tanggal beli">
-                                    {formatTanggal(asset.purchased_on)}
-                                </ReadOnly>
-                                <ReadOnly label="Maintenance">
-                                    {asset.maintenance_percent}%/bln
-                                </ReadOnly>
-                            </dl>
-                        ) : (
-                            <FieldGroup>
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                    <Field>
-                                        <FieldLabel htmlFor="asset-units">
-                                            Unit
-                                        </FieldLabel>
-                                        <Input
-                                            id="asset-units"
-                                            inputMode="numeric"
-                                            className="font-mono"
-                                            value={data.units}
-                                            aria-invalid={Boolean(errors.units)}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'units',
-                                                    hanyaDigit(e.target.value),
-                                                )
-                                            }
-                                        />
-                                        <FieldDescription>
-                                            Alat bernomor seri (kamera, lensa)
-                                            catat satu per baris dengan unit 1.
-                                        </FieldDescription>
-                                        <InputError message={errors.units} />
-                                    </Field>
-                                    <Field>
-                                        <FieldLabel htmlFor="asset-price">
-                                            Harga / unit
-                                        </FieldLabel>
-                                        <Input
-                                            id="asset-price"
-                                            inputMode="numeric"
-                                            className="font-mono"
-                                            placeholder="0"
-                                            value={data.unit_price}
-                                            aria-invalid={Boolean(
-                                                errors.unit_price,
-                                            )}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'unit_price',
-                                                    hanyaDigit(e.target.value),
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.unit_price}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        <FieldLabel htmlFor="asset-date">
-                                            Tanggal beli
-                                        </FieldLabel>
-                                        <Input
-                                            id="asset-date"
-                                            type="date"
-                                            max={today}
-                                            value={data.purchased_on}
-                                            aria-invalid={Boolean(
-                                                errors.purchased_on,
-                                            )}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'purchased_on',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.purchased_on}
-                                        />
-                                    </Field>
-                                </div>
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                    <Field>
-                                        <FieldLabel htmlFor="asset-percent">
-                                            Maintenance (%/bln)
-                                        </FieldLabel>
-                                        <Input
-                                            id="asset-percent"
-                                            inputMode="numeric"
-                                            className="font-mono"
-                                            value={data.maintenance_percent}
-                                            aria-invalid={Boolean(
-                                                errors.maintenance_percent,
-                                            )}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'maintenance_percent',
-                                                    hanyaDigit(e.target.value),
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.maintenance_percent}
-                                        />
-                                    </Field>
-                                    <Field className="sm:col-span-2">
-                                        <FieldLabel>Dibayar dari</FieldLabel>
-                                        <ToggleGroup
-                                            value={[data.paid_by]}
-                                            onValueChange={(v) =>
-                                                v[0] && setData('paid_by', v[0])
-                                            }
-                                        >
-                                            <ToggleGroupItem value={CASH}>
-                                                Kas usaha
-                                            </ToggleGroupItem>
-                                            {owners.map((o) => (
-                                                <ToggleGroupItem
-                                                    key={o.id}
-                                                    value={String(o.id)}
-                                                >
-                                                    {o.name}
-                                                </ToggleGroupItem>
-                                            ))}
-                                        </ToggleGroup>
-                                        <InputError message={errors.paid_by} />
-                                    </Field>
-                                </div>
-                            </FieldGroup>
-                        )}
-                    </section>
+                            {editing ? (
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
+                                    <ReadOnly label="Unit">
+                                        {asset.units}
+                                    </ReadOnly>
+                                    <ReadOnly label="Harga / unit">
+                                        {formatRp(asset.unit_price)}
+                                    </ReadOnly>
+                                    <ReadOnly label="Tanggal beli">
+                                        {formatTanggal(asset.purchased_on)}
+                                    </ReadOnly>
+                                    <ReadOnly label="Maintenance">
+                                        {asset.maintenance_percent}%/bln
+                                    </ReadOnly>
+                                </dl>
+                            ) : (
+                                <FieldGroup>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                        <Field>
+                                            <FieldLabel htmlFor="asset-units">
+                                                Unit
+                                            </FieldLabel>
+                                            <Input
+                                                id="asset-units"
+                                                inputMode="numeric"
 
-                    <section className="flex flex-col gap-4 rounded-lg border p-5">
-                        <div className="flex flex-col gap-0.5">
-                            <h2 className="font-heading text-base font-semibold">
-                                Umur & perawatan
-                            </h2>
+                                                value={data.units}
+                                                aria-invalid={Boolean(
+                                                    errors.units,
+                                                )}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'units',
+                                                        hanyaDigit(
+                                                            e.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                            <FieldDescription>
+                                                Alat bernomor seri (kamera,
+                                                lensa) catat satu per baris
+                                                dengan unit 1.
+                                            </FieldDescription>
+                                            <InputError
+                                                message={errors.units}
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <FieldLabel htmlFor="asset-price">
+                                                Harga / unit
+                                            </FieldLabel>
+                                            <Input
+                                                id="asset-price"
+                                                inputMode="numeric"
+
+                                                placeholder="0"
+                                                value={data.unit_price}
+                                                aria-invalid={Boolean(
+                                                    errors.unit_price,
+                                                )}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'unit_price',
+                                                        hanyaDigit(
+                                                            e.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={errors.unit_price}
+                                            />
+                                        </Field>
+                                        <Field>
+                                            <FieldLabel htmlFor="asset-date">
+                                                Tanggal beli
+                                            </FieldLabel>
+                                            <Input
+                                                id="asset-date"
+                                                type="date"
+                                                max={today}
+                                                value={data.purchased_on}
+                                                aria-invalid={Boolean(
+                                                    errors.purchased_on,
+                                                )}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'purchased_on',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={errors.purchased_on}
+                                            />
+                                        </Field>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                        <Field>
+                                            <FieldLabel htmlFor="asset-percent">
+                                                Maintenance (%/bln)
+                                            </FieldLabel>
+                                            <Input
+                                                id="asset-percent"
+                                                inputMode="numeric"
+
+                                                value={data.maintenance_percent}
+                                                aria-invalid={Boolean(
+                                                    errors.maintenance_percent,
+                                                )}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'maintenance_percent',
+                                                        hanyaDigit(
+                                                            e.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.maintenance_percent
+                                                }
+                                            />
+                                        </Field>
+                                        <Field className="sm:col-span-2">
+                                            <FieldLabel>
+                                                Dibayar dari
+                                            </FieldLabel>
+                                            <ToggleGroup
+                                                value={[data.paid_by]}
+                                                onValueChange={(v) =>
+                                                    v[0] &&
+                                                    setData('paid_by', v[0])
+                                                }
+                                            >
+                                                <ToggleGroupItem value={CASH}>
+                                                    Kas usaha
+                                                </ToggleGroupItem>
+                                                {owners.map((o) => (
+                                                    <ToggleGroupItem
+                                                        key={o.id}
+                                                        value={String(o.id)}
+                                                    >
+                                                        {o.name}
+                                                    </ToggleGroupItem>
+                                                ))}
+                                            </ToggleGroup>
+                                            <InputError
+                                                message={errors.paid_by}
+                                            />
+                                        </Field>
+                                    </div>
+                                </FieldGroup>
+                            )}
+                        </div>
+                    </Panel>
+
+                    <Panel title="Umur & perawatan">
+                        <div className="flex flex-col gap-4">
                             <p className="text-xs text-muted-foreground">
                                 Umur hanya untuk nilai buku (informasi);
                                 interval untuk jadwal perawatan. Keduanya bukan
                                 uang, jadi tetap bisa dikoreksi.
                             </p>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <Field>
+                                    <FieldLabel htmlFor="asset-life">
+                                        Umur ekonomis (bulan)
+                                    </FieldLabel>
+                                    <Input
+                                        id="asset-life"
+                                        inputMode="numeric"
+
+                                        value={data.useful_life_months}
+                                        aria-invalid={Boolean(
+                                            errors.useful_life_months,
+                                        )}
+                                        onChange={(e) =>
+                                            setData(
+                                                'useful_life_months',
+                                                hanyaDigit(e.target.value),
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.useful_life_months}
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="asset-interval">
+                                        Rawat tiap (bulan)
+                                    </FieldLabel>
+                                    <Input
+                                        id="asset-interval"
+                                        inputMode="numeric"
+
+                                        placeholder="tanpa jadwal"
+                                        value={data.maintenance_interval_months}
+                                        aria-invalid={Boolean(
+                                            errors.maintenance_interval_months,
+                                        )}
+                                        onChange={(e) =>
+                                            setData(
+                                                'maintenance_interval_months',
+                                                hanyaDigit(e.target.value),
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={
+                                            errors.maintenance_interval_months
+                                        }
+                                    />
+                                </Field>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Field>
-                                <FieldLabel htmlFor="asset-life">
-                                    Umur ekonomis (bulan)
-                                </FieldLabel>
-                                <Input
-                                    id="asset-life"
-                                    inputMode="numeric"
-                                    className="font-mono"
-                                    value={data.useful_life_months}
-                                    aria-invalid={Boolean(
-                                        errors.useful_life_months,
-                                    )}
-                                    onChange={(e) =>
-                                        setData(
-                                            'useful_life_months',
-                                            hanyaDigit(e.target.value),
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={errors.useful_life_months}
-                                />
-                            </Field>
-                            <Field>
-                                <FieldLabel htmlFor="asset-interval">
-                                    Rawat tiap (bulan)
-                                </FieldLabel>
-                                <Input
-                                    id="asset-interval"
-                                    inputMode="numeric"
-                                    className="font-mono"
-                                    placeholder="tanpa jadwal"
-                                    value={data.maintenance_interval_months}
-                                    aria-invalid={Boolean(
-                                        errors.maintenance_interval_months,
-                                    )}
-                                    onChange={(e) =>
-                                        setData(
-                                            'maintenance_interval_months',
-                                            hanyaDigit(e.target.value),
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={errors.maintenance_interval_months}
-                                />
-                            </Field>
-                        </div>
-                    </section>
+                    </Panel>
                 </div>
 
-                <aside className="flex min-w-0 flex-col gap-4 self-start rounded-lg border p-5 xl:sticky xl:top-6">
-                    <div className="flex flex-col gap-0.5">
-                        <h2 className="font-heading text-base font-semibold">
-                            {editing ? asset.name : 'Aset baru'}
-                        </h2>
+                <Panel
+                    title={editing ? asset.name : 'Aset baru'}
+                    className="self-start xl:sticky xl:top-6"
+                >
+                    <div className="flex flex-col gap-4">
                         <p className="text-xs text-muted-foreground">
-                            {editing
-                                ? `${asset.code} · ${category?.name ?? ''}`
-                                : `Kode ${data.code.trim() === '' ? (category?.next_code ?? '') : data.code.toUpperCase()}`}
+                            {editing ? (
+                                <>
+                                    <span className="font-mono">
+                                        {asset.code}
+                                    </span>{' '}
+                                    · {category?.name ?? ''}
+                                </>
+                            ) : (
+                                <>
+                                    Kode{' '}
+                                    <span className="font-mono">
+                                        {data.code.trim() === ''
+                                            ? (category?.next_code ?? '')
+                                            : data.code.toUpperCase()}
+                                    </span>
+                                </>
+                            )}
                         </p>
+                        {!editing && (
+                            <p className="text-sm">
+                                {perMonth > 0
+                                    ? `Alokasi maintenance +${formatRp(perMonth)} / bulan mulai ${formatBulan(data.purchased_on.slice(0, 7))}.`
+                                    : 'Umur dan jadwal perawatan terisi otomatis dari kategori — ubah kalau tahu angka sebenarnya.'}
+                            </p>
+                        )}
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                nativeButton={false}
+                                render={
+                                    <Link
+                                        href={
+                                            editing
+                                                ? AssetController.show(asset.id)
+                                                : assetsIndex()
+                                        }
+                                    />
+                                }
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                disabled={data.name.trim() === '' || processing}
+                                onClick={submit}
+                            >
+                                Simpan
+                            </Button>
+                        </div>
                     </div>
-                    {!editing && (
-                        <p className="text-sm">
-                            {perMonth > 0
-                                ? `Alokasi maintenance +${formatRp(perMonth)} / bulan mulai ${formatBulan(data.purchased_on.slice(0, 7))}.`
-                                : 'Umur dan jadwal perawatan terisi otomatis dari kategori — ubah kalau tahu angka sebenarnya.'}
-                        </p>
-                    )}
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            nativeButton={false}
-                            render={
-                                <Link
-                                    href={
-                                        editing
-                                            ? AssetController.show(asset.id)
-                                            : assetsIndex()
-                                    }
-                                />
-                            }
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            className="flex-1"
-                            disabled={data.name.trim() === '' || processing}
-                            onClick={submit}
-                        >
-                            Simpan
-                        </Button>
-                    </div>
-                </aside>
+                </Panel>
             </div>
-        </>
+        </div>
     );
 }
 
@@ -690,7 +725,7 @@ function ReadOnly({
     return (
         <div className="flex flex-col gap-0.5">
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="font-mono">{children}</dd>
+            <dd>{children}</dd>
         </div>
     );
 }

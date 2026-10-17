@@ -91,6 +91,8 @@ spacing:
   section-gap: 24px
 ---
 
+> **Arsip (17 Okt 2026):** nilai warna, font (DM Sans/Outfit), dan radius di file ini adalah sistem lama dan **tidak lagi berlaku** — jalur Stitch sudah ditutup (DESIGN.md bagian 4) dan app kini memakai sistem master-outlet (DESIGN.md bagian 2: kanvas `#f5f5f3`, Inter, tombol hampir hitam, `--brand` teal). File ini sengaja tidak diselaraskan; DESIGN.md satu-satunya sumber token.
+
 # ERP Photo Studio — Design Rules
 
 Desktop web ERP for a single user: the owner of **Studio Foto Agung**, a small

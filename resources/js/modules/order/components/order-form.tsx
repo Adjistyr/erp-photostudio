@@ -1,6 +1,7 @@
 /**
  * Bagian form order yang dipakai Buat Order DAN Ubah Order (spek 1.2):
- * customer, item, jadwal & lokasi, catatan, plus ringkasan item.
+ * customer, item, jadwal & lokasi, catatan, termin (event, spek 6.4), plus
+ * ringkasan item.
  *
  * Dipilih komponen ber-props nilai/onChange, bukan satu form raksasa dengan
  * `mode`: bagian yang beda (jenis order + DP di Buat, "sudah dibayar" di
@@ -15,6 +16,7 @@ import { Plus, Trash2, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
+import { Panel } from '@/components/page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,17 +45,22 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatRp, hanyaDigit } from '@/lib/format';
-import { variantLabel } from '@/modules/catalog';
+import { bundleIncludes, variantLabel } from '@/modules/catalog';
+import type { BundlePart } from '@/modules/catalog';
 import {
     categoryMatches,
     isServiceCategory,
 } from '@/modules/order/lib/category';
 import type { OrderType } from '@/modules/order/lib/category';
+import type { ScheduleRow } from '@/modules/order/lib/schedules';
+import { ScheduleEditor } from '@/modules/order/components/schedule-editor';
 
 export interface CustomerOption {
     id: number;
     name: string;
     phone: string | null;
+    /** Sumber kenal customer — default sumber order (spek 6.6). */
+    source?: string | null;
 }
 
 export interface CatalogOption {
@@ -68,6 +75,8 @@ export interface CatalogOption {
     is_active?: boolean;
     /** Varian aktif produk (spek 7.3/7.5); kosong = tanpa varian. */
     variants?: { id: number; name: string; price: number }[];
+    /** Isi paket jasa (spek 6.3); kosong = bukan paket berkomponen. */
+    components?: BundlePart[];
 }
 
 export interface ItemRow {
@@ -104,7 +113,11 @@ export interface OrderFields {
     service_time: string;
     location: string;
     notes: string;
+    /** Sumber lead order (spek 6.6); '' = tidak dicatat. */
+    source: string;
     items: ItemRow[];
+    /** Termin pembayaran (spek 6.4) — selalu kosong untuk studio/retail. */
+    schedules: ScheduleRow[];
 }
 
 export interface Locked {
@@ -241,19 +254,18 @@ export function toPayload(rows: ItemRow[]): Record<string, unknown>[] {
     );
 }
 
-export function Section({
-    title,
-    children,
-}: {
-    title: string;
-    children: ReactNode;
-}) {
-    return (
-        <section className="flex min-w-0 flex-col gap-4 rounded-lg border p-5">
-            <h2 className="font-heading text-base font-semibold">{title}</h2>
-            {children}
-        </section>
-    );
+/**
+ * Sumber order setelah customer berganti (spek 6.6): ikut sumber customer
+ * yang dipilih; customer baru/tanpa pilihan mempertahankan pilihan sekarang
+ * (server mengisi dari customer bila tetap kosong).
+ */
+export function sourceAfterCustomer(
+    customers: CustomerOption[],
+    customerId: string,
+    current: string,
+): string {
+    if (customerId === '') return current;
+    return customers.find((c) => String(c.id) === customerId)?.source ?? '';
 }
 
 export function OrderFormFields({
@@ -265,6 +277,8 @@ export function OrderFormFields({
     catalog,
     locked = UNLOCKED,
     header,
+    sources,
+    scheduleNotice,
 }: {
     line: OrderType;
     data: OrderFields;
@@ -275,6 +289,10 @@ export function OrderFormFields({
     locked?: Locked;
     /** Isi tambahan di atas customer (mis. jenis order di Buat Order). */
     header?: ReactNode;
+    /** Pilihan sumber order (spek 6.6); undefined = tidak dicatat (retail). */
+    sources?: string[];
+    /** Peringatan aturan 5 (Ubah Order: termin akan dihapus karena total berubah). */
+    scheduleNotice?: string;
 }) {
     // Baris baru: paket jasa aktif yang cocok dengan lini order + produk
     // aktif (spek 7.5 — cetak tambahan, album, bingkai).
@@ -297,10 +315,15 @@ export function OrderFormFields({
     const scheduleHint = locked.schedule
         ? 'Order sudah diserahkan — jadwal terkunci.'
         : undefined;
+    const chosenCustomer = customers.find(
+        (c) => String(c.id) === data.customer_id,
+    );
+    const sourceFromCustomer =
+        data.source !== '' && chosenCustomer?.source === data.source;
 
     return (
         <>
-            <Section title={header ? 'Jenis & customer' : 'Customer'}>
+            <Panel title={header ? 'Jenis & customer' : 'Customer'}>
                 <FieldGroup>
                     {header}
                     <Field>
@@ -310,13 +333,72 @@ export function OrderFormFields({
                             customerId={data.customer_id}
                             newCustomer={data.new_customer}
                             errors={errors}
-                            onChange={onChange}
+                            onChange={(patch) =>
+                                onChange(
+                                    sources && patch.customer_id !== undefined
+                                        ? {
+                                              ...patch,
+                                              source: sourceAfterCustomer(
+                                                  customers,
+                                                  patch.customer_id,
+                                                  data.source,
+                                              ),
+                                          }
+                                        : patch,
+                                )
+                            }
                         />
                     </Field>
+                    {sources && (
+                        <Field>
+                            <FieldLabel htmlFor="source">
+                                Sumber order
+                            </FieldLabel>
+                            <Select
+                                items={[
+                                    { value: '', label: 'Tidak dicatat' },
+                                    ...sources.map((s) => ({
+                                        value: s,
+                                        label: s,
+                                    })),
+                                ]}
+                                value={data.source}
+                                onValueChange={(v) =>
+                                    onChange({ source: v ?? '' })
+                                }
+                            >
+                                <SelectTrigger
+                                    id="source"
+                                    className="w-full"
+                                    aria-invalid={Boolean(errors.source)}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectItem value="">
+                                            Tidak dicatat
+                                        </SelectItem>
+                                        {sources.map((s) => (
+                                            <SelectItem key={s} value={s}>
+                                                {s}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            {sourceFromCustomer && (
+                                <FieldDescription>
+                                    dari data customer
+                                </FieldDescription>
+                            )}
+                            <InputError message={errors.source} />
+                        </Field>
+                    )}
                 </FieldGroup>
-            </Section>
+            </Panel>
 
-            <Section title="Item">
+            <Panel title="Item">
                 <div className="flex flex-col gap-3">
                     {data.items.map((r, i) => {
                         const old = r.id !== undefined;
@@ -339,14 +421,18 @@ export function OrderFormFields({
                                 ? chosen.variants
                                 : [];
                         const total = lineTotal(r, catalog);
+                        // Isi paket (spek 6.3) — baris baru saja; baris lama memakai snapshot di Detail Order.
+                        const includes = old
+                            ? null
+                            : bundleIncludes(chosen?.components, r.quantity);
                         return (
                             <div key={r.key} className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                                     {r.custom ? (
                                         // Baris custom lama: nama & harga dikunci —
                                         // ubah = hapus baris lalu tambah baru.
                                         <div
-                                            className="flex min-w-0 flex-1 items-center gap-2"
+                                            className="flex min-w-0 basis-full items-center gap-2 sm:flex-1 sm:basis-auto"
                                             title={
                                                 old
                                                     ? 'Ubah item custom: hapus baris ini lalu tambah yang baru'
@@ -375,7 +461,7 @@ export function OrderFormFields({
                                                 aria-label="Harga item custom"
                                                 inputMode="numeric"
                                                 placeholder="Harga"
-                                                className="w-32 font-mono"
+                                                className="w-32"
                                                 disabled={old || locked.items}
                                                 aria-invalid={Boolean(
                                                     errors[
@@ -393,7 +479,7 @@ export function OrderFormFields({
                                             />
                                         </div>
                                     ) : (
-                                        <div className="min-w-0 flex-1">
+                                        <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
                                             <Select
                                                 items={options.map((s) => ({
                                                     value: String(s.id),
@@ -516,7 +602,7 @@ export function OrderFormFields({
                                     <Input
                                         inputMode="numeric"
                                         aria-label="Qty"
-                                        className="w-16 text-center font-mono"
+                                        className="w-16 text-center"
                                         disabled={locked.items}
                                         value={String(r.quantity)}
                                         onChange={(e) =>
@@ -532,7 +618,7 @@ export function OrderFormFields({
                                             })
                                         }
                                     />
-                                    <span className="w-32 shrink-0 text-right font-mono text-sm">
+                                    <span className="w-32 shrink-0 text-right text-sm max-sm:ml-auto">
                                         {total > 0 ? formatRp(total) : '—'}
                                     </span>
                                     <Button
@@ -602,6 +688,11 @@ export function OrderFormFields({
                                         </Select>
                                     </div>
                                 )}
+                                {includes && (
+                                    <p className="pl-2 text-xs text-muted-foreground">
+                                        {includes}
+                                    </p>
+                                )}
                                 <InputError message={rowError} />
                             </div>
                         );
@@ -669,9 +760,9 @@ export function OrderFormFields({
                         </p>
                     )}
                 </div>
-            </Section>
+            </Panel>
 
-            <Section title="Jadwal & lokasi">
+            <Panel title="Jadwal & lokasi">
                 <FieldGroup>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Field>
@@ -758,7 +849,18 @@ export function OrderFormFields({
                         <InputError message={errors.notes} />
                     </Field>
                 </FieldGroup>
-            </Section>
+            </Panel>
+
+            {line === 'event' && (
+                <ScheduleEditor
+                    rows={data.schedules}
+                    onChange={(schedules) => onChange({ schedules })}
+                    total={orderTotal(data.items, catalog)}
+                    serviceDate={data.service_date}
+                    errors={errors}
+                    notice={scheduleNotice}
+                />
+            )}
         </>
     );
 }
@@ -792,9 +894,7 @@ export function SummaryLines({
                     <span className="min-w-0 truncate text-muted-foreground">
                         {l.name} × {l.qty}
                     </span>
-                    <span className="shrink-0 font-mono">
-                        {formatRp(l.total)}
-                    </span>
+                    <span className="shrink-0">{formatRp(l.total)}</span>
                 </div>
             ))}
             {lines.length === 0 && (
@@ -828,7 +928,7 @@ function CustomerPicker({
 
     if (newCustomer) {
         return (
-            <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
+            <div className="flex flex-col gap-2 rounded-2xl border border-dashed p-3">
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary">Customer baru</Badge>
                     <Button

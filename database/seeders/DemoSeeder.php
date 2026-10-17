@@ -50,6 +50,18 @@ class DemoSeeder extends Seeder
         $owners = $this->owners();
         $this->profitSharing($owners);
         $this->assets($owners);
+        $this->admin();
+    }
+
+    /**
+     * Akun staf admin untuk demo peran (spek 5.1) — Agung & Raka (DatabaseSeeder)
+     * tetap owner. Password "password", sama dengan akun seeder lain.
+     */
+    private function admin(): void
+    {
+        if (User::where('email', 'admin@potraittime.test')->doesntExist()) {
+            User::factory()->admin()->create(['name' => 'Admin Studio', 'email' => 'admin@potraittime.test']);
+        }
     }
 
     /** @return array<string, CatalogItem> */
