@@ -18,6 +18,7 @@ use Modules\Catalog\Models\CatalogItemVariant;
  * @property int $quantity
  * @property int $unit_price harga satuan SAAT transaksi
  * @property int|null $unit_cost HPP satuan saat transaksi; null untuk jasa (kecuali paket berkomponen, spek 6.3)
+ * @property int|null $estimated_cost estimasi biaya job per unit jasa saat transaksi (snapshot katalog); hanya untuk estimasi margin order
  * @property list<array{name: string, quantity: int, unit_cost: int|null}>|null $components snapshot komponen per 1 paket (spek 6.3)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -25,7 +26,7 @@ use Modules\Catalog\Models\CatalogItemVariant;
  * @property-read CatalogItem|null $catalogItem
  * @property-read CatalogItemVariant|null $variant
  */
-#[Fillable(['order_id', 'catalog_item_id', 'catalog_item_variant_id', 'name', 'quantity', 'unit_price', 'unit_cost', 'components'])]
+#[Fillable(['order_id', 'catalog_item_id', 'catalog_item_variant_id', 'name', 'quantity', 'unit_price', 'unit_cost', 'estimated_cost', 'components'])]
 class OrderItem extends Model
 {
     protected function casts(): array
@@ -34,6 +35,7 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'integer',
             'unit_cost' => 'integer',
+            'estimated_cost' => 'integer',
             'components' => 'array',
         ];
     }

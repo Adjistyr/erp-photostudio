@@ -63,6 +63,8 @@ interface ItemForm {
     type: CatalogItemType;
     price: string;
     unit_cost: string;
+    /** Estimasi biaya job — jasa saja. */
+    estimated_cost: string;
     category: string;
     description: string;
     is_public: boolean;
@@ -92,6 +94,8 @@ export default function CatalogForm({
         type: item?.type ?? 'product',
         price: item ? String(item.price) : '',
         unit_cost: item?.unit_cost != null ? String(item.unit_cost) : '',
+        estimated_cost:
+            item?.estimated_cost != null ? String(item.estimated_cost) : '',
         category: item?.category ?? '',
         description: item?.description ?? '',
         is_public: item?.is_public ?? false,
@@ -119,6 +123,11 @@ export default function CatalogForm({
               (data.type === 'service'
                   ? data.category !== ''
                   : data.unit_cost !== ''));
+    // Jasa: margin estimasi = harga − HPP komponen paket − estimasi biaya
+    // job. Hanya pratinjau; margin order aktual memakai biaya job sungguhan.
+    const serviceEstimate =
+        data.type === 'service' ? Number(data.estimated_cost) || 0 : 0;
+    const serviceMargin = price - (item?.bundle_cost ?? 0) - serviceEstimate;
     const lowMargin =
         !hasVariants &&
         data.type === 'product' &&
@@ -130,6 +139,11 @@ export default function CatalogForm({
         form.transform((d) => ({
             ...d,
             unit_cost: d.type === 'service' || hasVariants ? null : d.unit_cost,
+            // Produk tidak membawa estimasi biaya job — server menolaknya.
+            estimated_cost:
+                d.type === 'product' || d.estimated_cost === ''
+                    ? null
+                    : d.estimated_cost,
             price: hasVariants ? null : d.price,
             // Jasa tidak pernah membawa varian — server menolaknya.
             variants:
@@ -323,10 +337,10 @@ export default function CatalogForm({
                                         </Field>
 
                                         {/*
-                                    HPP hanya untuk produk. Untuk jasa field-nya
-                                    DIHILANGKAN dengan penjelasan pengganti, bukan
-                                    di-disable — field disabled mengundang pertanyaan
-                                    "kenapa tidak boleh diisi".
+                                    HPP bahan hanya untuk produk. Jasa mendapat
+                                    estimasi biaya job sebagai gantinya — bukan
+                                    HPP yang di-disable, supaya tidak ada field
+                                    mati yang mengundang "kenapa tidak boleh diisi".
                                 */}
                                         {data.type === 'product' ? (
                                             <Field>
@@ -355,14 +369,44 @@ export default function CatalogForm({
                                                 />
                                             </Field>
                                         ) : (
-                                            <div className="flex flex-col justify-center">
-                                                <p className="text-xs text-muted-foreground">
-                                                    Jasa tidak punya HPP tetap.
-                                                    Biaya crew, transport, dan
-                                                    sewa dicatat per order lewat
-                                                    menu Biaya.
-                                                </p>
-                                            </div>
+                                            <Field>
+                                                <FieldLabel htmlFor="estimated_cost">
+                                                    Estimasi biaya job / unit{' '}
+                                                    <span className="text-muted-foreground">
+                                                        — opsional
+                                                    </span>
+                                                </FieldLabel>
+                                                <AmountPercentField
+                                                    id="estimated_cost"
+                                                    total={price}
+                                                    cap={Infinity}
+                                                    totalLabel="harga jual"
+                                                    value={data.estimated_cost}
+                                                    invalid={Boolean(
+                                                        errors.estimated_cost,
+                                                    )}
+                                                    onValueChange={(v) =>
+                                                        setData(
+                                                            'estimated_cost',
+                                                            v,
+                                                        )
+                                                    }
+                                                />
+                                                {/* Bukan HPP: biaya jasa beda tiap job. */}
+                                                <FieldDescription>
+                                                    Fee crew, transport, sewa.
+                                                    Dipakai untuk estimasi
+                                                    margin order sampai biaya
+                                                    job aktual dicatat di menu
+                                                    Biaya; tidak masuk Laba
+                                                    Rugi.
+                                                </FieldDescription>
+                                                <InputError
+                                                    message={
+                                                        errors.estimated_cost
+                                                    }
+                                                />
+                                            </Field>
                                         )}
                                     </div>
                                 )}
@@ -587,13 +631,33 @@ export default function CatalogForm({
                                                       : '—'}
                                             </span>
                                         </div>
+                                        {serviceEstimate > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">
+                                                    Estimasi biaya job
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                    {formatRp(serviceEstimate)}
+                                                </span>
+                                            </div>
+                                        )}
                                         <Separator />
                                         <div className="flex items-baseline justify-between">
                                             <span className="font-medium">
                                                 Margin
                                             </span>
-                                            {data.type === 'product' &&
-                                            price > 0 ? (
+                                            {data.type === 'service' &&
+                                            price > 0 &&
+                                            serviceEstimate > 0 ? (
+                                                <span className="font-semibold">
+                                                    {formatRp(serviceMargin)} (
+                                                    {formatPersen(
+                                                        serviceMargin / price,
+                                                    )}
+                                                    , estimasi)
+                                                </span>
+                                            ) : data.type === 'product' &&
+                                              price > 0 ? (
                                                 <span
                                                     className={`font-semibold ${lowMargin ? 'text-destructive' : ''}`}
                                                 >

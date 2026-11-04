@@ -24,13 +24,13 @@ use Modules\Catalog\Models\CatalogItemVariant;
  */
 trait ResolvesCatalogLines
 {
-    /** @var list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, components: list<array{name: string, quantity: int, unit_cost: int|null}>|null, quantity: int}>|null */
+    /** @var list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, estimated_cost: int|null, components: list<array{name: string, quantity: int, unit_cost: int|null}>|null, quantity: int}>|null */
     private ?array $lines = null;
 
     /**
      * Dipanggil setelah aturan `items.*` lolos.
      *
-     * @return list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, components: list<array{name: string, quantity: int, unit_cost: int|null}>|null, quantity: int}>
+     * @return list<array{item: CatalogItem|null, variant: CatalogItemVariant|null, name: string, unit_price: int, unit_cost: int|null, estimated_cost: int|null, components: list<array{name: string, quantity: int, unit_cost: int|null}>|null, quantity: int}>
      */
     public function lines(): array
     {
@@ -55,6 +55,7 @@ trait ResolvesCatalogLines
                     'name' => trim((string) ($i['name'] ?? '')),
                     'unit_price' => (int) ($i['unit_price'] ?? 0),
                     'unit_cost' => null,
+                    'estimated_cost' => null,
                     'components' => null,
                     'quantity' => (int) $i['quantity'],
                 ];
@@ -71,6 +72,8 @@ trait ResolvesCatalogLines
                 'name' => $variant ? CatalogItemVariant::label($item->name, $variant->name) : $item->name,
                 'unit_price' => $variant->price ?? $item->price,
                 'unit_cost' => $variant ? $variant->unit_cost : ($item->isBundle() ? $item->bundleCost() : $item->unit_cost),
+                // Estimasi biaya job hanya ada di jasa (varian = produk).
+                'estimated_cost' => $variant ? null : $item->estimated_cost,
                 'components' => $variant ? null : $item->componentsSnapshot(),
                 'quantity' => (int) $i['quantity'],
             ];

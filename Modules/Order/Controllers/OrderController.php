@@ -223,6 +223,7 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    'estimated_cost' => $line['estimated_cost'],
                     // Paket berkomponen (spek 6.3): snapshot, bukan rujukan katalog.
                     'components' => $line['components'],
                 ]);
@@ -355,6 +356,7 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'unit_cost' => $line['unit_cost'],
+                    'estimated_cost' => $line['estimated_cost'],
                     'components' => $line['components'],
                 ]);
             }
@@ -503,7 +505,8 @@ class OrderController extends Controller
 
     /**
      * Tanpa `view-finance` (admin, spek 5.1): `direct_cost`, `margin`,
-     * `job_costs` (komponen margin), dan `items[].unit_cost` (HPP) dihapus.
+     * `job_costs` (komponen margin), estimasi biaya job & margin, dan
+     * `items[].unit_cost` (HPP) dihapus.
      *
      * @return array<string, mixed>
      */
@@ -538,6 +541,10 @@ class OrderController extends Controller
             'balance' => $o->balance(),
             'direct_cost' => $direct,
             'margin' => $o->margin(),
+            // Estimasi biaya job dari katalog jasa selama biaya job aktual belum
+            // ada; null = tidak ada estimasi. Margin di atas tetap angka aktual.
+            'estimated_job_cost' => $o->estimatedJobCost(),
+            'estimated_margin' => $o->estimatedJobCost() > 0 ? $o->margin() - $o->estimatedJobCost() : null,
             'work_status' => $o->work_status->value,
             'next_status' => $o->work_status->next()?->value,
             // null = Booking (status awal) atau Batal (final).
@@ -591,6 +598,6 @@ class OrderController extends Controller
                 'id' => $j->id, 'incurred_on' => $j->incurred_on->toDateString(), 'category' => $j->category,
                 'description' => $j->description, 'amount' => $j->amount, 'created_by_name' => $j->creator?->name,
             ])->values()->all(),
-        ], ['direct_cost', 'margin', 'job_costs']);
+        ], ['direct_cost', 'margin', 'job_costs', 'estimated_job_cost', 'estimated_margin']);
     }
 }

@@ -233,6 +233,23 @@ class Order extends Model
     }
 
     /**
+     * Estimasi biaya job dari katalog jasa (snapshot `order_items.estimated_cost`)
+     * — dipakai untuk estimasi margin selama biaya job aktual belum dicatat.
+     * Begitu ada satu biaya job, estimasi gugur seluruhnya (bukan dikurangi
+     * sebagian): biaya aktual dicatat bertahap, dan mencampur estimasi dengan
+     * aktual membuat margin terhitung dua kali. Order batal: 0 — tidak ada job.
+     * Tidak pernah masuk Laba Rugi (basis kas, angka aktual).
+     */
+    public function estimatedJobCost(): int
+    {
+        if ($this->isCancelled() || $this->jobCosts->isNotEmpty()) {
+            return 0;
+        }
+
+        return (int) $this->items->sum(fn (OrderItem $i) => $i->quantity * ($i->estimated_cost ?? 0));
+    }
+
+    /**
      * Margin per order. Order BATAL dihitung dari uang yang sudah diterima
      * (DP hangus), bukan total order — sisanya tidak akan pernah ditagih,
      * sama dengan basis kas di Laba Rugi. Diputuskan owner 2026-10-06; tanpa
