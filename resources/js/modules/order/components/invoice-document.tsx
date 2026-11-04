@@ -264,7 +264,7 @@ export function InvoiceDocument({
                     <span className="font-mono text-sm font-medium whitespace-nowrap">
                         {invoice.number}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs whitespace-nowrap text-muted-foreground">
                         {formatTanggal(invoice.service_date)}
                     </span>
                 </div>
@@ -296,7 +296,11 @@ export function InvoiceDocument({
                     <TableRow>
                         <TableHead>Item</TableHead>
                         <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className={`text-right ${hideOnSlip}`}>
+                        {/* Harga satuan pindah ke bawah nama item di layar
+                            sempit — empat kolom membuat Jumlah terpotong di HP. */}
+                        <TableHead
+                            className={`hidden text-right sm:table-cell ${hideOnSlip}`}
+                        >
                             Harga
                         </TableHead>
                         <TableHead className="text-right">Jumlah</TableHead>
@@ -315,12 +319,24 @@ export function InvoiceDocument({
                                 >
                                     <TableCell className="font-medium whitespace-normal">
                                         {i.name}
+                                        <span
+                                            className={cn(
+                                                'block text-xs font-normal whitespace-nowrap text-muted-foreground sm:hidden',
+                                                retail && 'print:hidden',
+                                            )}
+                                        >
+                                            {i.quantity} ×{' '}
+                                            {formatRp(i.unit_price)}
+                                        </span>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {i.quantity}
                                     </TableCell>
                                     <TableCell
-                                        className={cn('text-right', hideOnSlip)}
+                                        className={cn(
+                                            'hidden text-right sm:table-cell',
+                                            hideOnSlip,
+                                        )}
                                     >
                                         {formatRp(i.unit_price)}
                                     </TableCell>

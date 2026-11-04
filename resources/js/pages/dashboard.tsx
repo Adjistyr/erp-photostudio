@@ -557,7 +557,12 @@ function BookingTable({
                         <TableCell>
                             <LineMark line={o.business_line} />
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
+                        {/* Dipotong seperti daftar Order: ringkasan item panjang
+                            mendorong Status Bayar keluar panel. */}
+                        <TableCell
+                            className="max-w-72 truncate text-muted-foreground"
+                            title={o.items_summary}
+                        >
                             {o.items_summary}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">

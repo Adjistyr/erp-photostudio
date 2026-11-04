@@ -151,7 +151,9 @@ export function VariantRows({
                                 }
                             />
                         </label>
-                        <label className="flex flex-col gap-1">
+                        {/* Toggle Rp/% + isian tidak muat di setengah kartu mobile
+                            — satu baris penuh di bawah sm. */}
+                        <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
                             <span className="text-xs text-muted-foreground sm:hidden">
                                 HPP bahan
                             </span>
