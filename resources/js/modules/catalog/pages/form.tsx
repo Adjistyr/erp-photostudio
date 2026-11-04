@@ -10,6 +10,7 @@
 
 import { Head, Link, useForm } from '@inertiajs/react';
 import CatalogItemController from '@/actions/Modules/Catalog/Controllers/CatalogItemController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { formatPersen, formatRp } from '@/lib/format';
 import { BundleComponents } from '@/modules/catalog/components/bundle-components';
 import { PhotoGallery } from '@/modules/catalog/components/photo-gallery';
 import { PriceHistory } from '@/modules/catalog/components/price-history';
@@ -304,21 +305,15 @@ export default function CatalogForm({
                                             <FieldLabel htmlFor="price">
                                                 Harga jual
                                             </FieldLabel>
-                                            <Input
+                                            <MoneyInput
                                                 id="price"
-                                                inputMode="numeric"
                                                 placeholder="0"
                                                 value={data.price}
                                                 aria-invalid={Boolean(
                                                     errors.price,
                                                 )}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'price',
-                                                        hanyaDigit(
-                                                            e.target.value,
-                                                        ),
-                                                    )
+                                                onValueChange={(v) =>
+                                                    setData('price', v)
                                                 }
                                             />
                                             <InputError
@@ -337,21 +332,15 @@ export default function CatalogForm({
                                                 <FieldLabel htmlFor="unit_cost">
                                                     HPP bahan / unit
                                                 </FieldLabel>
-                                                <Input
+                                                <MoneyInput
                                                     id="unit_cost"
-                                                    inputMode="numeric"
                                                     placeholder="0"
                                                     value={data.unit_cost}
                                                     aria-invalid={Boolean(
                                                         errors.unit_cost,
                                                     )}
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'unit_cost',
-                                                            hanyaDigit(
-                                                                e.target.value,
-                                                            ),
-                                                        )
+                                                    onValueChange={(v) =>
+                                                        setData('unit_cost', v)
                                                     }
                                                 />
                                                 <InputError

@@ -7,6 +7,7 @@
 
 import { useForm } from '@inertiajs/react';
 import OrderRefundController from '@/actions/Modules/Order/Controllers/OrderRefundController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +22,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { formatRp, hanyaDigit } from '@/lib/format';
+import { formatRp } from '@/lib/format';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod } from '@/modules/order/types';
 
@@ -83,17 +84,11 @@ export function RefundDialog({
                             <FieldLabel htmlFor="refund_amount">
                                 Jumlah
                             </FieldLabel>
-                            <Input
+                            <MoneyInput
                                 id="refund_amount"
-                                inputMode="numeric"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'amount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
+                                onValueChange={(v) => setData('amount', v)}
                             />
                             <InputError message={errors.amount} />
                         </Field>

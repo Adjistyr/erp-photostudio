@@ -11,6 +11,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { Plus, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import CapitalController from '@/actions/Modules/Finance/Controllers/CapitalController';
+import { MoneyInput } from '@/components/money-input';
 import {
     KepalaUang,
     KosongTabel,
@@ -1145,18 +1146,12 @@ function ContributionDialog({
                             <FieldLabel htmlFor="contribution-amount">
                                 Nominal
                             </FieldLabel>
-                            <Input
+                            <MoneyInput
                                 id="contribution-amount"
-                                inputMode="numeric"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'amount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
+                                onValueChange={(v) => setData('amount', v)}
                             />
                             <InputError message={errors.amount} />
                         </Field>
@@ -1289,18 +1284,12 @@ function WithdrawalDialog({
                             <FieldLabel htmlFor="withdrawal-amount">
                                 Nominal
                             </FieldLabel>
-                            <Input
+                            <MoneyInput
                                 id="withdrawal-amount"
-                                inputMode="numeric"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'amount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
+                                onValueChange={(v) => setData('amount', v)}
                             />
                         </Field>
                     </div>
@@ -1459,18 +1448,12 @@ function InvestmentDialog({
                             <FieldLabel htmlFor="investment-amount">
                                 Nominal
                             </FieldLabel>
-                            <Input
+                            <MoneyInput
                                 id="investment-amount"
-                                inputMode="numeric"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'amount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
+                                onValueChange={(v) => setData('amount', v)}
                             />
                             <InputError message={errors.amount} />
                         </Field>

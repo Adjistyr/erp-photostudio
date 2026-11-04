@@ -24,6 +24,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import ExpenseController from '@/actions/Modules/Expense/Controllers/ExpenseController';
+import { MoneyInput } from '@/components/money-input';
 import {
     KepalaUang,
     KosongTabel,
@@ -68,7 +69,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useCan } from '@/hooks/use-can';
-import { formatBulan, formatRp, formatTanggal, hanyaDigit } from '@/lib/format';
+import { formatBulan, formatRp, formatTanggal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { index as expensesIndex } from '@/routes/expenses';
 import type { BusinessLine } from '@/types/domain';
@@ -629,18 +630,12 @@ function ExpenseDialog({
                         <Field>
                             <FieldLabel htmlFor="amount">Nominal</FieldLabel>
                             {/* Non-digit dibuang — rupiah di app ini selalu integer (R5). */}
-                            <Input
+                            <MoneyInput
                                 id="amount"
-                                inputMode="numeric"
                                 placeholder="0"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'amount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
+                                onValueChange={(v) => setData('amount', v)}
                             />
                             <InputError message={errors.amount} />
                         </Field>

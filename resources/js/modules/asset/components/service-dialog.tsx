@@ -5,6 +5,7 @@
 
 import { useForm } from '@inertiajs/react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { formatRp, hanyaDigit } from '@/lib/format';
+import { formatRp } from '@/lib/format';
 import type { AssetRow, MaintenanceType } from '@/modules/asset/types';
 
 interface ServiceForm {
@@ -134,15 +135,12 @@ export function ServiceDialog({
                                     — boleh 0
                                 </span>
                             </FieldLabel>
-                            <Input
+                            <MoneyInput
                                 id="service-cost"
-                                inputMode="numeric"
                                 placeholder="0"
                                 value={data.cost}
                                 aria-invalid={Boolean(errors.cost)}
-                                onChange={(e) =>
-                                    setData('cost', hanyaDigit(e.target.value))
-                                }
+                                onValueChange={(v) => setData('cost', v)}
                             />
                             <InputError message={errors.cost} />
                         </Field>

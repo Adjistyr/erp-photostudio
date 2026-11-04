@@ -15,6 +15,7 @@
 import { Plus, Trash2, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Panel } from '@/components/page';
 import { Badge } from '@/components/ui/badge';
@@ -459,9 +460,8 @@ export function OrderFormFields({
                                                     })
                                                 }
                                             />
-                                            <Input
+                                            <MoneyInput
                                                 aria-label="Harga item custom"
-                                                inputMode="numeric"
                                                 placeholder="Harga"
                                                 className="w-32"
                                                 disabled={old || locked.items}
@@ -471,11 +471,9 @@ export function OrderFormFields({
                                                     ],
                                                 )}
                                                 value={r.price ?? ''}
-                                                onChange={(e) =>
+                                                onValueChange={(v) =>
                                                     updateRow(r.key, {
-                                                        price: hanyaDigit(
-                                                            e.target.value,
-                                                        ),
+                                                        price: v,
                                                     })
                                                 }
                                             />

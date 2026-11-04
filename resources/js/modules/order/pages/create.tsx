@@ -12,14 +12,14 @@
 
 import { Head, Link, useForm } from '@inertiajs/react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { formatPersen, formatRp } from '@/lib/format';
 import {
     OrderFormFields,
     SummaryLines,
@@ -186,15 +186,12 @@ export default function OrdersCreate({
                             DP nominal bebas, bukan persentase tetap — asumsi
                             business-flow bagian 2 pertanyaan 3: nego per deal.
                         */}
-                            <Input
+                            <MoneyInput
                                 id="dp"
-                                inputMode="numeric"
                                 placeholder="0"
                                 value={data.dp}
                                 aria-invalid={Boolean(errors.dp)}
-                                onChange={(e) =>
-                                    setData('dp', hanyaDigit(e.target.value))
-                                }
+                                onValueChange={(v) => setData('dp', v)}
                             />
                             <InputError message={errors.dp} />
                         </Field>

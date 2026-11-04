@@ -10,6 +10,7 @@
 
 import { Head, Link, useForm } from '@inertiajs/react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
@@ -476,22 +477,16 @@ export default function AssetForm({
                                             <FieldLabel htmlFor="asset-price">
                                                 Harga / unit
                                             </FieldLabel>
-                                            <Input
+                                            <MoneyInput
                                                 id="asset-price"
-                                                inputMode="numeric"
 
                                                 placeholder="0"
                                                 value={data.unit_price}
                                                 aria-invalid={Boolean(
                                                     errors.unit_price,
                                                 )}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'unit_price',
-                                                        hanyaDigit(
-                                                            e.target.value,
-                                                        ),
-                                                    )
+                                                onValueChange={(v) =>
+                                                    setData('unit_price', v)
                                                 }
                                             />
                                             <InputError

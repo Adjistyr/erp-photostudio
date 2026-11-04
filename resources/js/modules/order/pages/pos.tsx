@@ -15,6 +15,7 @@ import { Minus, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import PosController from '@/actions/Modules/Order/Controllers/PosController';
+import { MoneyInput } from '@/components/money-input';
 import { KosongTabel } from '@/components/data-table';
 import { PageHeader, Panel } from '@/components/page';
 import { ProductPhoto } from '@/components/product-photo';
@@ -49,7 +50,7 @@ import {
 import type { CartFields, HeldCart } from '@/modules/order/lib/held-carts';
 import { bagiPembayaran } from '@/modules/order/lib/split-payment';
 import { priceRange, variantLabel } from '@/modules/catalog';
-import { formatRp, hanyaDigit } from '@/lib/format';
+import { formatRp } from '@/lib/format';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import {
     HeldCarts,
@@ -429,25 +430,34 @@ export default function Pos({
                             <ToggleGroupItem value="rp">Rp</ToggleGroupItem>
                             <ToggleGroupItem value="pct">%</ToggleGroupItem>
                         </ToggleGroup>
-                        {/* Rp: non-digit dibuang — rupiah selalu integer (R5). */}
-                        <Input
-                            id="discount"
-                            inputMode={
-                                discountMode === 'pct' ? 'decimal' : 'numeric'
-                            }
-                            placeholder="0"
-                            className="h-8 w-24 text-right"
-                            value={data.discount}
-                            aria-invalid={Boolean(errors.discount ?? pctError)}
-                            onChange={(e) =>
-                                setData(
-                                    'discount',
-                                    discountMode === 'pct'
-                                        ? rapikanPersen(e.target.value)
-                                        : hanyaDigit(e.target.value),
-                                )
-                            }
-                        />
+                        {discountMode === 'rp' ? (
+                            <MoneyInput
+                                id="discount"
+                                withPrefix={false}
+                                placeholder="0"
+                                className="h-8 w-28"
+                                value={data.discount}
+                                aria-invalid={Boolean(errors.discount)}
+                                onValueChange={(v) => setData('discount', v)}
+                            />
+                        ) : (
+                            <Input
+                                id="discount"
+                                inputMode="decimal"
+                                placeholder="0"
+                                className="h-8 w-28 text-right"
+                                value={data.discount}
+                                aria-invalid={Boolean(
+                                    errors.discount ?? pctError,
+                                )}
+                                onChange={(e) =>
+                                    setData(
+                                        'discount',
+                                        rapikanPersen(e.target.value),
+                                    )
+                                }
+                            />
+                        )}
                     </div>
                 </div>
                 {subtotal > 0 && discountNominal > 0 && !pctError && (
@@ -544,21 +554,18 @@ export default function Pos({
                                 ))}
                             </ToggleGroup>
                             <div className="flex items-center gap-1">
-                                <Input
+                                <MoneyInput
                                     aria-label="Nominal pembayaran kedua"
-                                    inputMode="numeric"
                                     placeholder="0"
                                     className="h-8 min-w-0 flex-1 text-right"
                                     value={second.amount}
                                     aria-invalid={Boolean(splitError)}
-                                    onChange={(e) =>
+                                    onValueChange={(v) =>
                                         setData('payments', [
                                             first,
                                             {
                                                 ...second,
-                                                amount: hanyaDigit(
-                                                    e.target.value,
-                                                ),
+                                                amount: v,
                                             },
                                         ])
                                     }

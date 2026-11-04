@@ -10,6 +10,7 @@
 
 import { useForm } from '@inertiajs/react';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +25,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { formatPersen, formatRp } from '@/lib/format';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PayableOrder, PaymentMethod } from '@/modules/order/types';
 
@@ -109,17 +110,11 @@ export function PaymentDialog({
                             <FieldLabel htmlFor="amount">Nominal</FieldLabel>
                             {/* Non-digit dibuang: "1.250.000" yang ditempel
                                 dari mutasi rekening jadi 1250000 (R5). */}
-                            <Input
+                            <MoneyInput
                                 id="amount"
-                                inputMode="numeric"
                                 value={data.amount}
                                 aria-invalid={Boolean(errors.amount)}
-                                onChange={(e) =>
-                                    setData(
-                                        'amount',
-                                        hanyaDigit(e.target.value),
-                                    )
-                                }
+                                onValueChange={(v) => setData('amount', v)}
                             />
                             <InputError message={errors.amount} />
                         </Field>

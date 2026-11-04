@@ -5,6 +5,7 @@
  */
 
 import { ChevronDown, Plus, Trash2, TriangleAlert } from 'lucide-react';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Notice } from '@/components/page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,7 +16,7 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
-import { formatRp, hanyaDigit } from '@/lib/format';
+import { formatRp } from '@/lib/format';
 import { scheduleSum, splitThree } from '@/modules/order/lib/schedules';
 import type { ScheduleRow } from '@/modules/order/lib/schedules';
 
@@ -108,8 +109,7 @@ export function ScheduleEditor({
                                         })
                                     }
                                 />
-                                <Input
-                                    inputMode="numeric"
+                                <MoneyInput
                                     aria-label={`Nominal termin ${i + 1}`}
                                     placeholder="0"
                                     className="max-sm:col-start-1"
@@ -117,9 +117,9 @@ export function ScheduleEditor({
                                     aria-invalid={Boolean(
                                         errors[`schedules.${i}.amount`],
                                     )}
-                                    onChange={(e) =>
+                                    onValueChange={(v) =>
                                         update(r.key, {
-                                            amount: hanyaDigit(e.target.value),
+                                            amount: v,
                                         })
                                     }
                                 />

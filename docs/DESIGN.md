@@ -328,6 +328,8 @@ Generator akan mengisi data contoh sendiri. Tanpa aturan eksplisit hasilnya `$1,
 
 Nilai uang **tidak disingkat** (`Rp 1,2jt`) di tabel dan detail — owner mencocokkan angka ini dengan mutasi rekening, jadi harus persis. Penyingkatan hanya boleh di label sumbu chart, tempat presisi tidak dipakai.
 
+**Isian uang** memakai `MoneyInput` (`@/components/money-input`): tampil `Rp 1.500.000` saat diketik, state dan nilai yang dikirim tetap digit (`"1500000"`), jadi validasi server tidak berubah. Tempelan dari mutasi rekening (`Rp 1.250.000`) dibersihkan, nol di depan dibuang, kursor tetap di digit yang sama saat titik disusun ulang, Backspace/Delete pada titik menghapus digit di sebelahnya. Di samping toggle Rp/% pakai `withPrefix={false}`. Jangan `type="number"` (tanpa titik ribuan, scroll mouse mengubah nominal) dan jangan `Input` + `hanyaDigit` untuk uang; qty, bulan, dan persen tetap `Input` biasa.
+
 Ini **blocker** untuk uang dan tanggal.
 
 ---
