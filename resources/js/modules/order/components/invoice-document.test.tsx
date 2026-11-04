@@ -80,3 +80,26 @@ test('sub-baris komponen tanpa harga — hanya satu sel', () => {
 test('item tanpa komponen tidak mendapat sub-baris', () => {
     assert.equal(html.match(/termasuk/g)?.length, 1);
 });
+
+test('logo brand tampil bila logo_url ada', () => {
+    const html = renderToStaticMarkup(
+        <InvoiceDocument
+            invoice={invoice}
+            studio={{ ...studio, logo_url: '/brand/logo.png' }}
+        />,
+    );
+
+    assert.match(html, /<img[^>]*src="\/brand\/logo\.png"/);
+});
+
+test('tanpa file logo: ikon sementara, tanpa <img> rusak', () => {
+    const html = renderToStaticMarkup(
+        <InvoiceDocument
+            invoice={invoice}
+            studio={{ ...studio, logo_url: null }}
+        />,
+    );
+
+    assert.doesNotMatch(html, /<img/);
+    assert.match(html, /data-logo-placeholder/);
+});

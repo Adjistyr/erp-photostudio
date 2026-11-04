@@ -39,7 +39,7 @@ class InvoiceController extends Controller
         return Inertia::render('order::invoices', [
             'invoices' => ListQuery::paginated($orders, $this->invoiceProps(...)),
             'filters' => $list->toArray(),
-            'studio' => config('studio'),
+            'studio' => $this->studioProps(),
             // Teks "Buka WhatsApp" untuk invoice belum lunas (K5).
             'billing_template' => MessageTemplate::bodyFor('billing'),
         ]);
@@ -55,7 +55,7 @@ class InvoiceController extends Controller
 
         return Inertia::render('order::invoice-public', [
             'invoice' => $this->invoiceProps($order->load(['customer', 'items', 'payments', 'refunds', 'schedules'])),
-            'studio' => config('studio'),
+            'studio' => $this->studioProps(),
             // Hanya dari `print_url` (ditandatangani dengan print=1) — lihat Order::invoiceUrl().
             'auto_print' => $request->boolean('print'),
         ]);
@@ -104,5 +104,24 @@ class InvoiceController extends Controller
             'public_url' => $o->invoiceUrl(),
             'print_url' => $o->invoiceUrl(print: true),
         ];
+    }
+
+    /**
+     * Profil studio + `logo_url` (null selama file logo belum ada di public/).
+     * Dicek di server, bukan `onError` di <img>: halaman publik di-render SSR,
+     * dan error gambar sebelum hidrasi bisa lolos → customer melihat ikon
+     * gambar rusak. `realpath` + prefiks public/ supaya nilai env seperti
+     * `../.env` tidak pernah jadi URL.
+     *
+     * @return array<string, mixed>
+     */
+    private function studioProps(): array
+    {
+        $logo = (string) config('studio.logo', '');
+        $public = realpath(public_path()) ?: public_path();
+        $file = $logo === '' ? false : realpath(public_path($logo));
+        $exists = $file !== false && is_file($file) && str_starts_with($file, $public.DIRECTORY_SEPARATOR);
+
+        return [...(array) config('studio'), 'logo_url' => $exists ? asset($logo) : null];
     }
 }

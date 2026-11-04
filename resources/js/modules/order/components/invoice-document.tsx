@@ -5,6 +5,7 @@
  */
 
 import { Fragment } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
 import { Separator } from '@/components/ui/separator';
 import {
     Table,
@@ -40,6 +41,11 @@ export interface Studio {
     address: string;
     phone: string;
     bank_account: string;
+    /**
+     * Logo brand (config `studio.logo`); null = file belum ada → ikon
+     * sementara. Hanya dikirim layar Invoice & invoice publik.
+     */
+    logo_url?: string | null;
 }
 
 export interface Invoice {
@@ -222,16 +228,34 @@ export function InvoiceDocument({
             )}
         >
             <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-col">
-                    <span className="text-lg leading-tight font-medium tracking-[-0.01em]">
-                        {studio.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        {studio.address}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        {studio.phone}
-                    </span>
+                <div className="flex items-start gap-3">
+                    {studio.logo_url ? (
+                        <img
+                            src={studio.logo_url}
+                            alt={studio.name}
+                            className="h-12 w-auto max-w-32 object-contain print:h-10"
+                        />
+                    ) : (
+                        // Slot logo: ikon sementara (sama dengan logo app) sampai
+                        // file brand ditaruh di public/ — lihat config studio.logo.
+                        <span
+                            data-logo-placeholder
+                            className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground print:size-8 print:border print:bg-transparent print:text-foreground"
+                        >
+                            <AppLogoIcon className="size-5 print:size-4" />
+                        </span>
+                    )}
+                    <div className="flex flex-col">
+                        <span className="text-lg leading-tight font-medium tracking-[-0.01em]">
+                            {studio.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {studio.address}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {studio.phone}
+                        </span>
+                    </div>
                 </div>
                 <div className="flex flex-col items-end">
                     <span className="text-xs font-medium text-muted-foreground">

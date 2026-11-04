@@ -10,6 +10,9 @@ return [
     'address' => env('STUDIO_ADDRESS', 'Jl. Kaliurang KM 5 No. 12, Yogyakarta'),
     'phone' => env('STUDIO_PHONE', '0812-0000-1111'),
     'bank_account' => env('STUDIO_BANK_ACCOUNT', 'BCA 1234567890 a.n. Agung Prasetyo'),
+    // Logo brand di invoice/struk — path relatif ke public/. Selama file belum
+    // ada, invoice menampilkan ikon sementara (InvoiceController::studioProps()).
+    'logo' => env('STUDIO_LOGO', 'brand/logo.png'),
     // Penanda produk bermargin tipis di Katalog (spek 3.6) — satu ambang untuk
     // seluruh katalog, bukan aturan validasi.
     'low_margin_ratio' => (float) env('STUDIO_LOW_MARGIN_RATIO', 0.2),
