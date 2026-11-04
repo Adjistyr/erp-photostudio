@@ -10,7 +10,6 @@
 
 import { useForm } from '@inertiajs/react';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
-import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +25,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp } from '@/lib/format';
+import { AmountPercentField } from '@/modules/order/components/amount-percent-field';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PayableOrder, PaymentMethod } from '@/modules/order/types';
 
@@ -105,33 +105,31 @@ export function PaymentDialog({
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <Field>
-                            <FieldLabel htmlFor="amount">Nominal</FieldLabel>
-                            {/* Non-digit dibuang: "1.250.000" yang ditempel
-                                dari mutasi rekening jadi 1250000 (R5). */}
-                            <MoneyInput
-                                id="amount"
-                                value={data.amount}
-                                aria-invalid={Boolean(errors.amount)}
-                                onValueChange={(v) => setData('amount', v)}
-                            />
-                            <InputError message={errors.amount} />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor="paid_on">Tanggal</FieldLabel>
-                            <Input
-                                id="paid_on"
-                                type="date"
-                                max={today()}
-                                value={data.paid_on}
-                                onChange={(e) =>
-                                    setData('paid_on', e.target.value)
-                                }
-                            />
-                            <InputError message={errors.paid_on} />
-                        </Field>
-                    </div>
+                    <Field>
+                        <FieldLabel htmlFor="amount">Nominal</FieldLabel>
+                        {/* Rp atau % dari total order; yang dikirim selalu
+                            nominal, dijepit ke sisa tagihan. */}
+                        <AmountPercentField
+                            id="amount"
+                            total={order.total}
+                            cap={order.balance}
+                            value={data.amount}
+                            invalid={Boolean(errors.amount)}
+                            onValueChange={(v) => setData('amount', v)}
+                        />
+                        <InputError message={errors.amount} />
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="paid_on">Tanggal</FieldLabel>
+                        <Input
+                            id="paid_on"
+                            type="date"
+                            max={today()}
+                            value={data.paid_on}
+                            onChange={(e) => setData('paid_on', e.target.value)}
+                        />
+                        <InputError message={errors.paid_on} />
+                    </Field>
 
                     <Field>
                         <FieldLabel>Metode</FieldLabel>
