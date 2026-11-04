@@ -3,12 +3,8 @@ import { MoneyInput } from '@/components/money-input';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp } from '@/lib/format';
-import {
-    nominalKePersen,
-    persenKeNominal,
-    rapikanPersen,
-} from '@/modules/order/lib/discount';
-import type { DiscountMode } from '@/modules/order/lib/discount';
+import { nominalKePersen, persenKeNominal, rapikanPersen } from '@/lib/percent';
+import type { DiscountMode } from '@/lib/percent';
 
 /**
  * Persen dari `total` → nominal, dijepit ke `batas` (sisa tagihan). Kosong
@@ -28,14 +24,15 @@ export function nominalDariPersen(
 }
 
 /**
- * Isian uang masuk (DP, pembayaran) yang bisa diketik sebagai Rp atau % dari
- * total order.
+ * Isian nominal yang bisa diketik sebagai Rp atau % dari `total`: DP &
+ * pembayaran (% dari total order), HPP katalog (% dari harga jual).
  *
  * Persen hanya di klien — sama dengan diskon POS: `value` yang dikirim ke
  * server selalu nominal rupiah, jadi request & validasi tidak tahu ada mode
- * persen (dan tidak perlu field `dp_percent`). Basisnya total order, bukan
- * sisa tagihan: "DP 30%" di kesepakatan dengan customer berarti 30% harga
- * paket, dan hasilnya dijepit ke `cap` supaya tidak pernah melebihi sisa.
+ * persen (dan tidak perlu field `dp_percent`). Untuk pembayaran basisnya
+ * total order, bukan sisa tagihan: "DP 30%" di kesepakatan dengan customer
+ * berarti 30% harga paket, dan hasilnya dijepit ke `cap` supaya tidak pernah
+ * melebihi sisa.
  */
 export function AmountPercentField({
     id,
@@ -44,12 +41,23 @@ export function AmountPercentField({
     value,
     onValueChange,
     invalid,
+    totalLabel = 'total',
+    capNote = 'dibatasi sisa tagihan',
+    compact = false,
+    'aria-label': ariaLabel,
 }: {
     id: string;
-    /** Basis persen — total order. */
+    /** Basis persen — total order / harga jual. */
     total: number;
     /** Batas atas nominal (sisa tagihan); default = total. */
     cap?: number;
+    /** Nama basis di keterangan: "= 30% dari {totalLabel} Rp …". */
+    totalLabel?: string;
+    /** Keterangan saat hasil persen dijepit ke `cap`. */
+    capNote?: string;
+    /** Tanpa baris keterangan — untuk baris tabel yang punya ringkasan sendiri. */
+    compact?: boolean;
+    'aria-label'?: string;
     /** Nominal digit, bentuk yang dikirim ke server. */
     value: string;
     onValueChange: (digit: string) => void;
@@ -60,7 +68,7 @@ export function AmountPercentField({
     const hasil = nominalDariPersen(total, persen, cap);
 
     // Mode %: nominal mengikuti total yang berubah (item order ditambah
-    // setelah DP diketik). Dijalankan sebagai efek karena total datang dari
+    // setelah DP diketik, harga jual diubah setelah HPP diketik). Dijalankan sebagai efek karena total datang dari
     // parent; tidak berulang tanpa henti karena hanya memanggil bila beda.
     useEffect(() => {
         if (mode === 'pct' && hasil.nominal !== value) {
@@ -97,6 +105,7 @@ export function AmountPercentField({
                 {mode === 'rp' ? (
                     <MoneyInput
                         id={id}
+                        aria-label={ariaLabel}
                         withPrefix={false}
                         placeholder="0"
                         className="min-w-0 flex-1"
@@ -107,6 +116,7 @@ export function AmountPercentField({
                 ) : (
                     <Input
                         id={id}
+                        aria-label={ariaLabel}
                         inputMode="decimal"
                         placeholder="mis. 30"
                         className="min-w-0 flex-1"
@@ -118,18 +128,18 @@ export function AmountPercentField({
                     />
                 )}
             </div>
-            {total > 0 && mode === 'pct' && Number(persen) > 0 && (
+            {!compact && total > 0 && mode === 'pct' && Number(persen) > 0 && (
                 <p className="text-xs text-muted-foreground">
                     {persen}% × {formatRp(total)} ={' '}
                     <span className="font-medium text-foreground">
                         {formatRp(Number(hasil.nominal) || 0)}
                     </span>
-                    {hasil.dibatasi && ' — dibatasi sisa tagihan'}
+                    {hasil.dibatasi && ` — ${capNote}`}
                 </p>
             )}
-            {total > 0 && mode === 'rp' && nominal > 0 && (
+            {!compact && total > 0 && mode === 'rp' && nominal > 0 && (
                 <p className="text-xs text-muted-foreground">
-                    = {formatPersen(nominal / total)} dari total{' '}
+                    = {formatPersen(nominal / total)} dari {totalLabel}{' '}
                     {formatRp(total)}
                 </p>
             )}

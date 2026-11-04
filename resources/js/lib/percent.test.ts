@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 
-import {
-    nominalKePersen,
-    persenKeNominal,
-    rapikanPersen,
-} from '@/modules/order/lib/discount';
+import { nominalKePersen, persenKeNominal, rapikanPersen } from '@/lib/percent';
 
 test('persenKeNominal dibulatkan ke rupiah terdekat', () => {
     assert.equal(persenKeNominal(80000, 10), 8000);

@@ -5,7 +5,7 @@ import { test } from 'vitest';
 import {
     AmountPercentField,
     nominalDariPersen,
-} from '@/modules/order/components/amount-percent-field';
+} from '@/components/amount-percent-field';
 
 test('nominalDariPersen: persen dari total, dibulatkan ke rupiah', () => {
     assert.deepEqual(nominalDariPersen(1_500_000, '30', 1_500_000), {
@@ -53,4 +53,27 @@ test('mode Rp awal: nominal bertitik + keterangan persen dari total', () => {
     assert.match(html, /30%/);
     assert.match(html, /dari total/);
     assert.match(html, /Rp 1\.000\.000/);
+});
+
+test('label basis bisa diganti (HPP: % dari harga jual)', () => {
+    const html = renderToStaticMarkup(
+        <AmountPercentField
+            id="unit_cost"
+            total={50_000}
+            cap={Infinity}
+            totalLabel="harga jual"
+            value="20000"
+            onValueChange={() => {}}
+        />,
+    );
+
+    assert.match(html, /40%/);
+    assert.match(html, /dari harga jual/);
+});
+
+test('cap Infinity: persen > 100 tidak dijepit', () => {
+    assert.deepEqual(nominalDariPersen(50_000, '120', Infinity), {
+        nominal: '60000',
+        dibatasi: false,
+    });
 });

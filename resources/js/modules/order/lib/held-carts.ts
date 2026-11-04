@@ -7,8 +7,8 @@
  * Fungsi murni kecuali `loadHeld`/`saveHeld` — supaya bisa di-Vitest tanpa DOM.
  */
 
-import type { DiscountMode } from '@/modules/order/lib/discount';
-import { persenKeNominal } from '@/modules/order/lib/discount';
+import type { DiscountMode } from '@/lib/percent';
+import { persenKeNominal } from '@/lib/percent';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PaymentMethod } from '@/modules/order/types';
 

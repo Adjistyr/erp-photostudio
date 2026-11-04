@@ -10,6 +10,7 @@
 
 import { Head, Link, useForm } from '@inertiajs/react';
 import CatalogItemController from '@/actions/Modules/Catalog/Controllers/CatalogItemController';
+import { AmountPercentField } from '@/components/amount-percent-field';
 import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Notice, PageHeader, Panel } from '@/components/page';
@@ -332,11 +333,17 @@ export default function CatalogForm({
                                                 <FieldLabel htmlFor="unit_cost">
                                                     HPP bahan / unit
                                                 </FieldLabel>
-                                                <MoneyInput
+                                                {/* Rp atau % dari harga jual;
+                                                    disimpan Rp. */}
+                                                <AmountPercentField
                                                     id="unit_cost"
-                                                    placeholder="0"
+                                                    total={
+                                                        Number(data.price) || 0
+                                                    }
+                                                    cap={Infinity}
+                                                    totalLabel="harga jual"
                                                     value={data.unit_cost}
-                                                    aria-invalid={Boolean(
+                                                    invalid={Boolean(
                                                         errors.unit_cost,
                                                     )}
                                                     onValueChange={(v) =>

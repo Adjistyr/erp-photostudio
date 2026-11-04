@@ -31,12 +31,8 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useFlash } from '@/hooks/use-flash';
 import { useMinWidth } from '@/hooks/use-mobile';
-import {
-    nominalKePersen,
-    persenKeNominal,
-    rapikanPersen,
-} from '@/modules/order/lib/discount';
-import type { DiscountMode } from '@/modules/order/lib/discount';
+import { nominalKePersen, persenKeNominal, rapikanPersen } from '@/lib/percent';
+import type { DiscountMode } from '@/lib/percent';
 import {
     defaultLabel,
     dropCart,

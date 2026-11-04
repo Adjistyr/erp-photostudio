@@ -8,6 +8,7 @@
  */
 
 import { Plus, X } from 'lucide-react';
+import { AmountPercentField } from '@/components/amount-percent-field';
 import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -60,7 +61,7 @@ export function variantRowComplete(r: VariantRow): boolean {
 
 const COVER = 'cover';
 const GRID =
-    'sm:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_7rem_3.5rem] sm:items-center';
+    'sm:grid-cols-[minmax(0,1fr)_8rem_11rem_7rem_3.5rem] sm:items-center';
 
 export function VariantRows({
     rows,
@@ -93,8 +94,8 @@ export function VariantRows({
                     className={`hidden gap-2 px-1 text-xs text-muted-foreground sm:grid ${GRID}`}
                 >
                     <span>Nama varian</span>
-                    <span className="text-right">Harga jual</span>
-                    <span className="text-right">HPP bahan</span>
+                    <span>Harga jual</span>
+                    <span>HPP bahan</span>
                     <span>Foto</span>
                     <span>Aktif</span>
                 </div>
@@ -154,18 +155,19 @@ export function VariantRows({
                             <span className="text-xs text-muted-foreground sm:hidden">
                                 HPP bahan
                             </span>
-                            <MoneyInput
+                            {/* Rp atau % dari harga jual varian; disimpan Rp. */}
+                            <AmountPercentField
+                                id={`variant-cost-${r.key}`}
                                 aria-label={`HPP varian ${i + 1}`}
-                                placeholder="HPP bahan"
-                                className="text-right"
+                                compact
+                                total={price}
+                                cap={Infinity}
                                 value={r.unit_cost}
-                                aria-invalid={Boolean(
+                                invalid={Boolean(
                                     errors[`variants.${i}.unit_cost`],
                                 )}
                                 onValueChange={(v) =>
-                                    update(r.key, {
-                                        unit_cost: v,
-                                    })
+                                    update(r.key, { unit_cost: v })
                                 }
                             />
                         </label>
