@@ -127,3 +127,20 @@ Detail dan alasan tiap aturan ada di business-flow bagian 7–8; ringkasnya:
 Test di `tests/Feature/Finance` mengunci angka dataset ini — porting test TypeScript prototype dengan angka yang sama (omzet Agustus Rp 5.790.000, rugi −Rp 2.894.950, bagi hasil Juli Agung Rp 890.002, dst). Mengubah dataset berarti mengubah spesifikasi: test harus jebol dulu, baru diperbarui.
 
 Jangan jalankan `DemoSeeder` di produksi.
+
+### Dataset presentasi
+
+`php artisan migrate:fresh --seed --seeder=PresentationSeeder` mengisi data yang terlihat seperti produksi untuk presentasi ke client — **menghapus seluruh isi DB**. Isinya:
+
+| Bagian | Isi |
+|---|---|
+| Rentang | Bulan pertama usaha = saldo awal dari sheet (rugi, ditutup pinjaman Agung); app dipakai 6 bulan sebelum bulan berjalan sampai hari ini; booking studio s.d. 3 minggu dan event s.d. ±80 hari ke depan |
+| Order | ±450–650 order: retail POS (walk-in, split tunai+QRIS, diskon), sesi studio (DP → pelunasan → link hasil), event (termin DP–H-14–pelunasan, biaya crew, peminjaman alat, item custom). Volume tumbuh ±30% → 100% |
+| Kasus khusus | Order batal (DP hangus & refund 50%), refund retail, koreksi status (Reverted) di riwayat, piutang telat, satu peminjaman alat lewat rencana kembali, minimal 2 sesi studio hari ini & besok |
+| Keuangan | Biaya operasional bulanan (sewa, listrik, internet, iklan, gaji admin mulai bulan kedua), kenaikan harga Paket Studio 1 Jam di bulan keempat, bulan rugi ditutup pinjaman owner, satu pemakaian dana cadangan (kalau saldonya cukup) |
+| Aset | Modal awal Agung & Raka, lensa dibeli dari kas di bulan keempat, properti dari Raka di bulan kelima; head cleaning printer bulanan, servis, satu alat tua rusak & masuk proyeksi penggantian |
+| Tutup buku | Sampai dua bulan lalu; bulan lalu sengaja belum ditutup supaya Dashboard menampilkan pengingat tutup buku |
+
+Tanggal **relatif ke hari ini** (beda dengan `DemoSeeder` yang dikunci 26 Agustus 2026), acak tapi deterministik untuk hari yang sama. Jalankan ulang menjelang presentasi supaya "hari ini/besok" dan bulan berjalan pas. `created_at` dan riwayat order dimundurkan ke waktu kejadiannya, jadi nomor ORD-xxxx urut tanggal booking. Akun: `agung@`/`raka@potraittime.test` (owner), `admin@potraittime.test` (admin, mulai bulan kedua) — sandi `password`. Foto katalog/aset dan bukti bayar tidak diisi (butuh file). Dijalankan di DB berisi → dilewati. Invariannya (tidak ada order lebih bayar, termin = total, pos dana tidak minus, bulan rugi berpinjaman) dijaga `tests/Feature/PresentationSeederTest.php`.
+
+Jangan jalankan `PresentationSeeder` di produksi.

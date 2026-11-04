@@ -15,21 +15,33 @@ use Modules\Customer\Models\Customer;
  */
 trait ResolvesCustomer
 {
-    /** @return array<string, list<string>> */
-    protected function customerRules(): array
+    /**
+     * @return array<string, list<string>>
+     */
+    protected function customerRules(bool $required = true): array
     {
         return [
-            'customer_id' => ['nullable', 'integer', 'exists:customers,id', 'required_without:new_customer.name'],
+            'customer_id' => $required
+                ? ['nullable', 'integer', 'exists:customers,id', 'required_without:new_customer.name']
+                : ['nullable', 'integer', 'exists:customers,id'],
             'new_customer' => ['nullable', 'array'],
-            'new_customer.name' => ['nullable', 'string', 'max:255', 'required_without:customer_id'],
+            'new_customer.name' => $required
+                ? ['nullable', 'string', 'max:255', 'required_without:customer_id']
+                : ['nullable', 'string', 'max:255'],
             // Sama dengan CustomerRequest.
             'new_customer.phone' => ['nullable', 'string', 'max:30'],
         ];
     }
 
-    /** @return array<string, string> */
-    protected function customerMessages(): array
+    /**
+     * @return array<string, string>
+     */
+    protected function customerMessages(bool $required = true): array
     {
+        if (! $required) {
+            return [];
+        }
+
         $pesan = 'Pilih customer atau isi nama customer baru.';
 
         return ['customer_id.required_without' => $pesan, 'new_customer.name.required_without' => $pesan];

@@ -185,9 +185,20 @@ class PosTest extends TestCase
         $this->assertSame($before + 40_000, app(ProfitAndLoss::class)->revenue('2026-08'));
     }
 
-    public function test_customer_name_reuses_existing_customer_case_insensitively()
+    public function test_selected_customer_is_attached_without_creating_a_duplicate()
     {
-        $this->sell(['customer_name' => '  sinta prameswari ']);
+        $customer = Customer::where('name', 'Sinta Prameswari')->sole();
+        $count = Customer::count();
+
+        $this->sell(['customer_id' => $customer->id])->assertSessionHasNoErrors();
+
+        $this->assertSame($customer->id, $this->newest()->customer_id);
+        $this->assertSame($count, Customer::count());
+    }
+
+    public function test_new_customer_name_reuses_existing_customer_case_insensitively()
+    {
+        $this->sell(['new_customer' => ['name' => '  sinta prameswari ', 'phone' => '']]);
 
         $this->assertSame('Sinta Prameswari', $this->newest()->customer?->name);
         $this->assertSame(1, Customer::where('name', 'Sinta Prameswari')->count());
@@ -196,7 +207,7 @@ class PosTest extends TestCase
     public function test_new_customer_name_creates_customer()
     {
         $count = Customer::count();
-        $this->sell(['customer_name' => 'Pak Joko']);
+        $this->sell(['new_customer' => ['name' => 'Pak Joko', 'phone' => '']]);
 
         $this->assertSame($count + 1, Customer::count());
         $this->assertSame('Pak Joko', $this->newest()->customer?->name);
@@ -204,7 +215,7 @@ class PosTest extends TestCase
 
     public function test_phone_is_normalised_and_saved_on_new_customer()
     {
-        $this->sell(['customer_name' => 'Rina Baru', 'customer_phone' => '+62 812-3456-7890'])->assertSessionHasNoErrors();
+        $this->sell(['new_customer' => ['name' => 'Rina Baru', 'phone' => '+62 812-3456-7890']])->assertSessionHasNoErrors();
 
         $customer = Customer::where('name', 'Rina Baru')->sole();
         $this->assertSame('6281234567890', $customer->phone);
@@ -216,7 +227,7 @@ class PosTest extends TestCase
         $budi = Customer::create(['name' => 'Budi', 'phone' => '628111']);
         $count = Customer::count();
 
-        $this->sell(['customer_name' => 'Budi S.', 'customer_phone' => '08111'])->assertSessionHasNoErrors();
+        $this->sell(['new_customer' => ['name' => 'Budi S.', 'phone' => '08111']])->assertSessionHasNoErrors();
 
         $this->assertSame($budi->id, $this->newest()->customer_id);
         $this->assertSame($count, Customer::count());
@@ -226,20 +237,20 @@ class PosTest extends TestCase
     public function test_name_match_fills_missing_phone_but_never_overwrites()
     {
         $sari = Customer::create(['name' => 'Sari']);
-        $this->sell(['customer_name' => 'sari', 'customer_phone' => '08222'])->assertSessionHasNoErrors();
+        $this->sell(['new_customer' => ['name' => 'sari', 'phone' => '08222']])->assertSessionHasNoErrors();
         $this->assertSame('628222', $sari->refresh()->phone);
 
-        $this->sell(['customer_name' => 'Sari', 'customer_phone' => '08333'])->assertSessionHasNoErrors();
+        $this->sell(['new_customer' => ['name' => 'Sari', 'phone' => '08333']])->assertSessionHasNoErrors();
         $this->assertSame('628222', $sari->refresh()->phone);
         $this->assertSame($sari->id, $this->newest()->customer_id);
         $this->assertSame(1, Customer::where('name', 'Sari')->count());
     }
 
-    public function test_phone_without_name_is_ignored_and_sale_is_walk_in()
+    public function test_empty_customer_data_keeps_sale_as_walk_in()
     {
         $count = Customer::count();
 
-        $this->sell(['customer_name' => '', 'customer_phone' => '08123'])->assertSessionHasNoErrors();
+        $this->sell(['new_customer' => ['name' => '', 'phone' => '08123']])->assertSessionHasNoErrors();
 
         $this->assertNull($this->newest()->customer_id);
         $this->assertSame($count, Customer::count());
@@ -249,15 +260,16 @@ class PosTest extends TestCase
     {
         $lama = Customer::create(['name' => 'Pak Lama', 'phone' => '08129999']);
 
-        $this->sell(['customer_name' => 'Lama', 'customer_phone' => '6281 29999'])->assertSessionHasNoErrors();
+        $this->sell(['new_customer' => ['name' => 'Lama', 'phone' => '6281 29999']])->assertSessionHasNoErrors();
 
         $this->assertSame($lama->id, $this->newest()->customer_id);
         $this->assertSame('08129999', $lama->refresh()->phone); // data lama tidak diubah bentuk
     }
 
-    public function test_phone_longer_than_30_chars_is_rejected()
+    public function test_new_customer_phone_longer_than_30_chars_is_rejected()
     {
-        $this->sell(['customer_name' => 'X', 'customer_phone' => str_repeat('1', 31)])->assertSessionHasErrors('customer_phone');
+        $this->sell(['new_customer' => ['name' => 'X', 'phone' => str_repeat('1', 31)]])
+            ->assertSessionHasErrors('new_customer.phone');
     }
 
     public function test_sale_flashes_receipt_with_signed_links()
@@ -280,7 +292,7 @@ class PosTest extends TestCase
 
     public function test_receipt_carries_customer_phone_when_named()
     {
-        $this->sell(['customer_name' => 'Rina', 'customer_phone' => '0812 777'])
+        $this->sell(['new_customer' => ['name' => 'Rina', 'phone' => '0812 777']])
             ->assertSessionHas('inertia.flash_data.receipt.customer_phone', '62812777');
 
         // Walk-in: key ada dengan nilai null (assertSessionHas menganggap null = tidak ada).

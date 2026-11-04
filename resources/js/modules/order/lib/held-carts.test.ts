@@ -21,8 +21,8 @@ const fields: CartFields = {
     ],
     discount: '10',
     payments: [{ method: 'cash', amount: '' }],
-    customer_name: '',
-    customer_phone: '',
+    customer_id: '',
+    new_customer: null,
 };
 const cart = (label = 'A'): HeldCart => makeHeldCart(fields, 'pct', label);
 
@@ -50,7 +50,7 @@ test('loadHeld: versi lain & bentuk salah disaring; simpan → muat utuh', () =>
     assert.deepEqual(loadHeld(s), [ok]);
 
     const raw = JSON.stringify([
-        { ...ok, v: 2 },
+        { ...ok, v: 1 },
         { ...ok, items: [{ catalog_item_id: '1', quantity: 1 }] },
         { ...ok, payments: [{ method: 'utang', amount: '' }] },
         ok,
@@ -79,6 +79,8 @@ test('restoreCart: item yang hilang dari katalog dilewati, sisanya utuh', () => 
     ]);
     assert.equal(form.discount, '10');
     assert.deepEqual(form.payments, fields.payments);
+    assert.equal(form.customer_id, '');
+    assert.equal(form.new_customer, null);
 });
 
 test('dropCart menghapus hanya id yang diminta', () => {

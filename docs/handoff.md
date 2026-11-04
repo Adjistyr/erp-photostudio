@@ -30,7 +30,7 @@ npx vp check --fix && npm test
 php artisan wayfinder:generate --with-form   # bila route berubah
 ```
 
-Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`. Data demo: `php artisan migrate:fresh --seed`. Login `agung@potraittime.test` atau `raka@potraittime.test` (owner), `admin@potraittime.test` (admin, dari `DemoSeeder`), sandi `password`. Data demo: Juli 2026 sudah tutup buku, Agustus–September belum.
+Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`. Data demo: `php artisan migrate:fresh --seed`. Login `agung@potraittime.test` atau `raka@potraittime.test` (owner), `admin@potraittime.test` (admin, dari `DemoSeeder`), sandi `password`. Data demo: Juli 2026 sudah tutup buku, Agustus–September belum. Data presentasi client (6 bulan, tanggal relatif ke hari ini): `php artisan migrate:fresh --seed --seeder=PresentationSeeder` — rincian di `docs/database.md` bagian 4.
 
 ## 3. Posisi per 17 Oktober 2026
 

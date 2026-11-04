@@ -27,12 +27,13 @@ export interface CartFields {
     discount: string;
     /** Split payment (4.4) ikut ditahan; spek awal hanya `method`. */
     payments: { method: PaymentMethod; amount: string }[];
-    customer_name: string;
-    customer_phone: string;
+    /** Customer dipilih dari daftar, atau data customer baru saat ditahan. */
+    customer_id: string;
+    new_customer: { name: string; phone: string } | null;
 }
 
 export interface HeldCart extends CartFields {
-    v: 1;
+    v: 2;
     id: string;
     label: string;
     /** ISO. */
@@ -48,19 +49,22 @@ const isPositiveInt = (x: unknown): x is number =>
 const isMethod = (x: unknown): x is PaymentMethod =>
     isStr(x) && Object.hasOwn(PAYMENT_METHOD_LABEL, x);
 
-/** Bentuk versi 1. Entri lain (versi lama/baru, hasil edit tangan) dilewati. */
+const isNewCustomer = (x: unknown): x is { name: string; phone: string } =>
+    isRecord(x) && isStr(x.name) && isStr(x.phone);
+
+/** Bentuk versi 2. Entri versi lama/baru atau hasil edit tangan dilewati. */
 function isHeldCart(x: unknown): x is HeldCart {
     if (!isRecord(x)) return false;
     const { items, payments } = x;
     return (
-        x.v === 1 &&
+        x.v === 2 &&
         isStr(x.id) &&
         isStr(x.label) &&
         isStr(x.heldAt) &&
         isStr(x.discount) &&
         (x.discountMode === 'rp' || x.discountMode === 'pct') &&
-        isStr(x.customer_name) &&
-        isStr(x.customer_phone) &&
+        isStr(x.customer_id) &&
+        (x.new_customer === null || isNewCustomer(x.new_customer)) &&
         Array.isArray(items) &&
         items.every(
             (i) =>
@@ -136,11 +140,12 @@ export function makeHeldCart(
     now = new Date(),
 ): HeldCart {
     return {
-        v: 1,
+        v: 2,
         // Bukan crypto.randomUUID(): hanya ada di secure context (HTTPS /
         // localhost) — POS lewat IP LAN http akan error. Unik per browser cukup.
         id: `${now.getTime().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-        label: label.trim() || defaultLabel(fields.customer_name, now),
+        label:
+            label.trim() || defaultLabel(fields.new_customer?.name ?? '', now),
         heldAt: now.toISOString(),
         discountMode,
         ...fields,
@@ -199,8 +204,8 @@ export function restoreCart(
             items,
             discount: cart.discount,
             payments: cart.payments,
-            customer_name: cart.customer_name,
-            customer_phone: cart.customer_phone,
+            customer_id: cart.customer_id,
+            new_customer: cart.new_customer,
         },
         skipped: cart.items.length - items.length,
     };

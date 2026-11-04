@@ -7,9 +7,9 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Modules\Catalog\Enums\CatalogItemType;
-use Modules\Customer\Support\Phone;
 use Modules\Order\Enums\PaymentMethod;
 use Modules\Order\Requests\Concerns\ResolvesCatalogLines;
+use Modules\Order\Requests\Concerns\ResolvesCustomer;
 use Modules\Shared\Support\Money;
 
 /**
@@ -21,6 +21,7 @@ use Modules\Shared\Support\Money;
 class StorePosSaleRequest extends FormRequest
 {
     use ResolvesCatalogLines;
+    use ResolvesCustomer;
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -41,9 +42,9 @@ class StorePosSaleRequest extends FormRequest
             'payments' => ['required', 'array', 'min:1', 'max:2'],
             'payments.*.method' => ['required', Rule::enum(PaymentMethod::class)],
             'payments.*.amount' => ['required', 'integer', 'min:1'],
-            'customer_name' => ['nullable', 'string', 'max:255'],
-            // Longgar (max:30, tanpa pola): nomor luar negeri ada. Dinormalkan di server.
-            'customer_phone' => ['nullable', 'string', 'max:30'],
+            // Sama dengan form order: pilih customer atau buat baru; keduanya
+            // opsional supaya walk-in tetap secepat kasir.
+            ...$this->customerRules(required: false),
         ];
     }
 
@@ -82,14 +83,6 @@ class StorePosSaleRequest extends FormRequest
         }];
     }
 
-    /** HP ternormalisasi (`62…`); null kalau kosong atau tanpa digit. */
-    public function customerPhone(): ?string
-    {
-        $phone = Phone::normalise((string) $this->input('customer_phone', ''));
-
-        return $phone === '' ? null : $phone;
-    }
-
     /** @return list<array{method: PaymentMethod, amount: int}> */
     public function payments(): array
     {
@@ -120,8 +113,7 @@ class StorePosSaleRequest extends FormRequest
             'payments' => 'pembayaran',
             'payments.*.method' => 'metode bayar',
             'payments.*.amount' => 'jumlah bayar',
-            'customer_name' => 'nama customer',
-            'customer_phone' => 'no HP',
+            ...$this->customerAttributes(),
         ];
     }
 }

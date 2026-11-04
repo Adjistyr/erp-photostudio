@@ -120,6 +120,8 @@ export interface OrderFields {
     schedules: ScheduleRow[];
 }
 
+export type CustomerFields = Pick<OrderFields, 'customer_id' | 'new_customer'>;
+
 export interface Locked {
     schedule: boolean;
     items: boolean;
@@ -911,7 +913,7 @@ export function SummaryLines({
  * Dedup (HP lalu nama) dilakukan server, jadi memilih "buat" untuk orang yang
  * ternyata sudah ada tidak membuat baris ganda.
  */
-function CustomerPicker({
+export function CustomerPicker({
     customers,
     customerId,
     newCustomer,
@@ -922,9 +924,10 @@ function CustomerPicker({
     customerId: string;
     newCustomer: NewCustomer | null;
     errors: Record<string, string | undefined>;
-    onChange: (patch: Partial<OrderFields>) => void;
+    onChange: (patch: Partial<CustomerFields>) => void;
 }) {
     const [query, setQuery] = useState('');
+    const [open, setOpen] = useState(false);
 
     if (newCustomer) {
         return (
@@ -991,6 +994,13 @@ function CustomerPicker({
     const exact = customers.some(
         (c) => c.name.toLowerCase() === typed.toLowerCase(),
     );
+    // Hanya untuk ketikan berhuruf — angka saja adalah pencarian HP, bukan nama.
+    const canCreate = /\p{L}/u.test(typed) && !exact;
+    const createNew = () =>
+        onChange({
+            customer_id: '',
+            new_customer: { name: typed, phone: '' },
+        });
 
     return (
         <div className="flex flex-col gap-2">
@@ -1009,6 +1019,7 @@ function CustomerPicker({
                 }
                 filter={(c: CustomerOption, q: string) => customerMatches(c, q)}
                 onInputValueChange={setQuery}
+                onOpenChange={setOpen}
             >
                 <ComboboxInput
                     id="customer"
@@ -1032,20 +1043,33 @@ function CustomerPicker({
                             </ComboboxItem>
                         )}
                     </ComboboxList>
+                    {/* Di dalam popup: tombol di bawah input tertutup popup
+                        yang terbuka, jadi klik pengguna tidak pernah sampai. */}
+                    {canCreate && (
+                        <div className="border-t p-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-start"
+                                // Jangan biarkan input blur dulu — blur menutup
+                                // popup dan mengosongkan ketikan sebelum klik.
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={createNew}
+                            >
+                                <UserPlus data-icon="inline-start" />
+                                Buat customer &ldquo;{typed}&rdquo;
+                            </Button>
+                        </div>
+                    )}
                 </ComboboxContent>
             </Combobox>
-            {/* Hanya untuk ketikan berhuruf — angka saja adalah pencarian HP, bukan nama. */}
-            {/\p{L}/u.test(typed) && !exact && (
+            {/* Popup tertutup: aksi buat tetap terlihat di bawah input. */}
+            {canCreate && !open && (
                 <Button
                     variant="outline"
                     size="sm"
                     className="self-start"
-                    onClick={() =>
-                        onChange({
-                            customer_id: '',
-                            new_customer: { name: typed, phone: '' },
-                        })
-                    }
+                    onClick={createNew}
                 >
                     <UserPlus data-icon="inline-start" />
                     Buat customer &ldquo;{typed}&rdquo;
