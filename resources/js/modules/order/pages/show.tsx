@@ -362,7 +362,7 @@ export default function OrderShow({
                                 disabled={order.balance <= 0 || cancelled}
                                 onClick={() => setPaying(true)}
                             >
-                                Catat Pembayaran
+                                Catat Bayar
                             </Button>
                             {/* Hanya bila ada uang yang bisa dikembalikan. */}
                             {order.refundable > 0 && (

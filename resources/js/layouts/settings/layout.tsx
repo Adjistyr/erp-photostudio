@@ -5,6 +5,7 @@ import Heading from '@/components/heading';
 import { Panel } from '@/components/page';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { useScrollHint } from '@/hooks/use-scroll-hint';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
@@ -36,6 +37,7 @@ const sidebarNavItems: NavItem[] = [
  * sudah punya h1 sr-only sendiri.
  */
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const navRef = useScrollHint<HTMLElement>();
     const { isCurrentOrParentUrl } = useCurrentUrl();
     // Pengguna & peran hanya untuk owner (spek 5.1).
     const navItems: NavItem[] = useCan().manage_users
@@ -54,7 +56,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
                 <nav
-                    className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-card p-1.5 lg:w-52 lg:flex-none lg:flex-col lg:rounded-3xl lg:p-2"
+                    ref={navRef}
+                    className="flex w-fit max-w-full [scrollbar-width:none] gap-1 overflow-x-auto rounded-full bg-card p-1.5 lg:w-52 lg:flex-none lg:flex-col lg:rounded-3xl lg:p-2"
                     aria-label="Pengaturan"
                 >
                     {navItems.map((item, index) => {

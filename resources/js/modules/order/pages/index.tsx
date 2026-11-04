@@ -264,7 +264,7 @@ export default function OrdersIndex({
                                     <LineMark line={o.business_line} />
                                 </TableCell>
                                 <TableCell
-                                    className="max-w-36 truncate text-muted-foreground"
+                                    className="max-w-32 truncate text-muted-foreground"
                                     title={o.items_summary}
                                 >
                                     {o.items_summary}

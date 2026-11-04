@@ -220,3 +220,22 @@
         @apply font-sans;
     }
 }
+
+/* Baris tab/pil yang bisa digeser (useScrollHint): tepi yang masih punya
+   lanjutan memudar — scrollbar disembunyikan, jadi tanpa ini tab terakhir
+   terlihat terpotong tanpa tanda bisa digeser. */
+[data-scroll-hint='end'] {
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+}
+[data-scroll-hint='start'] {
+    mask-image: linear-gradient(to left, #000 calc(100% - 2rem), transparent);
+}
+[data-scroll-hint='both'] {
+    mask-image: linear-gradient(
+        to right,
+        transparent,
+        #000 2rem,
+        #000 calc(100% - 2rem),
+        transparent
+    );
+}

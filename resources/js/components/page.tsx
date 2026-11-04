@@ -114,3 +114,18 @@ export function Notice({
         </p>
     );
 }
+
+/**
+ * Batal/Simpan yang melayang di bawah layar pada form panjang, selama
+ * ringkasan (beserta tombolnya) belum di samping form: di bawah `xl`
+ * ringkasan turun ke ujung halaman, ±2400px di bawah isian pertama.
+ * Taruh sebagai anak terakhir pembungkus halaman (sticky butuh induk
+ * setinggi halaman); tombol di ringkasan diberi `max-xl:hidden`.
+ */
+export function FormActionBar({ children }: { children: ReactNode }) {
+    return (
+        <div className="sticky bottom-3 z-30 flex gap-2 rounded-4xl border bg-card/95 p-2 shadow-lg backdrop-blur xl:hidden">
+            {children}
+        </div>
+    );
+}

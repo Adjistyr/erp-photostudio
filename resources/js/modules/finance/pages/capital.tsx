@@ -68,6 +68,7 @@ import { SummaryCard } from '@/components/summary-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useCan } from '@/hooks/use-can';
+import { useScrollHint } from '@/hooks/use-scroll-hint';
 import {
     formatBulan,
     formatPersen,
@@ -198,6 +199,7 @@ interface Props {
 }
 
 export default function Capital(props: Props) {
+    const tabsRef = useScrollHint<HTMLDivElement>();
     const [tab, setTab] = useState<Tab>('history');
     const [dialog, setDialog] = useState<Tab | null>(null);
     const close = () => setDialog(null);
@@ -247,7 +249,10 @@ export default function Capital(props: Props) {
                         if (t) setTab(t);
                     }}
                 >
-                    <TabsList className="max-w-full justify-start overflow-x-auto">
+                    <TabsList
+                        ref={tabsRef}
+                        className="max-w-full [scrollbar-width:none] justify-start overflow-x-auto"
+                    >
                         <TabsTrigger value="history">Bagi Hasil</TabsTrigger>
                         <TabsTrigger value="contributions">
                             Setoran Owner
@@ -522,7 +527,9 @@ function ClosingStatus({
     const canClose = useCan().close_period;
     if (final) {
         return (
-            <div className="flex items-center gap-2">
+            // Badge di atas tombol, bukan bersebelahan: kolom Status 230px
+            // mendorong tabel 1134px melewati panel 1121px di laptop 1440.
+            <div className="flex flex-col items-start gap-1">
                 <Badge
                     variant="outline"
                     title={

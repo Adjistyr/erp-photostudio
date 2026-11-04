@@ -9,6 +9,7 @@
  */
 
 import { useForm } from '@inertiajs/react';
+import { Paperclip } from 'lucide-react';
 import OrderPaymentController from '@/actions/Modules/Order/Controllers/OrderPaymentController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -200,18 +201,27 @@ export function ProofField({
     return (
         <Field>
             <FieldLabel htmlFor="proof">Bukti transfer (opsional)</FieldLabel>
-            <Input
-                id="proof"
-                type="file"
-                accept={PROOF_ACCEPT}
-                aria-invalid={Boolean(error)}
-                onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-            />
-            {file && (
-                <p className="text-xs text-muted-foreground">
-                    {file.name} · {formatUkuran(file.size)}
-                </p>
-            )}
+            {/* Input file asli disembunyikan: tombolnya bertuliskan "Choose
+                File / No file chosen" mengikuti bahasa browser, bukan UI. */}
+            <label className="flex min-w-0 cursor-pointer items-center gap-2 rounded-4xl border border-input bg-card py-1 pr-3 pl-1 text-sm focus-within:ring-[3px] focus-within:ring-ring/50 has-aria-invalid:border-destructive">
+                <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-4xl bg-muted px-3 font-medium">
+                    <Paperclip className="size-3.5" aria-hidden="true" />
+                    {file ? 'Ganti file' : 'Pilih file'}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                    {file
+                        ? `${file.name} · ${formatUkuran(file.size)}`
+                        : 'JPG, PNG, WEBP, atau PDF · maks 2 MB'}
+                </span>
+                <input
+                    id="proof"
+                    type="file"
+                    accept={PROOF_ACCEPT}
+                    className="sr-only"
+                    aria-invalid={Boolean(error)}
+                    onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+                />
+            </label>
             <InputError message={error} />
         </Field>
     );
