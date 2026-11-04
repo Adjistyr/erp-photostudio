@@ -498,6 +498,47 @@ export default function OrderShow({
                                         )}
                                     </span>
                                 </div>
+                                {/* Estimasi dari katalog jasa selama biaya job aktual
+                                    belum ada — terpisah dari margin aktual di atas. */}
+                                {order.estimated_margin != null &&
+                                    order.estimated_job_cost !== undefined && (
+                                        <>
+                                            <div className="mt-2 flex justify-between text-muted-foreground">
+                                                <span>Estimasi biaya job</span>
+                                                <span>
+                                                    −
+                                                    {formatRp(
+                                                        order.estimated_job_cost,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Estimasi margin</span>
+                                                <span
+                                                    className={kelasRp(
+                                                        order.estimated_margin,
+                                                    )}
+                                                >
+                                                    {formatRp(
+                                                        order.estimated_margin,
+                                                    )}
+                                                    {order.total > 0 && (
+                                                        <span className="ml-2 text-xs text-muted-foreground">
+                                                            {formatPersen(
+                                                                order.estimated_margin /
+                                                                    order.total,
+                                                            )}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Dari estimasi di katalog jasa.
+                                                Hilang begitu biaya job pertama
+                                                dicatat; tidak masuk Laba Rugi.
+                                            </p>
+                                        </>
+                                    )}
                                 {/* Order batal: sisa tagihan tidak akan pernah masuk, jadi
                                     margin dari uang yang diterima — sama dengan Laba Rugi. */}
                                 {cancelled && (

@@ -18,6 +18,7 @@ use Modules\Catalog\Enums\ServiceCategory;
  * @property CatalogItemType $type
  * @property int $price
  * @property int|null $unit_cost HPP bahan per unit; null untuk jasa
+ * @property int|null $estimated_cost estimasi biaya job per unit jasa (fee crew, transport); null = tidak diestimasi, selalu null untuk produk. Tidak masuk Laba Rugi
  * @property string $category
  * @property bool $is_active
  * @property string|null $description profil publik (spek 7.1)
@@ -30,7 +31,7 @@ use Modules\Catalog\Enums\ServiceCategory;
  * @property-read Collection<int, CatalogItem> $components produk dalam paket jasa (spek 6.3), pivot `quantity`
  * @property-read Pivot $pivot baris `catalog_bundle_items` saat dimuat lewat `components`
  */
-#[Fillable(['name', 'type', 'price', 'unit_cost', 'category', 'is_active', 'description', 'is_public'])]
+#[Fillable(['name', 'type', 'price', 'unit_cost', 'estimated_cost', 'category', 'is_active', 'description', 'is_public'])]
 class CatalogItem extends Model
 {
     /**
@@ -64,6 +65,7 @@ class CatalogItem extends Model
             'type' => CatalogItemType::class,
             'price' => 'integer',
             'unit_cost' => 'integer',
+            'estimated_cost' => 'integer',
             'is_active' => 'boolean',
             'is_public' => 'boolean',
         ];

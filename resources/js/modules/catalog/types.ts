@@ -11,6 +11,11 @@ export interface CatalogItem {
     price: number;
     /** HPP bahan per unit; null untuk jasa. Tidak dikirim untuk admin (spek 5.1). */
     unit_cost?: number | null;
+    /**
+     * Estimasi biaya job per unit jasa (fee crew, transport); null = tidak
+     * diestimasi, selalu null untuk produk. Owner saja. Tidak masuk Laba Rugi.
+     */
+    estimated_cost?: number | null;
     category: string;
     is_active: boolean;
     /** Jasa berkategori di luar ServiceCategory — tidak muncul di Buat Order. */

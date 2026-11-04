@@ -33,6 +33,9 @@ class CatalogItemRequest extends FormRequest
             // tidak tetap, dicatat per job. Ditolak, bukan diam-diam dibuang,
             // supaya isian yang salah kelihatan.
             'unit_cost' => [Rule::requiredIf($isProduct && ! $hasVariants), Rule::prohibitedIf(! $isProduct), 'nullable', 'integer', 'min:0'],
+            // Estimasi biaya job — jasa saja, opsional. Bukan HPP: tidak masuk
+            // Laba Rugi, hanya estimasi margin order sampai biaya job dicatat.
+            'estimated_cost' => [Rule::prohibitedIf($isProduct), 'nullable', 'integer', 'min:0'],
             // Kategori JASA menentukan di form order mana paket muncul — dikunci ke
             // enum; kategori produk tetap bebas (tidak ada layar yang membacanya).
             'category' => $isProduct
@@ -132,6 +135,7 @@ class CatalogItemRequest extends FormRequest
             'type' => 'jenis',
             'price' => 'harga jual',
             'unit_cost' => 'HPP bahan',
+            'estimated_cost' => 'estimasi biaya job',
             'category' => 'kategori',
             'description' => 'deskripsi',
             'is_public' => 'tampil di company profile',
@@ -160,11 +164,11 @@ class CatalogItemRequest extends FormRequest
     /**
      * Kategori kosong → "Lain-lain", supaya laporan tidak punya grup tanpa nama.
      *
-     * @return array{name: string, type: string, price: int, unit_cost: int|null, category: string, description: string|null, is_public: bool}
+     * @return array{name: string, type: string, price: int, unit_cost: int|null, estimated_cost: int|null, category: string, description: string|null, is_public: bool}
      */
     public function catalogData(): array
     {
-        /** @var array{name: string, type: string, price?: int|null, unit_cost?: int|null, category?: string|null, description?: string|null, is_public?: bool} $data */
+        /** @var array{name: string, type: string, price?: int|null, unit_cost?: int|null, estimated_cost?: int|null, category?: string|null, description?: string|null, is_public?: bool} $data */
         $data = $this->validated();
 
         return [
@@ -175,6 +179,7 @@ class CatalogItemRequest extends FormRequest
             'price' => (int) ($data['price'] ?? $this->variantsData()[0]['price'] ?? $this->item()->price ?? 0),
             'unit_cost' => isset($data['unit_cost']) ? (int) $data['unit_cost']
                 : ($this->input('type') === CatalogItemType::Product->value ? ($this->variantsData()[0]['unit_cost'] ?? $this->item()?->unit_cost) : null),
+            'estimated_cost' => isset($data['estimated_cost']) ? (int) $data['estimated_cost'] : null,
             'category' => ($data['category'] ?? null) ?: 'Lain-lain',
             // Spasi saja = kosong — jangan simpan deskripsi "   ".
             'description' => trim((string) ($data['description'] ?? '')) ?: null,

@@ -147,7 +147,8 @@ class CatalogItemController extends Controller
 
     /**
      * Bentuk satu item untuk daftar dan halaman form — satu sumber. HPP
-     * (`unit_cost`, juga per varian) hanya untuk owner (spek 5.1).
+     * (`unit_cost`, juga per varian) dan estimasi biaya job hanya untuk owner
+     * (spek 5.1).
      *
      * @return array<string, mixed>
      */
@@ -156,6 +157,8 @@ class CatalogItemController extends Controller
         return Finance::except([
             'id' => $i->id, 'name' => $i->name, 'type' => $i->type->value, 'price' => $i->price,
             'unit_cost' => $i->unit_cost, 'category' => $i->category, 'is_active' => $i->is_active,
+            // Estimasi biaya job jasa — angka biaya, owner saja seperti HPP.
+            'estimated_cost' => $i->estimated_cost,
             // Jasa data lama yang kategorinya tersesat — tidak muncul di Buat Order.
             'unknown_category' => ! $i->hasKnownServiceCategory(),
             // Profil publik + galeri (spek 7.1), sampul dulu.
@@ -169,7 +172,7 @@ class CatalogItemController extends Controller
                 'unit_cost' => $c->unit_cost, 'is_active' => $c->is_active,
             ], ['unit_cost']))->values()->all(),
             'bundle_cost' => $i->bundleCost(),
-        ], ['unit_cost', 'bundle_cost']);
+        ], ['unit_cost', 'estimated_cost', 'bundle_cost']);
     }
 
     /**

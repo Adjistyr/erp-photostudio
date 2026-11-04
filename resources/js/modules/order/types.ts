@@ -92,6 +92,10 @@ export interface OrderRow {
     direct_cost?: number;
     /** Hanya owner (`view_finance`). */
     margin?: number;
+    /** Estimasi biaya job dari katalog jasa; 0 begitu biaya job aktual dicatat. Owner saja. */
+    estimated_job_cost?: number;
+    /** Margin − estimasi biaya job; null = tidak ada estimasi. Owner saja. */
+    estimated_margin?: number | null;
     work_status: WorkStatus;
     /** Langkah berikutnya; null kalau sudah Diserahkan atau Batal. */
     next_status: WorkStatus | null;
