@@ -4,6 +4,8 @@ namespace Modules\Finance\Tests\Feature;
 
 use Modules\Finance\Services\CashReceipts;
 use Modules\Finance\Services\ProfitAndLoss;
+use Modules\Order\Enums\WorkStatus;
+use Modules\Order\Models\Order;
 use Modules\Order\Models\Refund;
 use Modules\Shared\Enums\BusinessLine;
 
@@ -130,5 +132,54 @@ class ProfitAndLossTest extends DemoDataTestCase
 
         $this->assertSame($before, $this->pnl()->materialCosts('2026-08'));
         $this->assertSame($this->pnl()->revenue('2026-08'), app(CashReceipts::class)->forMonth('2026-08')->total);
+    }
+
+    /**
+     * Order studio berisi produk ber-HPP, total 1.000.000, HPP 200.000: DP
+     * 300.000 Agustus, pelunasan 700.000 September.
+     */
+    private function splitPaidStudioOrder(): Order
+    {
+        $order = Order::create(['number' => 'ORD-0900', 'business_line' => BusinessLine::Studio,
+            'service_date' => '2026-09-05', 'work_status' => WorkStatus::Scheduled]);
+        $order->items()->create(['name' => 'Paket + Album', 'quantity' => 1, 'unit_price' => 1_000_000, 'unit_cost' => 200_000]);
+        $order->payments()->create(['paid_on' => '2026-08-20', 'amount' => 300_000, 'method' => 'transfer', 'note' => 'DP']);
+        $order->payments()->create(['paid_on' => '2026-09-04', 'amount' => 700_000, 'method' => 'transfer', 'note' => 'Pelunasan']);
+
+        return $order;
+    }
+
+    public function test_material_cost_of_order_paid_across_months_is_counted_once()
+    {
+        $aug = $this->pnl()->materialCosts('2026-08', BusinessLine::Studio);
+        $sep = $this->pnl()->materialCosts('2026-09', BusinessLine::Studio);
+        $this->splitPaidStudioOrder();
+
+        // Sebelumnya HPP penuh 200.000 masuk Agustus DAN September.
+        $added = ($this->pnl()->materialCosts('2026-08', BusinessLine::Studio) - $aug)
+            + ($this->pnl()->materialCosts('2026-09', BusinessLine::Studio) - $sep);
+        $this->assertSame(200_000, $added);
+    }
+
+    public function test_material_cost_follows_share_of_cash_received_each_month()
+    {
+        $aug = $this->pnl()->materialCosts('2026-08', BusinessLine::Studio);
+        $sep = $this->pnl()->materialCosts('2026-09', BusinessLine::Studio);
+        $this->splitPaidStudioOrder();
+
+        // DP 30% → 30% HPP di Agustus, 70% di September (basis kas).
+        $this->assertSame(60_000, $this->pnl()->materialCosts('2026-08', BusinessLine::Studio) - $aug);
+        $this->assertSame(140_000, $this->pnl()->materialCosts('2026-09', BusinessLine::Studio) - $sep);
+    }
+
+    public function test_material_cost_of_unpaid_remainder_is_not_recognised_yet()
+    {
+        $order = Order::create(['number' => 'ORD-0901', 'business_line' => BusinessLine::Studio,
+            'service_date' => '2026-09-05', 'work_status' => WorkStatus::Scheduled]);
+        $order->items()->create(['name' => 'Paket + Album', 'quantity' => 1, 'unit_price' => 1_000_000, 'unit_cost' => 200_000]);
+        $before = $this->pnl()->materialCosts('2026-08', BusinessLine::Studio);
+        $order->payments()->create(['paid_on' => '2026-08-20', 'amount' => 250_000, 'method' => 'cash', 'note' => 'DP']);
+
+        $this->assertSame(50_000, $this->pnl()->materialCosts('2026-08', BusinessLine::Studio) - $before);
     }
 }

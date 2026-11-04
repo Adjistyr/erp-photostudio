@@ -2,6 +2,7 @@
 
 namespace Modules\Finance\Services;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Modules\Expense\Models\JobCost;
 use Modules\Expense\Models\OperatingExpense;
@@ -46,18 +47,51 @@ class ProfitAndLoss
     /**
      * HPP bahan diakui saat uang diterima, mengikuti basis kas — kalau tidak,
      * laba kotor retail bisa negatif di bulan barang terjual tapi belum
-     * dibayar. Order yang menerima pembayaran di bulan ini dihitung HPP-nya.
+     * dibayar. Bagian HPP yang diakui sebanding uang yang masuk bulan ini:
+     * DP 30% di Agustus → 30% HPP di Agustus, sisanya di bulan pelunasan.
+     * Sebelumnya HPP penuh masuk di SETIAP bulan order menerima pembayaran,
+     * jadi order dengan DP dan pelunasan beda bulan terhitung dua kali.
+     *
+     * Retail (dibayar sekali, lunas) tetap 100% di bulan bayar. Refund tidak
+     * mengurangi HPP — barang sudah terpakai (spek 4.2).
      */
     public function materialCosts(string $month, ?BusinessLine $line = null): int
     {
+        $start = Periods::start($month);
+        $end = Periods::end($month);
+
         /** @var Collection<int, Order> $orders */
         $orders = Order::query()
-            ->with('items')
-            ->whereHas('payments', fn ($q) => $q->whereBetween('paid_on', [Periods::start($month), Periods::end($month)]))
+            ->with(['items', 'payments'])
+            ->whereHas('payments', fn ($q) => $q->whereBetween('paid_on', [$start, $end]))
             ->when($line, fn ($q) => $q->where('business_line', $line))
             ->get();
 
-        return $orders->sum(fn (Order $o) => $o->materialCost());
+        return $orders->sum(fn (Order $o) => $this->recognisedMaterialCost($o, $start, $end));
+    }
+
+    /**
+     * HPP yang diakui s/d akhir bulan dikurangi yang diakui s/d awal bulan,
+     * masing-masing `round(HPP × dibayar kumulatif / total)`. Bentuk kumulatif
+     * (bukan `round(HPP × bayar bulan ini / total)`) supaya pembulatan per
+     * bulan tidak menggeser jumlahnya: lintas bulan selalu tepat HPP penuh
+     * begitu lunas. Rasio dijepit ke 1 — bayar lebih tidak menambah HPP.
+     */
+    private function recognisedMaterialCost(Order $order, CarbonImmutable $start, CarbonImmutable $end): int
+    {
+        $material = $order->materialCost();
+        $total = $order->total();
+        if ($material === 0 || $total <= 0) {
+            return $material;
+        }
+
+        $share = function (int $paid) use ($material, $total): int {
+            return (int) round($material * min(1, $paid / $total));
+        };
+        $before = (int) $order->payments->filter(fn (Payment $p) => $p->paid_on->lt($start))->sum('amount');
+        $upToEnd = (int) $order->payments->filter(fn (Payment $p) => $p->paid_on->lte($end))->sum('amount');
+
+        return $share($upToEnd) - $share($before);
     }
 
     /** @return Collection<int, OperatingExpense> */
