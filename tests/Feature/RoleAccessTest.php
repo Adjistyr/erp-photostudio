@@ -36,20 +36,20 @@ class RoleAccessTest extends DemoDataTestCase
         $this->admin = User::factory()->admin()->create();
     }
 
-    /** @return array<string, array{string, array<string, string>}> */
+    /** @return array<string, array{string}> */
     public static function financePages(): array
     {
         return [
-            'laba rugi' => ['reports.profit-loss', []],
-            'margin' => ['reports.margin', []],
-            'penjualan' => ['reports.sales', []],
-            'kas harian' => ['reports.cash', []],
-            'ekspor kas' => ['reports.cash.export', []],
-            'piutang (laporan)' => ['reports.receivables', []],
-            'modal & bagi hasil' => ['capital.index', []],
+            'laba rugi' => ['reports.profit-loss'],
+            'margin' => ['reports.margin'],
+            'penjualan' => ['reports.sales'],
+            'kas harian' => ['reports.cash'],
+            'ekspor kas' => ['reports.cash.export'],
+            'piutang (laporan)' => ['reports.receivables'],
+            'modal & bagi hasil' => ['capital.index'],
             // Ekspor berisi HPP & margin / nilai buku.
-            'ekspor order' => ['orders.export', []],
-            'ekspor aset' => ['assets.export', []],
+            'ekspor order' => ['orders.export'],
+            'ekspor aset' => ['assets.export'],
         ];
     }
 
