@@ -12,7 +12,6 @@
 
 import { Head, Link, useForm } from '@inertiajs/react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
-import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ import {
     rowsComplete,
     toPayload,
 } from '@/modules/order/components/order-form';
+import { AmountPercentField } from '@/modules/order/components/amount-percent-field';
 import { ScheduleSummary } from '@/modules/order/components/schedule-editor';
 import type {
     CatalogOption,
@@ -185,12 +185,13 @@ export default function OrdersCreate({
                             {/*
                             DP nominal bebas, bukan persentase tetap — asumsi
                             business-flow bagian 2 pertanyaan 3: nego per deal.
+                            Boleh diketik sebagai % dari total; dikirim nominal.
                         */}
-                            <MoneyInput
+                            <AmountPercentField
                                 id="dp"
-                                placeholder="0"
+                                total={total}
                                 value={data.dp}
-                                aria-invalid={Boolean(errors.dp)}
+                                invalid={Boolean(errors.dp)}
                                 onValueChange={(v) => setData('dp', v)}
                             />
                             <InputError message={errors.dp} />
