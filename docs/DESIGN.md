@@ -410,7 +410,7 @@ Seragam di semua layar:
 | Sidebar (rail) | panel melayang `rounded-3xl`, inset 12px dari tepi; lebar 256px, ringkas 64px (ikon saja); chip merek di atas (lingkaran `--brand` + nama), tombol **Ringkas menu / Lebarkan menu** di bawah; status disimpan cookie `sidebar_state`, Ctrl/⌘+B tetap berlaku |
 | Item menu | pil 40px; aktif = `--sidebar-primary` (hampir hitam), tooltip berisi nama saat ringkas |
 | Mobile (< md) | rail jadi Sheet kiri, dibuka tombol menu di header |
-| Header | 64px, tidak sticky (POS mobile dan form katalog/aset punya `sticky` sendiri), breadcrumb kiri (di mobile hanya halaman sekarang) + aksi utama halaman + chip profil kanan |
+| Header | 64px, tidak sticky (POS mobile punya `sticky` sendiri; form katalog/aset/order punya `FormActionBar` di bawah `xl`), breadcrumb kiri (di mobile hanya halaman sekarang) + aksi utama halaman + chip profil kanan |
 | Chip profil | inisial di lingkaran `--brand`/15% + nama (di mobile inisial saja); menu Pengaturan, Keluar |
 | Konten | padding 24px, lebar penuh (tanpa max-width) |
 | Focus ring | `--ring`/50, 3px |
@@ -499,6 +499,9 @@ Primitif tata letak di `resources/js/components/page.tsx` (diadaptasi dari maste
 | `PageHeader` | judul halaman (satu-satunya `h1`), deskripsi singkat, `meta` (badge status/lini di samping judul), `actions` (tombol, turun ke bawah judul di bawah `sm`) | Halaman dengan PageHeader tidak memakai `<h1 className="sr-only">` (pengecualian: halaman Pengaturan — judul yang tampak milik layout). Aksi utama halaman selalu di `actions`; bar header aplikasi tidak punya slot aksi (`<PageActions>` dicabut 17 Okt 2026) |
 | `Panel` | setiap kelompok isi di atas kanvas: form section, ringkasan, tabel | `title` → `h2` di kepala panel bergaris bawah; `aside` untuk jumlah/tautan kecil di kanan; `flush` untuk tabel/daftar yang menempel ke tepi; tanpa `title`, beri `label` (jadi `aria-label` section). Ganti pola lama `rounded-lg border p-5` |
 | `Notice` | strip petunjuk abu-abu: catatan read-only, cakupan data, alasan angka | bukan peringatan — yang menuntut perhatian tetap `Alert` |
+| `FormActionBar` | Batal/Simpan melayang di bawah layar pada form panjang ber-ringkasan (Katalog, Aset, Buat/Ubah Order) di bawah `xl`, saat ringkasan turun ke ujung halaman | anak terakhir pembungkus halaman (sticky butuh induk setinggi halaman); tombol dibuat sekali (`const actions`) dan dipakai di ringkasan (`max-xl:hidden`) + bar — bukan dua salinan logika submit |
+
+Baris tab/pil yang **digeser** di layar sempit (tab filter Pembayaran/Komunikasi/Modal, navigasi Laporan & Pengaturan) memakai `useScrollHint()` (`hooks/use-scroll-hint.ts`) + scrollbar disembunyikan: tepi yang masih punya lanjutan memudar (`[data-scroll-hint]` di `app.css`). Digeser, bukan dilipat — pil yang turun ke dua baris terbaca sebagai dua kelompok. Aksi yang sama memakai label yang sama di semua layar (mis. **Catat Bayar** di baris tabel, kartu, dan detail order; judul dialognya "Catat Pembayaran").
 
 Tabel tidak perlu dibungkus Panel kalau berdiri sendiri: `Table`/`TabelData` sudah panel putih. Di dalam `Panel flush`, tabel tetap rapi karena inset 6px-nya.
 

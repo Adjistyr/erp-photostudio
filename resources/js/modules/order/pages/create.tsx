@@ -13,7 +13,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import InputError from '@/components/input-error';
-import { Notice, PageHeader, Panel } from '@/components/page';
+import { FormActionBar, Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Separator } from '@/components/ui/separator';
@@ -82,6 +82,36 @@ export default function OrdersCreate({
         data.service_date !== '' &&
         total > 0 &&
         rowsComplete(data.items, catalog);
+
+    // Satu set tombol, dua tempat: ringkasan (xl+) dan FormActionBar (< xl).
+    const actions = (
+        <>
+            <Button
+                variant="outline"
+                className="flex-1"
+                nativeButton={false}
+                render={<Link href={ordersIndex()} />}
+            >
+                Batal
+            </Button>
+            <Button
+                className="flex-1"
+                disabled={!complete || processing}
+                onClick={() => {
+                    // transform() mendaftarkan pengubah, tidak mengembalikan form.
+                    form.transform((d) => ({
+                        ...d,
+                        ...customerPayload(d),
+                        items: toPayload(d.items),
+                        schedules: schedulesPayload(d.schedules),
+                    }));
+                    form.post(OrderController.store().url);
+                }}
+            >
+                Simpan
+            </Button>
+        </>
+    );
 
     return (
         <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -248,33 +278,8 @@ export default function OrdersCreate({
                             benar-benar untung atau tidak.
                         </Notice>
 
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                nativeButton={false}
-                                render={<Link href={ordersIndex()} />}
-                            >
-                                Batal
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                disabled={!complete || processing}
-                                onClick={() => {
-                                    // transform() mendaftarkan pengubah, tidak mengembalikan form.
-                                    form.transform((d) => ({
-                                        ...d,
-                                        ...customerPayload(d),
-                                        items: toPayload(d.items),
-                                        schedules: schedulesPayload(
-                                            d.schedules,
-                                        ),
-                                    }));
-                                    form.post(OrderController.store().url);
-                                }}
-                            >
-                                Simpan
-                            </Button>
+                        <div className="flex gap-2 max-xl:hidden">
+                            {actions}
                         </div>
                         {!complete && (
                             <p className="text-xs text-muted-foreground">
@@ -285,6 +290,7 @@ export default function OrdersCreate({
                     </div>
                 </Panel>
             </div>
+            <FormActionBar>{actions}</FormActionBar>
         </div>
     );
 }

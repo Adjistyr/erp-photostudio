@@ -41,6 +41,7 @@ import {
 } from '@/lib/format';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFlash } from '@/hooks/use-flash';
+import { useScrollHint } from '@/hooks/use-scroll-hint';
 import type { Studio } from '@/modules/order/components/invoice-document';
 import { PaymentDialog } from '@/modules/order/components/payment-dialog';
 import { PaymentProofLink } from '@/modules/order/components/payment-proof-link';
@@ -51,7 +52,6 @@ import {
 import { ReceiptSheet } from '@/modules/order/components/receipt-sheet';
 import { filterReceivables } from '@/modules/order/lib/receivables-filter';
 import type { AgeTab } from '@/modules/order/lib/receivables-filter';
-import { installmentShort } from '@/modules/order/lib/schedules';
 import type { ReceivableRow, Receipt } from '@/modules/order/types';
 import { index as communicationIndex } from '@/routes/communication';
 import { index as receivablesIndex } from '@/routes/receivables';
@@ -90,6 +90,7 @@ export default function Receivables({
     studio,
     billing_template,
 }: Props) {
+    const ageTabsRef = useScrollHint<HTMLDivElement>();
     // Simpan id, bukan objek: setelah mencatat, baris dibaca ulang dari props.
     const [payingId, setPayingId] = useState<number | null>(null);
     // Bukti bayar untuk customer — muncul setelah PaymentDialog sukses.
@@ -170,7 +171,10 @@ export default function Receivables({
                         >
                             {/* Tiga tab tidak muat di 390 px — gulir di dalam daftar tab,
                                 bukan halaman (spek 4.6). */}
-                            <TabsList className="max-w-full [scrollbar-width:none] justify-start overflow-x-auto">
+                            <TabsList
+                                ref={ageTabsRef}
+                                className="max-w-full [scrollbar-width:none] justify-start overflow-x-auto"
+                            >
                                 {AGE_TABS.map((a) => (
                                     <TabsTrigger key={a} value={a}>
                                         {AGE_LABEL[a]} ({count(a)})
@@ -264,11 +268,23 @@ export default function Receivables({
                                         <TableCell className="whitespace-nowrap">
                                             {formatTanggal(o.due_on)}
                                             {/* Termin berikutnya (spek 6.4): yang ditagih sekarang. */}
+                                            {/* Dua baris, bukan "Termin 2/3 · Rp …" sebaris: satu
+                                                baris itu melebarkan kolom sampai tabel melewati
+                                                panel di laptop 1440. */}
                                             {o.next_installment && (
                                                 <span className="block text-xs text-muted-foreground">
-                                                    {installmentShort(
-                                                        o.next_installment,
-                                                    )}
+                                                    Termin{' '}
+                                                    {
+                                                        o.next_installment
+                                                            .sequence
+                                                    }
+                                                    /{o.next_installment.of}
+                                                    <span className="block">
+                                                        {formatRp(
+                                                            o.next_installment
+                                                                .amount,
+                                                        )}
+                                                    </span>
                                                 </span>
                                             )}
                                         </TableCell>

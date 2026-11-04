@@ -11,7 +11,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import OrderController from '@/actions/Modules/Order/Controllers/OrderController';
 import InputError from '@/components/input-error';
-import { Notice, PageHeader, Panel } from '@/components/page';
+import { FormActionBar, Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { formatRp, kelasRp } from '@/lib/format';
@@ -105,6 +105,36 @@ export default function OrdersEdit({
         total > 0 &&
         rowsComplete(data.items, catalog);
 
+    // Satu set tombol, dua tempat: ringkasan (xl+) dan FormActionBar (< xl).
+    const actions = (
+        <>
+            <Button
+                variant="outline"
+                className="flex-1"
+                nativeButton={false}
+                render={<Link href={OrderController.show(order.id)} />}
+            >
+                Batal
+            </Button>
+            <Button
+                className="flex-1"
+                disabled={!complete || belowPaid || processing}
+                onClick={() => {
+                    // transform() mendaftarkan pengubah, tidak mengembalikan form.
+                    form.transform((d) => ({
+                        ...d,
+                        ...customerPayload(d),
+                        items: toPayload(d.items),
+                        schedules: schedulesPayload(d.schedules),
+                    }));
+                    form.put(OrderController.update(order.id).url);
+                }}
+            >
+                Simpan perubahan
+            </Button>
+        </>
+    );
+
     return (
         <div className="flex flex-col gap-6 p-4 md:p-6">
             <Head title={`Ubah ${order.number}`} />
@@ -177,39 +207,8 @@ export default function OrdersEdit({
                             </p>
                         )}
 
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                nativeButton={false}
-                                render={
-                                    <Link
-                                        href={OrderController.show(order.id)}
-                                    />
-                                }
-                            >
-                                Batal
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                disabled={!complete || belowPaid || processing}
-                                onClick={() => {
-                                    // transform() mendaftarkan pengubah, tidak mengembalikan form.
-                                    form.transform((d) => ({
-                                        ...d,
-                                        ...customerPayload(d),
-                                        items: toPayload(d.items),
-                                        schedules: schedulesPayload(
-                                            d.schedules,
-                                        ),
-                                    }));
-                                    form.put(
-                                        OrderController.update(order.id).url,
-                                    );
-                                }}
-                            >
-                                Simpan perubahan
-                            </Button>
+                        <div className="flex gap-2 max-xl:hidden">
+                            {actions}
                         </div>
                         <Notice>
                             Harga item yang sudah ada tidak ikut berubah walau
@@ -219,6 +218,7 @@ export default function OrdersEdit({
                     </div>
                 </Panel>
             </div>
+            <FormActionBar>{actions}</FormActionBar>
         </div>
     );
 }

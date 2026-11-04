@@ -13,7 +13,7 @@ import CatalogItemController from '@/actions/Modules/Catalog/Controllers/Catalog
 import { AmountPercentField } from '@/components/amount-percent-field';
 import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
-import { Notice, PageHeader, Panel } from '@/components/page';
+import { FormActionBar, Notice, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -168,6 +168,27 @@ export default function CatalogForm({
     };
 
     const title = editing ? `Edit ${item.name}` : 'Tambah Item Katalog';
+
+    // Satu set tombol, dua tempat: ringkasan (xl+) dan FormActionBar (< xl).
+    const actions = (
+        <>
+            <Button
+                variant="outline"
+                className="flex-1"
+                nativeButton={false}
+                render={<Link href={catalogIndex()} />}
+            >
+                Batal
+            </Button>
+            <Button
+                className="flex-1"
+                disabled={!complete || processing}
+                onClick={submit}
+            >
+                Simpan
+            </Button>
+        </>
+    );
 
     return (
         <>
@@ -694,22 +715,8 @@ export default function CatalogForm({
                                     </div>
                                 )}
 
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        className="flex-1"
-                                        nativeButton={false}
-                                        render={<Link href={catalogIndex()} />}
-                                    >
-                                        Batal
-                                    </Button>
-                                    <Button
-                                        className="flex-1"
-                                        disabled={!complete || processing}
-                                        onClick={submit}
-                                    >
-                                        Simpan
-                                    </Button>
+                                <div className="flex gap-2 max-xl:hidden">
+                                    {actions}
                                 </div>
                                 {editing && (
                                     <p className="text-xs text-muted-foreground">
@@ -721,6 +728,7 @@ export default function CatalogForm({
                         </Panel>
                     </aside>
                 </div>
+                <FormActionBar>{actions}</FormActionBar>
             </div>
         </>
     );

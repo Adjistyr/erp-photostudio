@@ -12,7 +12,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
 import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
-import { PageHeader, Panel } from '@/components/page';
+import { FormActionBar, PageHeader, Panel } from '@/components/page';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -171,6 +171,35 @@ export default function AssetForm({
     };
 
     const title = editing ? `Edit ${asset.name}` : 'Tambah Aset';
+
+    // Satu set tombol, dua tempat: ringkasan (xl+) dan FormActionBar (< xl).
+    const actions = (
+        <>
+            <Button
+                variant="outline"
+                className="flex-1"
+                nativeButton={false}
+                render={
+                    <Link
+                        href={
+                            editing
+                                ? AssetController.show(asset.id)
+                                : assetsIndex()
+                        }
+                    />
+                }
+            >
+                Batal
+            </Button>
+            <Button
+                className="flex-1"
+                disabled={data.name.trim() === '' || processing}
+                onClick={submit}
+            >
+                Simpan
+            </Button>
+        </>
+    );
 
     return (
         <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -671,34 +700,13 @@ export default function AssetForm({
                                     : 'Umur dan jadwal perawatan terisi otomatis dari kategori — ubah kalau tahu angka sebenarnya.'}
                             </p>
                         )}
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                nativeButton={false}
-                                render={
-                                    <Link
-                                        href={
-                                            editing
-                                                ? AssetController.show(asset.id)
-                                                : assetsIndex()
-                                        }
-                                    />
-                                }
-                            >
-                                Batal
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                disabled={data.name.trim() === '' || processing}
-                                onClick={submit}
-                            >
-                                Simpan
-                            </Button>
+                        <div className="flex gap-2 max-xl:hidden">
+                            {actions}
                         </div>
                     </div>
                 </Panel>
             </div>
+            <FormActionBar>{actions}</FormActionBar>
         </div>
     );
 }

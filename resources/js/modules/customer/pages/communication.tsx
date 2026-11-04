@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useCan } from '@/hooks/use-can';
+import { useScrollHint } from '@/hooks/use-scroll-hint';
 import {
     formatRp,
     formatTanggal,
@@ -229,9 +230,13 @@ function WhatsAppTab({
                         onToggle={r.toggle}
                         onToggleAll={r.toggleAll}
                         action={(c) => (
+                            // Ikon saja di bawah 2xl: teks "Buka WhatsApp" membuat
+                            // tabel 770px di panel 698px pada laptop 1440.
                             <Button
                                 size="sm"
                                 variant="outline"
+                                aria-label={`Buka WhatsApp ${c.name}`}
+                                title="Buka WhatsApp"
                                 nativeButton={false}
                                 render={
                                     <a
@@ -247,7 +252,9 @@ function WhatsAppTab({
                                     />
                                 }
                             >
-                                Buka WhatsApp
+                                <span className="hidden 2xl:inline">
+                                    Buka WhatsApp
+                                </span>
                                 <ExternalLink data-icon="inline-end" />
                             </Button>
                         )}
@@ -503,6 +510,7 @@ function LineFilterTabs({
     value: LineFilter;
     onChange: (v: LineFilter) => void;
 }) {
+    const tabsRef = useScrollHint<HTMLDivElement>();
     return (
         <Tabs
             value={value}
@@ -512,7 +520,10 @@ function LineFilterTabs({
             }}
         >
             {/* Empat filter tidak muat di 390px — geser, bukan terpotong. */}
-            <TabsList className="max-w-full justify-start overflow-x-auto">
+            <TabsList
+                ref={tabsRef}
+                className="max-w-full [scrollbar-width:none] justify-start overflow-x-auto"
+            >
                 <TabsTrigger value="all">Semua</TabsTrigger>
                 <TabsTrigger value="studio">Pernah studio</TabsTrigger>
                 <TabsTrigger value="event">Pernah event</TabsTrigger>

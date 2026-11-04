@@ -5,9 +5,10 @@
  */
 
 import { Link } from '@inertiajs/react';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { MonthNav } from '@/components/month-nav';
 import { Button } from '@/components/ui/button';
+import { useScrollHint } from '@/hooks/use-scroll-hint';
 import { cash, margin, profitLoss, receivables, sales } from '@/routes/reports';
 
 type Report = 'profit-loss' | 'margin' | 'sales' | 'cash' | 'receivables';
@@ -44,7 +45,7 @@ export function ReportNav({
     // Di layar sempit pil aktif (mis. Piutang) bisa jatuh di luar baris yang
     // tergeser; geser baris itu sendiri — bukan scrollIntoView, yang ikut
     // menggulir halaman.
-    const navRef = useRef<HTMLElement>(null);
+    const navRef = useScrollHint<HTMLElement>();
     useEffect(() => {
         const nav = navRef.current;
         const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
