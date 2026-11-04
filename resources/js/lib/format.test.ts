@@ -26,6 +26,7 @@ import {
     selisihHari,
     tambahBulan,
     hanyaDigit,
+    formatRibuan,
 } from './format';
 
 test('formatRp — titik ribuan, tanpa desimal', () => {
@@ -68,6 +69,18 @@ test("hanyaDigit — titik ribuan, 'Rp', dan spasi dibuang", () => {
     assert.equal(hanyaDigit(''), '');
     // Minus ikut dibuang — nominal di form tidak pernah negatif.
     assert.equal(hanyaDigit('-5000'), '5000');
+});
+
+test('formatRibuan — titik ribuan untuk isian, kosong tetap kosong', () => {
+    assert.equal(formatRibuan('1500000'), '1.500.000');
+    assert.equal(formatRibuan('500'), '500');
+    assert.equal(formatRibuan(''), '');
+    assert.equal(formatRibuan('0'), '0');
+    // Nol di depan dibuang, nol di tengah/akhir tidak.
+    assert.equal(formatRibuan('007'), '7');
+    assert.equal(formatRibuan('1050'), '1.050');
+    // Di atas 2^53 tidak dibulatkan.
+    assert.equal(formatRibuan('9007199254740993'), '9.007.199.254.740.993');
 });
 
 test('tambahBulan — tanggal sama di bulan berikutnya', () => {

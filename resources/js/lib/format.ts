@@ -129,6 +129,19 @@ export function hanyaDigit(v: string): string {
     return v.replace(/\D/g, '');
 }
 
+/**
+ * Isian digit → tampilan bertitik ribuan untuk input uang: "1500000" →
+ * "1.500.000", "" → "". Nol di depan dibuang ("007" → "7"); kosong tetap
+ * kosong supaya placeholder masih terlihat.
+ */
+export function formatRibuan(digit: string): string {
+    const bersih = hanyaDigit(digit).replace(/^0+(?=\d)/, '');
+    if (bersih === '') return '';
+    // Lewat BigInt, bukan Number: digit dari tempelan panjang tidak boleh
+    // dibulatkan diam-diam di atas 2^53 (format id-ID tetap titik ribuan).
+    return ribuan.format(BigInt(bersih));
+}
+
 /** Rasio 0..1 → "43%". Bulat, tanpa desimal (R5). */
 export function formatPersen(rasio: number): string {
     return `${Math.round(rasio * 100)}%`;

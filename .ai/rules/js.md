@@ -9,7 +9,7 @@ paths:
 
 ## Format numbers and dates via lib/format
 
-Render all money, percentages and dates through `@/lib/format` (`formatRp`, `formatTanggal`, `formatPersen`, `kelasRp`, `hanyaDigit`). Never call `Intl`/`toLocaleString` or build `"Rp "` strings.
+Render all money, percentages and dates through `@/lib/format` (`formatRp`, `formatTanggal`, `formatPersen`, `kelasRp`, `hanyaDigit`). Never call `Intl`/`toLocaleString` or build `"Rp "` strings. Money form fields use `MoneyInput` (`@/components/money-input`, digits in state, `withPrefix={false}` next to an Rp/% toggle), never `Input` + `hanyaDigit` or `type="number"`.
 
 ## Gate UI with useCan
 

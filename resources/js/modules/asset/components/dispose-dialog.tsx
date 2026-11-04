@@ -5,6 +5,7 @@
 
 import { useForm } from '@inertiajs/react';
 import AssetController from '@/actions/Modules/Asset/Controllers/AssetController';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { formatRp, hanyaDigit } from '@/lib/format';
+import { formatRp } from '@/lib/format';
 import type { AssetRow } from '@/modules/asset/types';
 
 const DISPOSAL_REASONS = ['Dijual', 'Rusak total', 'Hilang'] as const;
@@ -115,17 +116,13 @@ export function DisposeDialog({
                                 <FieldLabel htmlFor="dispose-price">
                                     Harga jual
                                 </FieldLabel>
-                                <Input
+                                <MoneyInput
                                     id="dispose-price"
-                                    inputMode="numeric"
                                     placeholder="0"
                                     value={data.sale_price}
                                     aria-invalid={Boolean(errors.sale_price)}
-                                    onChange={(e) =>
-                                        setData(
-                                            'sale_price',
-                                            hanyaDigit(e.target.value),
-                                        )
+                                    onValueChange={(v) =>
+                                        setData('sale_price', v)
                                     }
                                 />
                                 <InputError message={errors.sale_price} />

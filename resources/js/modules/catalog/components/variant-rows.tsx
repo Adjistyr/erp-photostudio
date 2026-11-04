@@ -8,6 +8,7 @@
  */
 
 import { Plus, X } from 'lucide-react';
+import { MoneyInput } from '@/components/money-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { formatPersen, formatRp, hanyaDigit } from '@/lib/format';
+import { formatPersen, formatRp } from '@/lib/format';
 import type { CatalogPhoto } from '@/modules/catalog/components/photo-gallery';
 import { isLowMargin } from '@/modules/catalog/lib/filter';
 import type { CatalogVariant } from '@/modules/catalog/types';
@@ -134,18 +135,17 @@ export function VariantRows({
                             <span className="text-xs text-muted-foreground sm:hidden">
                                 Harga jual
                             </span>
-                            <Input
+                            <MoneyInput
                                 aria-label={`Harga jual varian ${i + 1}`}
                                 placeholder="Harga jual"
-                                inputMode="numeric"
                                 className="text-right"
                                 value={r.price}
                                 aria-invalid={Boolean(
                                     errors[`variants.${i}.price`],
                                 )}
-                                onChange={(e) =>
+                                onValueChange={(v) =>
                                     update(r.key, {
-                                        price: hanyaDigit(e.target.value),
+                                        price: v,
                                     })
                                 }
                             />
@@ -154,18 +154,17 @@ export function VariantRows({
                             <span className="text-xs text-muted-foreground sm:hidden">
                                 HPP bahan
                             </span>
-                            <Input
+                            <MoneyInput
                                 aria-label={`HPP varian ${i + 1}`}
                                 placeholder="HPP bahan"
-                                inputMode="numeric"
                                 className="text-right"
                                 value={r.unit_cost}
                                 aria-invalid={Boolean(
                                     errors[`variants.${i}.unit_cost`],
                                 )}
-                                onChange={(e) =>
+                                onValueChange={(v) =>
                                     update(r.key, {
-                                        unit_cost: hanyaDigit(e.target.value),
+                                        unit_cost: v,
                                     })
                                 }
                             />
