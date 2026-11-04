@@ -25,7 +25,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatPersen, formatRp } from '@/lib/format';
-import { AmountPercentField } from '@/modules/order/components/amount-percent-field';
+import { AmountPercentField } from '@/components/amount-percent-field';
 import { PAYMENT_METHOD_LABEL } from '@/modules/order/types';
 import type { PayableOrder, PaymentMethod } from '@/modules/order/types';
 

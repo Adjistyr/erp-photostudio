@@ -1,6 +1,7 @@
 /**
- * Diskon persen di POS (spek 4.1) — HANYA di klien. Server selalu menerima
- * nominal rupiah (`discount`); aturan "diskon < subtotal" tetap di server.
+ * Isian persen yang dikonversi ke rupiah HANYA di klien: diskon POS (spek
+ * 4.1), DP & pembayaran, HPP katalog. Server selalu menerima nominal rupiah;
+ * aturan seperti "diskon < subtotal" tetap di server.
  */
 export type DiscountMode = 'rp' | 'pct';
 

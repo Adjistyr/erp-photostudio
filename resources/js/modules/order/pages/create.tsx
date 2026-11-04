@@ -28,7 +28,7 @@ import {
     rowsComplete,
     toPayload,
 } from '@/modules/order/components/order-form';
-import { AmountPercentField } from '@/modules/order/components/amount-percent-field';
+import { AmountPercentField } from '@/components/amount-percent-field';
 import { ScheduleSummary } from '@/modules/order/components/schedule-editor';
 import type {
     CatalogOption,
