@@ -1,6 +1,6 @@
 # Handoff — posisi proyek & cara melanjutkan
 
-Diperbarui **17 Oktober 2026**. Baca ini dulu di sesi baru; dokumen lain dirujuk dari sini. Perbarui bagian "Posisi" dan "Langkah berikutnya" setiap kali ada PR yang di-merge.
+Diperbarui **4 November 2026**. Baca ini dulu di sesi baru; dokumen lain dirujuk dari sini. Perbarui bagian "Posisi" dan "Langkah berikutnya" setiap kali ada PR yang di-merge.
 
 ## 1. Peta dokumen
 
@@ -32,11 +32,19 @@ php artisan wayfinder:generate --with-form   # bila route berubah
 
 Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`. Data demo: `php artisan migrate:fresh --seed`. Login `agung@potraittime.test` atau `raka@potraittime.test` (owner), `admin@potraittime.test` (admin, dari `DemoSeeder`), sandi `password`. Data demo: Juli 2026 sudah tutup buku, Agustus–September belum. Data presentasi client (6 bulan, tanggal relatif ke hari ini): `php artisan migrate:fresh --seed --seeder=PresentationSeeder` — rincian di `docs/database.md` bagian 4.
 
-## 3. Posisi per 17 Oktober 2026
+## 3. Posisi per 4 November 2026
 
 - `develop` memuat PR #10–#28 (semua layar prototype `web/` dipindah ke Laravel, keputusan bisnis 6 Okt: margin order batal, tutup buku manual, koreksi = hapus) dan **PR #29–#63**: analisis + 32 spek, **seluruh spek Fase 0–4 (22 item)**, 5.2 dibatalkan (#53, POS tanpa shift), **Fase 7** permintaan tambahan katalog/order (#54–#56, #62, #63), dan **Fase 8** modul Aset jadi register alat (#57–#60).
 - **PR #64** (branch `feat/sisa-spek-design-system`, satu commit per item): spek tersisa **5.1, 6.3, 6.4, 6.5, 6.6, 6.7** + **sistem desain ala master-outlet** (token, komponen `ui/*`, shell rail, `PageHeader`/`Panel`/`Notice` di semua halaman, slot `PageActions` dicabut). Setelah #64 tidak ada spek terbuka.
-- Test terakhir: **571 PHPUnit, 128 Vitest**, PHPStan level 7 bersih, Pint, `vp check`, `types:check`, `npm run build` hijau.
+- **Setelah presentasi client (3 Nov 2026)** — masukan client, satu PR per item:
+  - **#65** POS pilih/buat customer seperti form order + `PresentationSeeder` + `laravel/boost` & `.ai/rules`.
+  - **#66** `MoneyInput`: isian uang tampil `Rp 1.500.000` saat diketik (17 input), state tetap digit.
+  - **#67** DP & Catat Pembayaran: Rp atau **% dari total order**, dijepit ke sisa tagihan (persen hanya di klien).
+  - **#68** HPP produk & varian: Rp atau % dari harga jual (disimpan Rp). `AmountPercentField` → `components/`, helper persen → `lib/percent.ts`.
+  - **#69** fix Laba Rugi: HPP bahan diakui **sebanding uang diterima** per bulan (sebelumnya terhitung penuh di tiap bulan order menerima pembayaran → dobel untuk DP + pelunasan beda bulan).
+  - **#70** estimasi biaya job jasa (`estimated_cost`, Rp atau %) → estimasi margin di detail order sampai biaya job dicatat; **tidak** masuk Laba Rugi (keputusan owner).
+  - **#71** slot logo brand di invoice & struk (`STUDIO_LOGO`), ikon sementara sampai file logo dikirim.
+- Test terakhir: **592 PHPUnit, 143 Vitest**, PHPStan level 7 bersih, Pint, `vp check`, `types:check`, `npm run build` hijau.
 - CI GitHub Actions tidak berjalan sejak awal (akun terkunci billing — job gagal dalam 2–3 detik tanpa dijalankan). Gate yang dipakai: `composer ci:check` lokal sebelum merge.
 
 ### Daftar PR spek
@@ -99,9 +107,16 @@ Kode yang menang bila spek tidak cocok — speknya tidak ditulis ulang, alasanny
 
 DB lokal berisi data hasil verifikasi manual: ORD-0019 (studio + produk bervarian & Keychain), catatan di ORD-0010, aset "Drone DJI" (DRN-001) + kategori Drone + 2 foto & 2 nota (file di `storage/app/private/assets/`), riwayat peminjaman Lighting (Raka, ORD-0005) & Trigger (Dimas), merek/lokasi/garansi di "Printer foto", servis Head cleaning 11 Okt, foto di "Cetak 10R + Bingkai" (bertanda Profil), item baru "Gantungan Kunci Foto Kayu" dan "Bingkai Kayu A4", varian Kayu/Hitam di "Cetak 10R + Bingkai" dengan penjualan ORD-0018, ORD-0013 s.d. ORD-0017 (penjualan POS; ORD-0016 split Tunai 6.000 + QRIS 4.000), pembayaran tambahan di ORD-0012 (termasuk Rp 25.000 dari kartu Pembayaran 9 Okt), ORD-0005 dipindah ke besok dengan add-on, item custom "Drone" di ORD-0011, refund Rp 20.000 di ORD-0015. Peringatan "Piutang 11029%" di Dashboard berasal dari data ini. Reset: `php artisan migrate:fresh --seed` lalu hapus folder `storage/app/public/catalog` dan `storage/app/private/assets` (file foto tidak ikut terhapus oleh reset DB).
 
+Verifikasi 4 Nov 2026 (DB presentasi): ORD-0457 (POS, customer baru "Uji Picker POS"), ORD-0458 (POS diskon 1.000 + split Tunai 24.000/QRIS 10.000), ORD-0459 (studio Paket Studio 1 Jam, customer Dewi Budiyanto), pembayaran 200.000 di ORD-0427, dua baris riwayat harga "Magnet Kulkas Foto" (HPP 4.500 lalu kembali 4.000).
+
 ## 4. Langkah berikutnya
 
-Semua spek di `docs/specs/README.md` selesai per #64 (5.2 dibatalkan). Kandidat lanjutan, kerjakan bila diminta:
+Semua spek di `docs/specs/README.md` selesai per #64 (5.2 dibatalkan). Masukan presentasi tersisa: **merapikan layout UI/UX** — audit semua halaman (desktop + mobile) dulu, daftar temuan berprioritas diserahkan ke user untuk dipilih sebelum diubah.
+
+Kandidat lanjutan, kerjakan bila diminta:
+
+- % di termin event (`schedule-editor`) — pola sama dengan DP (#67).
+- Kolom estimasi biaya job di daftar & ekspor order; riwayat harga (6.5) belum mencatat perubahan estimasi (#70).
 
 - Endpoint publik company profile (produk terpisah) — aturan field yang boleh keluar ada di spek 7.1; varian di company profile diputuskan saat itu.
 - Unggah bukti transfer di DP Buat Order & pembayaran POS (pola sama dengan 6.7).
@@ -128,6 +143,9 @@ Keputusan K1–K5 di `docs/rencana-pengembangan-operasional.md` adalah **rekomen
 - `main` masih hanya berisi initial commit (13 Sep 2026); seluruh pekerjaan ada di `develop`. Rilis ke `main` menunggu keputusan go-live.
 
 ## 6. Cara kerja yang disepakati dengan user
+
+- Gate lokal: `composer ci:check` gagal di `InertiaPageAssetTest` (2) selama Vite dev jalan (`public/hot` ada) — pindahkan `public/hot` sementara. Bila `php artisan test` exit 1 padahal semua lulus, jalankan `vendor/bin/phpunit --display-all-issues` (formatter agent menyembunyikan warning PHPUnit).
+- Service `web-2` di lpm (`~/.lpm/projects/erp-photostudio.yml`) menjalankan `npm run dev` di `web/` (prototype), bukan Vite Laravel di root — jalankan `npm run dev` dari root.
 
 - Bahasa Indonesia. "lanjut" / "ya" / "oke" = lanjutkan / setuju.
 - Tidak perlu minta izin untuk perintah, commit, push feature branch, maupun membuat PR ke `develop`. **Jangan** push langsung ke `develop`/`main`, jangan amend/force push.
