@@ -164,11 +164,13 @@ Transaksi paling sederhana dan paling sering. Target: selesai di bawah 30 detik.
 1. Customer datang dan pilih barang.
 2. Owner buka layar POS, pilih item dari katalog, isi qty. Produk bervarian minta pilih varian dulu; keranjang, struk, dan laporan menulisnya "Produk – Varian" dengan harga varian.
 3. Total dihitung otomatis. Owner bisa isi diskon kalau ada.
-4. **Customer bersifat opsional.** Kalau customer mau nomornya dicatat (misal untuk dikirimi file foto), isi nama + HP (HP hanya tersimpan bersama nama; nama yang sudah ada dicocokkan lewat HP dulu, lalu nama). Kalau tidak, transaksi tetap bisa disimpan sebagai walk-in tanpa customer.
+4. **Customer bersifat opsional.** Bila datanya perlu dicatat, pilih customer yang sudah ada atau ketik nama untuk membuat customer baru langsung di POS (HP opsional untuk kirim struk). Kalau tidak, transaksi tetap bisa disimpan sebagai walk-in tanpa customer.
 5. Pilih metode bayar → simpan. Kalau customer membayar dengan dua metode (mis. sebagian tunai, sebagian QRIS), pakai **+ Bagi pembayaran**: ketik nominal metode kedua, sisanya otomatis ke metode pertama. Jumlah keduanya harus sama dengan total; tiap metode tercatat sebagai pembayaran sendiri supaya Kas Harian per metode tetap cocok dengan laci dan rekening.
 6. Setelah simpan muncul ringkasan transaksi dengan **struk**: cetak (kertas 80 mm), kirim via WA (kalau customer punya HP), atau salin link. Struk = halaman invoice publik untuk order retail (lunas). Panel **Hari ini** di bawah keranjang menampilkan transaksi POS hari ini (jumlah, total, 50 terbaru) dan bisa membuka ulang struknya.
 
 Hasil: Order `retail`, status kerja **Diserahkan**, status bayar **Lunas**, dan HPP tercatat otomatis dari data HPP bahan di katalog.
+> **Data customer disimpan satu kali** di `customers`; setiap order hanya menyimpan rujukan `customer_id`, bukan snapshot nama/HP. Koreksi typo kontak karena itu ikut terlihat di order/invoice lama. Yang perlu snapshot adalah nilai transaksi seperti harga item, bukan data CRM yang memang harus bisa diperbaiki.
+
 
 > **Catatan penting:** jangan mewajibkan pengisian customer di flow retail. Mewajibkannya adalah cara tercepat membuat owner malas memakai app — dan begitu satu transaksi dilewat, data laporan sudah tidak bisa dipercaya. CRM lebih baik terisi 60% daripada app-nya ditinggal sama sekali.
 

@@ -11,6 +11,7 @@ use Modules\Catalog\Enums\CatalogItemType;
 use Modules\Catalog\Models\CatalogItem;
 use Modules\Catalog\Models\CatalogItemVariant;
 use Modules\Customer\Actions\FindOrCreateCustomer;
+use Modules\Customer\Models\Customer;
 use Modules\Order\Actions\RecordOrderEvent;
 use Modules\Order\Enums\OrderEventType;
 use Modules\Order\Enums\PaymentStatus;
@@ -51,6 +52,8 @@ class PosController extends Controller
                         'photo_url' => $v->photo?->thumbUrl() ?? $p->photos->first()?->thumbUrl(),
                     ], ['unit_cost']))->values()->all(),
                 ], ['unit_cost']))->values()->all(),
+            // Customer dipilih/dibuat inline, sama dengan form order.
+            'customers' => Customer::orderBy('name')->get(['id', 'name', 'phone']),
             // Nama studio untuk pesan WA struk.
             'studio' => config('studio'),
             ...$this->todaySales(),
@@ -99,13 +102,11 @@ class PosController extends Controller
     {
         $discount = $request->discount();
         $total = $request->subtotal() - $discount;
-        $name = $request->string('customer_name')->trim()->value();
 
-        $order = DB::transaction(function () use ($request, $discount, $total, $name, $events, $findOrCreate) {
+        $order = DB::transaction(function () use ($request, $discount, $total, $events, $findOrCreate) {
             // Di dalam transaksi: customer baru tidak boleh tertinggal kalau order gagal.
-            // Nama kosong → walk-in tanpa customer (HP diabaikan: baris customer
-            // tanpa nama tidak berguna di daftar blast dan menghitung customer palsu).
-            $customer = $name === '' ? null : $findOrCreate->execute($name, $request->customerPhone());
+            // Customer kosong tetap walk-in agar alur kasir tidak dipaksa mengisi CRM.
+            $customer = $request->resolveCustomerOrNull($findOrCreate);
             $order = Order::create([
                 'number' => Order::nextNumber(),
                 // Null = walk-in tanpa nama — bukan baris customer "Umum" (docs/database.md).

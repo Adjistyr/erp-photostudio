@@ -6,8 +6,8 @@
  * tapi disiplin input — kalau owner malas mencatat, app sebagus apa pun jadi
  * sampah dalam 2 minggu.
  *
- * Konsekuensinya: customer OPSIONAL dan tampil sebagai field pasif, bukan
- * wajib. CRM lebih baik terisi 60% daripada app-nya ditinggal (5.1).
+ * Konsekuensinya: customer OPSIONAL; picker mempercepat memilih data lama atau
+ * membuat data baru, tanpa memaksa CRM pada setiap transaksi (5.1).
  */
 
 import { Head, useForm } from '@inertiajs/react';
@@ -18,6 +18,10 @@ import PosController from '@/actions/Modules/Order/Controllers/PosController';
 import { KosongTabel } from '@/components/data-table';
 import { PageHeader, Panel } from '@/components/page';
 import { ProductPhoto } from '@/components/product-photo';
+import {
+    CustomerPicker,
+    type CustomerOption,
+} from '@/modules/order/components/order-form';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +46,7 @@ import {
     restoreCart,
     saveHeld,
 } from '@/modules/order/lib/held-carts';
-import type { HeldCart } from '@/modules/order/lib/held-carts';
+import type { CartFields, HeldCart } from '@/modules/order/lib/held-carts';
 import { bagiPembayaran } from '@/modules/order/lib/split-payment';
 import { priceRange, variantLabel } from '@/modules/catalog';
 import { formatRp, hanyaDigit } from '@/lib/format';
@@ -75,30 +79,17 @@ interface Product {
     variants: PosVariant[];
 }
 
-interface SaleForm {
-    /** Baris dikunci (item, varian) — varian null untuk produk tanpa varian. */
-    items: {
-        catalog_item_id: number;
-        catalog_item_variant_id: number | null;
-        quantity: number;
-    }[];
-    discount: string;
-    /**
-     * 1–2 baris (spek 4.4). `amount` baris pertama tidak dipakai — dihitung
-     * saat simpan dari total (dan baris kedua bila ada).
-     */
-    payments: { method: PaymentMethod; amount: string }[];
-    customer_name: string;
-    customer_phone: string;
-}
+interface SaleForm extends CartFields {}
 
 export default function Pos({
     products,
+    customers,
     studio,
     today_sales,
     today_total,
 }: {
     products: Product[];
+    customers: CustomerOption[];
     studio: Studio;
     /** Transaksi POS hari ini, 50 terbaru (spek 2.5). */
     today_sales: TodaySale[];
@@ -120,8 +111,8 @@ export default function Pos({
         items: [],
         discount: '',
         payments: [{ method: 'cash', amount: '' }],
-        customer_name: '',
-        customer_phone: '',
+        customer_id: '',
+        new_customer: null,
     });
     const { data, setData, processing } = form;
     // Error baris berkunci "items.0.catalog_item_id" — tidak ada di tipe form.
@@ -129,6 +120,11 @@ export default function Pos({
     const itemError = Object.entries(errors).find(([k]) =>
         k.startsWith('items.'),
     )?.[1];
+    const selectedCustomer = customers.find(
+        (customer) => String(customer.id) === data.customer_id,
+    );
+    const customerName =
+        data.new_customer?.name ?? selectedCustomer?.name ?? '';
 
     const productOf = (id: number) => products.find((p) => p.id === id);
     // Area gambar hanya bila ada produk berfoto — katalog tanpa foto tetap
@@ -235,7 +231,7 @@ export default function Pos({
                       makeHeldCart(
                           data,
                           discountMode,
-                          defaultLabel(data.customer_name),
+                          defaultLabel(customerName),
                       ),
                       ...rest,
                   ]
@@ -342,7 +338,7 @@ export default function Pos({
         <HoldCartButton
             empty={lines.length === 0}
             full={held.length >= MAX_HELD}
-            defaultLabel={defaultLabel(data.customer_name)}
+            defaultLabel={defaultLabel(customerName)}
             onHold={hold}
         />
     );
@@ -487,53 +483,22 @@ export default function Pos({
 
             <Separator />
 
-            {/*
-                        Customer OPSIONAL tanpa tanda wajib, dengan hint
-                        konsekuensinya. Bukan Select yang harus dipilih.
-                    */}
             <div className="flex flex-col gap-1.5">
-                <label htmlFor="customer_name" className="text-sm">
+                <label htmlFor="customer" className="text-sm">
                     Customer{' '}
                     <span className="text-muted-foreground">— opsional</span>
                 </label>
-                <Input
-                    id="customer_name"
-                    placeholder="Kosongkan kalau tidak perlu dicatat"
-                    value={data.customer_name}
-                    onChange={(e) => setData('customer_name', e.target.value)}
+                <CustomerPicker
+                    customers={customers}
+                    customerId={data.customer_id}
+                    newCustomer={data.new_customer}
+                    errors={errors}
+                    onChange={(patch) => setData((d) => ({ ...d, ...patch }))}
                 />
                 <p className="text-xs text-muted-foreground">
-                    Tanpa nama, transaksi dicatat sebagai walk-in. Nama yang
-                    sudah ada di Customer dipakai ulang.
+                    Pilih customer yang ada, atau buat baru saat transaksi
+                    disimpan. Kosongkan untuk walk-in.
                 </p>
-                <InputError message={errors.customer_name} />
-            </div>
-
-            {/* HP hanya bersama nama (aturan server) — disabled, bukan
-                        disembunyikan, supaya owner tahu field-nya ada. Yang
-                        dikirim ketikan mentah; server yang menormalkan. */}
-            <div className="flex flex-col gap-1.5">
-                <label htmlFor="customer_phone" className="text-sm">
-                    No HP{' '}
-                    <span className="text-muted-foreground">
-                        — opsional, untuk kirim struk
-                    </span>
-                </label>
-                <Input
-                    id="customer_phone"
-                    inputMode="tel"
-                    autoComplete="off"
-                    placeholder="08…"
-                    disabled={data.customer_name.trim() === ''}
-                    title={
-                        data.customer_name.trim() === ''
-                            ? 'Isi nama dulu'
-                            : undefined
-                    }
-                    value={data.customer_phone}
-                    onChange={(e) => setData('customer_phone', e.target.value)}
-                />
-                <InputError message={errors.customer_phone} />
             </div>
 
             <div className="flex flex-col gap-1.5">
