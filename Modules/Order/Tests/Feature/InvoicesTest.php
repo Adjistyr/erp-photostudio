@@ -166,4 +166,32 @@ class InvoicesTest extends TestCase
             // Sisa tagihan tetap bruto: lunas.
             ->where('invoice.balance', 0));
     }
+
+    public function test_public_invoice_has_no_logo_until_file_exists()
+    {
+        config(['studio.logo' => 'brand/tidak-ada.png']);
+
+        $this->get($this->order('ORD-0011')->invoiceUrl())
+            ->assertInertia(fn (Assert $page) => $page->where('studio.logo_url', null));
+    }
+
+    public function test_public_invoice_carries_logo_url_when_file_exists()
+    {
+        // File yang pasti ada di public/ — slot logo hanya butuh path yang terisi.
+        config(['studio.logo' => 'favicon.svg']);
+
+        $this->get($this->order('ORD-0011')->invoiceUrl())
+            ->assertInertia(fn (Assert $page) => $page->where('studio.logo_url', asset('favicon.svg')));
+        $this->actingAs(User::factory()->create())
+            ->get(route('invoices.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('studio.logo_url', asset('favicon.svg')));
+    }
+
+    public function test_logo_path_outside_public_is_ignored()
+    {
+        config(['studio.logo' => '../.env']);
+
+        $this->get($this->order('ORD-0011')->invoiceUrl())
+            ->assertInertia(fn (Assert $page) => $page->where('studio.logo_url', null));
+    }
 }

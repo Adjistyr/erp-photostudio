@@ -115,7 +115,10 @@ Keputusan K1–K5 di `docs/rencana-pengembangan-operasional.md` adalah **rekomen
 
 ## 5. Terbuka di luar spek (butuh owner/client)
 
-- Logo asli — `resources/js/components/app-logo-icon.tsx` masih ikon kamera.
+- **Logo asli (menunggu file dari client).** Cara mengganti setelah file diterima:
+  1. **Invoice & struk:** taruh file di `public/brand/logo.png` (PNG/SVG latar transparan, tinggi ≥ 120 px; tampil setinggi 48 px, 40 px saat cetak) — langsung terpakai tanpa build. Nama/lokasi lain: `STUDIO_LOGO=brand/nama-file.svg` di `.env`. Struk thermal mencetak hitam-putih, jadi pastikan logo tetap terbaca dalam grayscale.
+  2. **Sidebar & halaman login:** ganti isi `resources/js/components/app-logo-icon.tsx` (masih ikon kamera), lalu `npm run build`.
+  3. **Favicon:** `public/favicon.ico`, `public/favicon.svg`, `public/apple-touch-icon.png` masih **logo Laravel bawaan starter kit** — ganti dengan versi logo brand.
 - `.env` produksi: `APP_NAME`, `STUDIO_NAME/ADDRESS/PHONE/BANK_ACCOUNT` (dipakai invoice & template), `MAIL_*` (blast email masih `log`).
 - Hapus folder `web/` (prototype) setelah client setuju.
 - Go-live: hosting, backup, data awal (katalog, aset, **modal awal per owner**), CI (billing GitHub Actions terkunci).
