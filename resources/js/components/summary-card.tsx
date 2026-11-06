@@ -23,12 +23,12 @@ export function SummaryCard({
     urgent?: boolean;
 }) {
     return (
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
             <CardHeader className="p-0">
                 <CardDescription className="text-xs">{label}</CardDescription>
                 <CardTitle
                     className={cn(
-                        'text-[30px] leading-tight font-medium tracking-[-0.02em]',
+                        'text-lg leading-tight font-medium tracking-[-0.02em] whitespace-nowrap sm:text-[30px]',
                         urgent && 'text-destructive',
                     )}
                 >

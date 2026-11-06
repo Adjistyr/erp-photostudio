@@ -119,7 +119,7 @@ export default function Receivables({
                 description="Tagihan yang belum lunas, sisa terbesar di atas."
             />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1">
                 <SummaryCard
                     label="Total piutang"
                     value={formatRp(totals.total)}

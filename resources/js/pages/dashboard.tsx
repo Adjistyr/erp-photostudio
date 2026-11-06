@@ -169,7 +169,8 @@ export default function Dashboard(props: Props) {
                 {/* Admin tidak menerima omzet: tiga kartu, tanpa slot kosong. */}
                 <div
                     className={cn(
-                        'grid grid-cols-1 gap-4',
+                        // < sm dua kolom: empat kartu satu-satu ±560px sebelum isi.
+                        'grid grid-cols-2 gap-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1',
                         revenue !== undefined
                             ? 'sm:grid-cols-2 xl:grid-cols-4'
                             : 'lg:grid-cols-3',

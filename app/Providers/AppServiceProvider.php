@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\ExceptionResponse;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +30,29 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureGates();
+        $this->configureErrorPages();
+    }
+
+    /**
+     * Halaman error berbahasa Indonesia (`resources/js/pages/error.tsx`)
+     * menggantikan halaman Laravel bawaan berbahasa Inggris tanpa jalan
+     * kembali. 403/404 di semua environment — tidak ada info debug yang
+     * hilang. 500/503 hanya di luar local/testing supaya stack trace Laravel
+     * tetap tampil saat pengembangan. Request JSON jatuh ke render bawaan
+     * (null) supaya `shouldRenderJsonWhen` tetap berlaku.
+     */
+    private function configureErrorPages(): void
+    {
+        Inertia::handleExceptionsUsing(function (ExceptionResponse $response) {
+            $status = $response->statusCode();
+            $debugStatus = in_array($status, [500, 503], true) && ! app()->environment(['local', 'testing']);
+
+            if ($response->request->expectsJson() || (! in_array($status, [403, 404], true) && ! $debugStatus)) {
+                return null;
+            }
+
+            return $response->render('error', ['status' => $status])->withSharedData();
+        });
     }
 
     /**

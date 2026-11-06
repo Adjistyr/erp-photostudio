@@ -153,8 +153,9 @@ export default function ExpensesIndex(props: Props) {
                 {/* Admin hanya melihat satu kartu — melebar penuh, bukan sepertiga dengan lubang di kanan. */}
                 <div
                     className={cn(
-                        'grid grid-cols-1 gap-4',
-                        operatingTotal !== undefined && 'sm:grid-cols-3',
+                        'grid grid-cols-1 gap-3 sm:gap-4',
+                        operatingTotal !== undefined &&
+                            'grid-cols-2 sm:grid-cols-3 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1',
                     )}
                 >
                     <SummaryCard
