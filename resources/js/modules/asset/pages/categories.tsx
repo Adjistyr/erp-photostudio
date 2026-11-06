@@ -94,10 +94,16 @@ export default function AssetCategories({
                                 <TableCell className="font-medium">
                                     {c.name}
                                 </TableCell>
-                                <TableCell className="font-mono">
-                                    {c.code_prefix}
+                                <TableCell>
+                                    <span className="font-mono">
+                                        {c.code_prefix}
+                                    </span>
+                                    {/* Mono hanya untuk kode (R2), bukan kata "berikutnya". */}
                                     <span className="ml-2 text-xs text-muted-foreground">
-                                        berikutnya {c.next_code}
+                                        berikutnya{' '}
+                                        <span className="font-mono">
+                                            {c.next_code}
+                                        </span>
                                     </span>
                                 </TableCell>
                                 <TableCell className="text-right">

@@ -252,8 +252,8 @@ export default function CatalogForm({
                                         autoFocus={!editing}
                                         placeholder={
                                             data.type === 'product'
-                                                ? 'Keychain Foto Akrilik'
-                                                : 'Paket Studio 1 Jam'
+                                                ? 'mis. Keychain Foto Akrilik'
+                                                : 'mis. Paket Studio 1 Jam'
                                         }
                                         value={data.name}
                                         aria-invalid={Boolean(errors.name)}
@@ -316,7 +316,7 @@ export default function CatalogForm({
                                         </FieldLabel>
                                         <Input
                                             id="category"
-                                            placeholder="Cetak"
+                                            placeholder="mis. Cetak"
                                             value={data.category}
                                             onChange={(e) =>
                                                 setData(
@@ -523,8 +523,8 @@ export default function CatalogForm({
                                             maxLength={2000}
                                             placeholder={
                                                 data.type === 'product'
-                                                    ? 'Akrilik 5 cm, cetak dua sisi.'
-                                                    : 'Sesi 1 jam, 2 background, 10 file edit.'
+                                                    ? 'mis. Akrilik 5 cm, cetak dua sisi.'
+                                                    : 'mis. Sesi 1 jam, 2 background, 10 file edit.'
                                             }
                                             value={data.description}
                                             aria-invalid={Boolean(

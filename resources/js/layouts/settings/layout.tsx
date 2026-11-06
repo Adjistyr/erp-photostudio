@@ -82,7 +82,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                 </nav>
 
                 <Panel label="Isi pengaturan" className="flex-1 md:max-w-2xl">
-                    <section className="flex max-w-xl flex-col gap-12">
+                    <section className="flex flex-col gap-12">
                         {children}
                     </section>
                 </Panel>

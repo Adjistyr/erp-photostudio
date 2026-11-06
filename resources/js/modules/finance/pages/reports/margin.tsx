@@ -115,7 +115,10 @@ export default function Margin({ month, lines, totals }: Props) {
                                     </span>
                                     <span className="text-muted-foreground">
                                         {formatRp(l.revenue)} · margin{' '}
-                                        {formatPersen(l.margin_ratio)}
+                                        {/* Tanpa omzet, margin tidak bermakna — "—" seperti tabel. */}
+                                        {l.revenue === 0
+                                            ? '—'
+                                            : formatPersen(l.margin_ratio)}
                                     </span>
                                 </div>
                                 {/*

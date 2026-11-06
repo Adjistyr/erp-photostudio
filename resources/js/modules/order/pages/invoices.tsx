@@ -110,16 +110,6 @@ export default function Invoices({
 
             <PageHeader title="Invoice" />
 
-            <Notice>
-                <span className="font-medium text-foreground">
-                    Invoice digenerate dari order.
-                </span>{' '}
-                Tidak ada yang perlu dibuat manual. Satu invoice dikirim
-                berkali-kali seiring pembayaran bertambah — isinya selalu
-                mengikuti kondisi terkini, jadi tidak ada dokumen terpisah untuk
-                DP dan pelunasan. Order batal tidak punya invoice.
-            </Notice>
-
             <Panel label="Filter invoice">
                 <ListToolbar
                     value={filters}
@@ -211,6 +201,16 @@ export default function Invoices({
                     }).url
                 }
             />
+
+            <Notice>
+                <span className="font-medium text-foreground">
+                    Invoice digenerate dari order.
+                </span>{' '}
+                Tidak ada yang perlu dibuat manual. Satu invoice dikirim
+                berkali-kali seiring pembayaran bertambah — isinya selalu
+                mengikuti kondisi terkini, jadi tidak ada dokumen terpisah untuk
+                DP dan pelunasan. Order batal tidak punya invoice.
+            </Notice>
 
             <Sheet
                 open={preview !== null}

@@ -29,7 +29,7 @@ import {
 import type { ListFilterDef, ListFilters } from '@/components/list-toolbar';
 import { Pagination } from '@/components/pagination';
 import type { Paginated } from '@/components/pagination';
-import { Notice, PageHeader } from '@/components/page';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import {
     LineMark,
     PaymentBadge,
@@ -177,13 +177,16 @@ export default function CustomersIndex({
                     }
                 />
 
-                <ListToolbar
-                    value={filters}
-                    filters={CUSTOMER_FILTERS}
-                    placeholder="Cari nama atau HP…"
-                    onChange={go}
-                    total={{ count: page.total, noun: 'customer' }}
-                />
+                {/* Filter di dalam Panel, sama dengan Order/Pembayaran/Invoice. */}
+                <Panel label="Filter customer">
+                    <ListToolbar
+                        value={filters}
+                        filters={CUSTOMER_FILTERS}
+                        placeholder="Cari nama atau HP…"
+                        onChange={go}
+                        total={{ count: page.total, noun: 'customer' }}
+                    />
+                </Panel>
 
                 {visible.length === 0 && hasActiveFilter(filters) ? (
                     <KosongTabel
