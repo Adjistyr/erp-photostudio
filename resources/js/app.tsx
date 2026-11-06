@@ -33,7 +33,9 @@ void createInertiaApp({
     layout: (name) => {
         switch (true) {
             // Dokumen untuk customer (tanpa login) — tanpa sidebar admin.
-            case name === 'welcome' || name === 'order::invoice-public':
+            case name === 'welcome' ||
+                name === 'order::invoice-public' ||
+                name === 'error':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

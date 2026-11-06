@@ -141,7 +141,7 @@ Satu mekanisme — **Gate per kemampuan, bukan cek peran**. Daftar Gate = `App\E
 | `record-operating-expense` | `expenses.operating.store` |
 
 Cara memasang:
-- **Route** → middleware `can:<gate>`: `->middleware('can:delete-money')` untuk satu route, `Route::middleware('can:manage-assets')->group(...)` untuk sekumpulan. Ditolak = 403. Jangan cek peran di controller.
+- **Route** → middleware `can:<gate>`: `->middleware('can:delete-money')` untuk satu route, `Route::middleware('can:manage-assets')->group(...)` untuk sekumpulan. Ditolak = 403 → halaman `error` berbahasa Indonesia (`AppServiceProvider::configureErrorPages()`; request JSON tetap JSON). Jangan cek peran di controller.
 - **Prop finansial** → `Modules\Shared\Support\Finance` di controller: `Finance::except($props, ['margin', 'summary.book_value'])` (dot notation boleh; untuk daftar, per baris) atau `...Finance::only(fn () => ['revenue' => …])` untuk prop yang seluruhnya finansial (tidak dihitung untuk admin). Field **dihapus**, bukan `null` — klien membedakan "tidak boleh lihat" dari "nol". Tipe TS field itu dibuat opsional (`margin?: number`) dan kolom/kartu dirender dari `!== undefined`. Test: `assertInertia(fn ($p) => $p->missing('…'))` sebagai admin, `->has('…')` sebagai owner (`User::factory()->admin()`).
 - **Tombol / menu** → `useCan()` (`hooks/use-can.ts`, membaca shared prop `auth.can.<gate_snake>`): `{can.delete_money && <ConfirmDelete … />}`. Jangan menebak dari `auth.user.role`. Menu sidebar: `navGroupsFor(can)` di `app-sidebar.tsx`.
 

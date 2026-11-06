@@ -83,7 +83,15 @@ export function ScheduleEditor({
                     )}
 
                     {rows.map((r, i) => (
-                        <div key={r.key} className="flex flex-col gap-1">
+                        // < sm tiap termin satu kartu: tiga isian bertumpuk tanpa
+                        // pemisah tidak terbaca milik termin yang mana.
+                        <div
+                            key={r.key}
+                            className="flex flex-col gap-1 max-sm:rounded-2xl max-sm:border max-sm:p-3"
+                        >
+                            <span className="text-xs font-medium text-muted-foreground sm:hidden">
+                                Termin {i + 1}
+                            </span>
                             <div className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[minmax(0,10rem)_10rem_1fr_auto]">
                                 <Input
                                     aria-label={`Label termin ${i + 1}`}

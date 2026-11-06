@@ -44,8 +44,9 @@ Server lokal: `DB_USERNAME=$(whoami) DB_PASSWORD= php artisan serve --port=8000`
   - **#69** fix Laba Rugi: HPP bahan diakui **sebanding uang diterima** per bulan (sebelumnya terhitung penuh di tiap bulan order menerima pembayaran → dobel untuk DP + pelunasan beda bulan).
   - **#70** estimasi biaya job jasa (`estimated_cost`, Rp atau %) → estimasi margin di detail order sampai biaya job dicatat; **tidak** masuk Laba Rugi (keputusan owner).
   - **#71** slot logo brand di invoice & struk (`STUDIO_LOGO`), ikon sementara sampai file logo dikirim.
+  - **#76–#78** sisa audit: filter dalam Panel, placeholder "mis.", kalender mobile (titik + Agenda) + Buat Booking, kartu KPI 2 kolom di mobile, termin per kartu di mobile, **halaman error berbahasa Indonesia** (`pages/error.tsx` via `Inertia::handleExceptionsUsing()`: 403/404 selalu, 500/503 hanya di luar local/testing).
   - **#73 / #74** audit UI/UX (desktop 1440 + mobile 390, owner & admin): semua P1 (invoice publik mobile, HPP varian mobile, tabel Jadwal besok, dialog tinggi di HP) + P2 pilihan user (tabel melewati panel, petunjuk geser tab `useScrollHint`, picker bukti transfer, `FormActionBar` Simpan di form panjang, label "Catat Bayar").
-- Test terakhir: **592 PHPUnit, 146 Vitest**, PHPStan level 7 bersih, Pint, `vp check`, `types:check`, `npm run build` hijau.
+- Test terakhir: **596 PHPUnit, 147 Vitest**, PHPStan level 7 bersih, Pint, `vp check`, `types:check`, `npm run build` hijau.
 - CI GitHub Actions tidak berjalan sejak awal (akun terkunci billing — job gagal dalam 2–3 detik tanpa dijalankan). Gate yang dipakai: `composer ci:check` lokal sebelum merge.
 
 ### Daftar PR spek
@@ -114,8 +115,8 @@ Verifikasi 4 Nov 2026 (DB presentasi): ORD-0457 (POS, customer baru "Uji Picker 
 
 Semua spek di `docs/specs/README.md` selesai per #64 (5.2 dibatalkan). Sisa temuan audit UI/UX (4 Nov 2026) — belum dipilih user, kerjakan bila diminta:
 
-- P2: isian tanggal bawaan browser tampil `04/11/2026`, bukan R5 (perlu date picker; filter tanggal Order tanpa label Dari/Sampai); posisi filter bar beda antar halaman (dalam Panel vs di kanvas); nama `erp-Potraittime` di sidebar & judul tab termasuk invoice customer (butuh nama brand asli → `APP_NAME`, judul halaman publik tanpa sufiks app); kalender mobile — chip booking terpotong 1–2 huruf.
-- P3: nominal Rp terlipat di Riwayat harga mobile; kartu KPI mobile ±560px (grid 2 kolom); scroll ganda tabel ber-`max-h`; tombol ghost bercampur di kepala (Kembalikan ke Booking, Lepas Aset); heading Foto/Nota tidak pakai Panel title; mono untuk teks "berikutnya" di Kategori aset; penanda kosong "–" vs "—"; padding & badge Owner di Settings; termin di Ubah Order mobile tanpa pemisah; placeholder seperti data asli (beri "mis."); halaman 403 Laravel bawaan berbahasa Inggris; Kalender tanpa tombol Buat Booking, dan "Penggantian 6 bulan ke depan" memuat aset yang sudah lewat.
+- P2: isian tanggal bawaan browser tampil `04/11/2026`, bukan R5 — perlu date picker (dependency baru `react-day-picker`, butuh persetujuan); filter tanggal Order belum berlabel Dari/Sampai. Nama `erp-Potraittime` di sidebar & judul tab termasuk invoice customer — butuh nama brand asli → `APP_NAME`.
+- P3 yang belum: scroll ganda tabel ber-`max-h` (mungkin disengaja untuk header sticky — konfirmasi dulu); heading galeri foto (sengaja tidak diubah, lihat #76).
 
 Kandidat lanjutan, kerjakan bila diminta:
 

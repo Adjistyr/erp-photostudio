@@ -181,7 +181,7 @@ export default function AssetsIndex(props: Props) {
             />
 
             <div
-                className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${bookValue !== undefined ? 'xl:grid-cols-4' : ''}`}
+                className={`grid grid-cols-2 gap-3 sm:gap-4 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1 ${bookValue !== undefined ? 'xl:grid-cols-4' : ''}`}
             >
                 <SummaryCard
                     label="Aset dimiliki"
