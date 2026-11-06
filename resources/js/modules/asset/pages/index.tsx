@@ -252,12 +252,14 @@ export default function AssetsIndex(props: Props) {
             <CategorySummaryTable rows={by_category} />
 
             {assets.length > 0 && (
-                <ListToolbar
-                    value={search}
-                    filters={filters}
-                    placeholder="Cari kode, nama, merek, seri, atau lokasi…"
-                    onChange={setSearch}
-                />
+                <Panel label="Filter aset">
+                    <ListToolbar
+                        value={search}
+                        filters={filters}
+                        placeholder="Cari kode, nama, merek, seri, atau lokasi…"
+                        onChange={setSearch}
+                    />
+                </Panel>
             )}
 
             {assets.length > 0 && visible.length === 0 ? (

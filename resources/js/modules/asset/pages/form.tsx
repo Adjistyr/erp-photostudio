@@ -237,7 +237,7 @@ export default function AssetForm({
                                     <Input
                                         id="asset-name"
                                         autoFocus={!editing}
-                                        placeholder="Lensa portrait"
+                                        placeholder="mis. Lensa portrait"
                                         value={data.name}
                                         aria-invalid={Boolean(errors.name)}
                                         onChange={(e) =>
@@ -332,7 +332,7 @@ export default function AssetForm({
                                         id="asset-brand"
                                         list="asset-brands"
                                         maxLength={100}
-                                        placeholder="Canon"
+                                        placeholder="mis. Canon"
                                         value={data.brand}
                                         onChange={(e) =>
                                             setData('brand', e.target.value)
@@ -349,7 +349,7 @@ export default function AssetForm({
                                     </FieldLabel>
                                     <Input
                                         id="asset-model"
-                                        placeholder="RF 50mm f/1.8"
+                                        placeholder="mis. RF 50mm f/1.8"
                                         value={data.model}
                                         onChange={(e) =>
                                             setData('model', e.target.value)
@@ -415,7 +415,7 @@ export default function AssetForm({
                                         id="asset-location"
                                         list="asset-locations"
                                         maxLength={100}
-                                        placeholder="Lemari kamera"
+                                        placeholder="mis. Lemari kamera"
                                         value={data.location}
                                         onChange={(e) =>
                                             setData('location', e.target.value)

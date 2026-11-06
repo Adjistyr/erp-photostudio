@@ -128,7 +128,7 @@ export default function AssetShow({
                         )}
                         {!a.disposed_on && can.manage_assets && (
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 onClick={() => setDialog('dispose')}
                             >
                                 Lepas Aset
@@ -164,9 +164,14 @@ export default function AssetShow({
                                 {a.model ?? '—'}
                             </DetailRow>
                             <DetailRow label="Nomor seri">
-                                <span className="font-mono break-all">
-                                    {a.serial_number ?? '—'}
-                                </span>
+                                {/* "—" di luar mono: di font mono em dash tampil seperti "–". */}
+                                {a.serial_number ? (
+                                    <span className="font-mono break-all">
+                                        {a.serial_number}
+                                    </span>
+                                ) : (
+                                    '—'
+                                )}
                             </DetailRow>
                             <DetailRow label="Garansi">
                                 {a.warranty_until

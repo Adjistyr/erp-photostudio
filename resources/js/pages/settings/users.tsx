@@ -125,7 +125,7 @@ export default function Users({
                                     <Badge
                                         variant={
                                             u.role === 'owner'
-                                                ? 'default'
+                                                ? 'outline'
                                                 : 'secondary'
                                         }
                                     >

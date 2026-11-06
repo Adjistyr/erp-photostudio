@@ -29,7 +29,7 @@ import {
 } from '@/components/data-table';
 import { ListToolbar } from '@/components/list-toolbar';
 import type { ListFilters } from '@/components/list-toolbar';
-import { Notice, PageHeader } from '@/components/page';
+import { Notice, PageHeader, Panel } from '@/components/page';
 import { ProductPhoto } from '@/components/product-photo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -124,20 +124,6 @@ export default function CatalogIndex({
                         )
                     }
                 />
-                <Tabs
-                    value={filter}
-                    onValueChange={(v) => {
-                        const f = FILTER.find((x) => x === v);
-                        if (f) setFilter(f);
-                    }}
-                >
-                    <TabsList>
-                        <TabsTrigger value="all">Semua</TabsTrigger>
-                        <TabsTrigger value="product">Produk</TabsTrigger>
-                        <TabsTrigger value="service">Jasa</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-
                 {tersesat > 0 && (
                     <Alert variant="destructive">
                         <AlertTitle>
@@ -150,11 +136,31 @@ export default function CatalogIndex({
                     </Alert>
                 )}
 
-                <ListToolbar
-                    value={search}
-                    placeholder="Cari nama atau kategori…"
-                    onChange={setSearch}
-                />
+                {/* Jenis + pencarian satu Panel, sama dengan Pembayaran. */}
+                <Panel label="Filter katalog">
+                    <div className="flex flex-col gap-3">
+                        <Tabs
+                            value={filter}
+                            onValueChange={(v) => {
+                                const f = FILTER.find((x) => x === v);
+                                if (f) setFilter(f);
+                            }}
+                        >
+                            <TabsList>
+                                <TabsTrigger value="all">Semua</TabsTrigger>
+                                <TabsTrigger value="product">
+                                    Produk
+                                </TabsTrigger>
+                                <TabsTrigger value="service">Jasa</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <ListToolbar
+                            value={search}
+                            placeholder="Cari nama atau kategori…"
+                            onChange={setSearch}
+                        />
+                    </div>
+                </Panel>
 
                 {visible.length === 0 && search.q.trim() !== '' ? (
                     <KosongTabel

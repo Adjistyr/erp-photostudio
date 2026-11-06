@@ -61,14 +61,14 @@ export function PriceHistory({ rows }: { rows: CatalogPriceChange[] }) {
                                     <td className="py-1.5 pr-3">
                                         {periode[i].replace(/^Berlaku /, '')}
                                     </td>
-                                    <td className="py-1.5 pr-3 text-right">
+                                    <td className="py-1.5 pr-3 text-right whitespace-nowrap">
                                         {formatRp(row.price)}
                                         <Selisih
                                             nilai={selisih(rows, i, 'price')}
                                         />
                                     </td>
                                     {showCost && (
-                                        <td className="py-1.5 pr-3 text-right">
+                                        <td className="py-1.5 pr-3 text-right whitespace-nowrap">
                                             {row.unit_cost === null
                                                 ? '—'
                                                 : formatRp(row.unit_cost)}
