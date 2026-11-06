@@ -15,8 +15,9 @@
  */
 
 import { Head, Link } from '@inertiajs/react';
-import { List } from 'lucide-react';
+import { List, Plus } from 'lucide-react';
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { MonthNav } from '@/components/month-nav';
 import { Notice, PageHeader, Panel } from '@/components/page';
 import { PaymentBadge, WorkProgress } from '@/components/status-order';
@@ -31,6 +32,7 @@ import {
 import { formatJadwal, formatRp } from '@/lib/format';
 import {
     calendar as ordersCalendar,
+    create as ordersCreate,
     index as ordersIndex,
 } from '@/routes/orders';
 import { LINE_COLOR, LINE_LABEL } from '@/types/domain';
@@ -78,14 +80,25 @@ export default function OrdersCalendar({
                 title="Kalender Booking"
                 description="Cek tanggal yang masih kosong sebelum menerima booking."
                 actions={
-                    <Button
-                        variant="outline"
-                        nativeButton={false}
-                        render={<Link href={ordersIndex()} />}
-                    >
-                        <List data-icon="inline-start" />
-                        Tampilan Daftar
-                    </Button>
+                    <>
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={<Link href={ordersIndex()} />}
+                        >
+                            <List data-icon="inline-start" />
+                            Tampilan Daftar
+                        </Button>
+                        {/* Halaman ini untuk cek slot kosong — langkah berikutnya
+                            hampir selalu membuat booking. */}
+                        <Button
+                            nativeButton={false}
+                            render={<Link href={ordersCreate()} />}
+                        >
+                            <Plus data-icon="inline-start" />
+                            Buat Booking
+                        </Button>
+                    </>
                 }
             />
 
@@ -129,7 +142,7 @@ export default function OrdersCalendar({
                         {Array.from({ length: offset }, (_, i) => (
                             <div
                                 key={`empty-${i}`}
-                                className="min-h-28 border-r border-b"
+                                className="min-h-14 border-r border-b sm:min-h-28"
                             />
                         ))}
 
@@ -139,13 +152,14 @@ export default function OrdersCalendar({
                             return (
                                 <div
                                     key={day}
-                                    className="flex min-h-28 min-w-0 flex-col gap-1 border-r border-b p-1.5 sm:p-2"
+                                    className="flex min-h-14 min-w-0 flex-wrap content-start gap-1 border-r border-b p-1.5 sm:min-h-28 sm:flex-col sm:flex-nowrap sm:p-2"
                                 >
                                     <span
                                         className={
-                                            day === todayDay
+                                            'max-sm:basis-full ' +
+                                            (day === todayDay
                                                 ? 'flex size-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground'
-                                                : 'px-1 text-xs text-muted-foreground'
+                                                : 'px-1 text-xs text-muted-foreground')
                                         }
                                     >
                                         {day}
@@ -155,16 +169,26 @@ export default function OrdersCalendar({
                                             key={o.id}
                                             type="button"
                                             onClick={() => setDetailId(o.id)}
-                                            className={`flex min-w-0 flex-col items-start gap-0.5 rounded-lg px-1.5 py-1 text-left transition-opacity hover:opacity-80 sm:px-2 ${
+                                            aria-label={`${o.number} ${o.customer_name ?? 'Walk-in'}${o.service_time ? ` ${o.service_time}` : ''}`}
+                                            className={`flex min-w-0 flex-col items-start gap-0.5 rounded-lg bg-(--chip) text-left transition-opacity hover:opacity-80 max-sm:size-2.5 max-sm:rounded-full max-sm:bg-(--dot) sm:px-2 sm:py-1 ${
                                                 o.work_status === 'cancelled'
                                                     ? 'line-through opacity-60'
                                                     : ''
                                             }`}
-                                            style={{
-                                                background: `color-mix(in oklch, ${LINE_COLOR[o.business_line]} 18%, transparent)`,
-                                            }}
+                                            style={
+                                                {
+                                                    '--chip': `color-mix(in oklch, ${LINE_COLOR[o.business_line]} 18%, transparent)`,
+                                                    '--dot':
+                                                        LINE_COLOR[
+                                                            o.business_line
+                                                        ],
+                                                } as CSSProperties
+                                            }
                                         >
-                                            <span className="w-full truncate text-xs font-medium">
+                                            {/* < sm: titik warna lini saja — 50px per kolom
+                                                hanya muat 1–2 huruf nama. Rinciannya di
+                                                daftar agenda di bawah kalender. */}
+                                            <span className="w-full truncate text-xs font-medium max-sm:sr-only">
                                                 {o.customer_name ?? 'Walk-in'}
                                             </span>
                                             {/*
@@ -174,7 +198,7 @@ export default function OrdersCalendar({
                                                 hanya derau.
                                             */}
                                             {o.service_time && (
-                                                <span className="text-[11px] text-muted-foreground">
+                                                <span className="text-[11px] text-muted-foreground max-sm:hidden">
                                                     {o.service_time}
                                                 </span>
                                             )}
@@ -186,6 +210,44 @@ export default function OrdersCalendar({
                     </div>
                 </div>
             </Panel>
+
+            {/* Agenda bulan ini, hanya < sm: sel kalender di HP cuma titik. */}
+            {orders.length > 0 && (
+                <Panel flush title="Agenda" className="sm:hidden">
+                    <ul className="flex flex-col">
+                        {[...orders]
+                            .sort((a, b) =>
+                                scheduleOf(a).localeCompare(scheduleOf(b)),
+                            )
+                            .map((o) => (
+                                <li
+                                    key={o.id}
+                                    className="border-b last:border-b-0"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setDetailId(o.id)}
+                                        className={`flex w-full items-center gap-3 px-[18px] py-3 text-left text-sm ${o.work_status === 'cancelled' ? 'line-through opacity-60' : ''}`}
+                                    >
+                                        <span
+                                            className="size-2 shrink-0 rounded-full"
+                                            style={{
+                                                background:
+                                                    LINE_COLOR[o.business_line],
+                                            }}
+                                        />
+                                        <span className="w-32 shrink-0 text-xs whitespace-nowrap text-muted-foreground">
+                                            {formatJadwal(scheduleOf(o))}
+                                        </span>
+                                        <span className="truncate font-medium">
+                                            {o.customer_name ?? 'Walk-in'}
+                                        </span>
+                                    </button>
+                                </li>
+                            ))}
+                    </ul>
+                </Panel>
+            )}
 
             {orders.length === 0 && (
                 <Notice>Belum ada jadwal bulan ini.</Notice>

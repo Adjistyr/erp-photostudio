@@ -168,7 +168,9 @@ export function ReplacementCard({ data }: { data: Replacements }) {
 
     return (
         <Panel
-            title="Penggantian 6 bulan ke depan"
+            // Termasuk yang sudah lewat umur (spek 6.2) — judul tidak boleh
+            // menjanjikan "ke depan" saja.
+            title="Perlu diganti s/d 6 bulan lagi"
             aside={`${data.items.length} alat · ${formatRp(data.total_estimate)}`}
         >
             <div className="flex flex-col gap-3 text-sm">
